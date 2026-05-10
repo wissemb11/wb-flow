@@ -1,0 +1,1109 @@
+{
+  "wbSetup": {
+    "description": "Initializes the Agentic Brain for the target folder by establishing its agentic identity.",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbSetup <target_path>",
+        "example": {
+          "example1": {
+            "command": "/wbSetup packages/wb-core",
+            "description": "Sets up the agentic context and dev rules for the wb-core package."
+          }
+        },
+        "input": {
+          "path": "<target_path>",
+          "type": "directory",
+          "content": "package.json, source files"
+        },
+        "output": {
+          "path": "<target_path>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/setup/setup_<folder_root_name>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "Environmental Discovery, Core Workflow Files, Global Synchronization, Audit Trail"
+        }
+      }
+    },
+    "flags": {
+      "--focus": {
+        "flag": "--focus",
+        "role": "Focuses the setup on a specific sub-system to generate specialized context and blueprints.",
+        "example": {
+          "example1": {
+            "command": "/wbSetup packages/wb-core --focus=\"renderer\"",
+            "description": "Deeply analyzes the renderer sub-system and generates a context_renderer.md and wbplan_setup.md."
+          }
+        }
+      }
+    }
+  },
+  "wbContext": {
+    "description": "Generates a comprehensive Context Report containing identity, dependencies, and constraints.",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbContext <target_folder_path>",
+        "example": {
+          "example1": {
+            "command": "/wbContext packages/wb-core",
+            "description": "Generates context for the entire wb-core package."
+          }
+        },
+        "input": {
+          "path": "<target_folder_path>",
+          "type": "directory",
+          "content": "package.json, index.js, config files"
+        },
+        "output": {
+          "path": "<target_folder_path>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/contexts/context_<folder_root_name>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "Identity, Dependencies, Constraints"
+        }
+      },
+      "withAFile": {
+        "syntax": "/wbContext <target_file_path>",
+        "example": {
+          "example1": {
+            "command": "/wbContext packages/wb-core/src/index.js",
+            "description": "Generates specific context for the index.js entry point."
+          }
+        },
+        "input": {
+          "path": "<target_file_path>",
+          "type": "file",
+          "content": "Source code file"
+        },
+        "output": {
+          "path": "<target_file_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/contexts/context_<file_name>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "Identity, Dependencies, Constraints specific to the file"
+        }
+      }
+    }
+  },
+  "wbPlan": {
+    "description": "Creates a structured multi-agent task plan for a given problem or objective.",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbPlan <target_folder_path>",
+        "example": {
+          "example1": {
+            "command": "/wbPlan packages/wb-press2",
+            "description": "Creates a plan to add a new feature to wb-press2."
+          }
+        },
+        "input": {
+          "path": "<target_folder_path>",
+          "type": "directory",
+          "content": "Context files, past audit/review reports, user description of the problem"
+        },
+        "output": {
+          "path": "<target_folder_path>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_<folder_root_name>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "Task List table with worker/validator assignments, checkboxes, and scoring."
+        }
+      }
+    },
+    "flags": {
+      "--act": {
+        "flag": "--act",
+        "role": "Generates a re-ranked actionable version of the input plan.",
+        "example": {
+          "example1": {
+            "command": "/wbPlan packages/wb-core --act",
+            "description": "Produces an action file based on the plan."
+          }
+        }
+      }
+    }
+  },
+  "wbAudit": {
+    "description": "Performs a deep, honest, code-based technical audit.",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbAudit <target_folder_path>",
+        "example": {
+          "example1": {
+            "command": "/wbAudit frontEnd/wbc-ui/core2",
+            "description": "Audits the entire core2 monorepo."
+          }
+        },
+        "input": {
+          "path": "<target_folder_path>",
+          "type": "directory",
+          "content": "All code and architecture within the folder"
+        },
+        "output": {
+          "path": "<target_folder_path>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_<folder_root_name>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "9-section audit report with tables, concrete evidence, score out of 10."
+        }
+      },
+      "withAFile": {
+        "syntax": "/wbAudit <target_file_path>",
+        "example": {
+          "example1": {
+            "command": "/wbAudit packages/wb-core/dev.md",
+            "description": "Audits the specific dev.md file for missing points."
+          }
+        },
+        "input": {
+          "path": "<target_file_path>",
+          "type": "file",
+          "content": "Single file content"
+        },
+        "output": {
+          "path": "<target_file_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_<file_name>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "Analysis of the file's purpose, logical flaws, and a fully enhanced suggestion with comparison table."
+        }
+      }
+    },
+    "flags": {
+      "--act": {
+        "flag": "--act",
+        "role": "Calls /wbActOn internally to produce a sibling action file (execution order) alongside the audit.",
+        "example": {
+          "example1": {
+            "command": "/wbAudit packages/wb-core --act",
+            "description": "Generates an audit report and an action file."
+          }
+        }
+      },
+      "--wbPlan": {
+        "flag": "--wbPlan",
+        "role": "Calls /wbActOn internally to produce a sibling plan file directly from the audit.",
+        "example": {
+          "example1": {
+            "command": "/wbAudit packages/wb-core --wbPlan",
+            "description": "Generates an audit report and a plan file."
+          }
+        }
+      }
+    }
+  },
+  "wbReview": {
+    "description": "Performs a formal quality review of an executed task against an original plan.",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbReview <target_path> <path_to_plan_file>",
+        "example": {
+          "example1": {
+            "command": "/wbReview packages/wb-press2 packages/wb-press2/.../plan_wb-press2.md",
+            "description": "Reviews the implementation in wb-press2 against its plan."
+          }
+        },
+        "input": {
+          "path": "<target_path>",
+          "type": "directory",
+          "content": "Current codebase and the ORIGINAL PLAN markdown file"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/reviews/review_<folder_root_name>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "Plan vs Reality check, Technical Integrity, Review Score (1-10) and PASS/FAIL status."
+        }
+      }
+    },
+    "flags": {
+      "--act": {
+        "flag": "--act",
+        "role": "Generates an action file for fixing issues found in the review.",
+        "example": {
+          "example1": {
+            "command": "/wbReview packages/wb-press2 plan.md --act",
+            "description": "Produces a review and an action list to fix fails."
+          }
+        }
+      },
+      "--wbPlan": {
+        "flag": "--wbPlan",
+        "role": "Generates a follow-up plan to address review debts.",
+        "example": {
+          "example1": {
+            "command": "/wbReview packages/wb-press2 plan.md --wbPlan",
+            "description": "Produces a review and a plan to fix fails."
+          }
+        }
+      }
+    }
+  },
+  "wbTest": {
+    "description": "Executes dynamic tests (UNIT, E2E, MANUAL, PERF) to verify code behavior.",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbTest <target_path> <TEST_TYPE>",
+        "example": {
+          "example1": {
+            "command": "/wbTest packages/wb-core UNIT",
+            "description": "Runs unit tests for wb-core."
+          },
+          "example2": {
+            "command": "/wbTest apps/demo.wbc-ui.com E2E",
+            "description": "Performs E2E manual testing on the demo app."
+          }
+        },
+        "input": {
+          "path": "<target_path>",
+          "type": "directory",
+          "content": "Executable code, test suites"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/tests/test_<task_or_feature>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "Test setup steps, execution logs, verification results, PASS/FAILED status."
+        }
+      }
+    }
+  },
+  "wbRelease": {
+    "description": "Orchestrates the release by resolving circular dependencies and updating package.json versions.",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbRelease <target_monorepo_path> <NEW_VERSION>",
+        "example": {
+          "example1": {
+            "command": "/wbRelease frontEnd/wbc-ui/core2 v1.0.0-r02",
+            "description": "Prepares core2 monorepo for release v1.0.0-r02."
+          }
+        },
+        "input": {
+          "path": "<target_monorepo_path>",
+          "type": "directory",
+          "content": "All package.json files, recent plans, audits"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/releases/release_<folder_root_name>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "CHANGELOG, topological graphing order, unlinking strategy details."
+        }
+      }
+    }
+  },
+  "wbPublish": {
+    "description": "Executes the final build and NPM deployment based on the wbRelease plan.",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbPublish <target_monorepo_path>",
+        "example": {
+          "example1": {
+            "command": "/wbPublish frontEnd/wbc-ui/core2",
+            "description": "Builds and publishes the monorepo packages to NPM."
+          }
+        },
+        "input": {
+          "path": "<target_monorepo_path>",
+          "type": "directory",
+          "content": "The most recent release_*.md file, prepared package.json files"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/publishes/publish_<folder_root_name>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "Build verification, signature inspection logs, NPM publish sequence logs."
+        }
+      }
+    }
+  },
+  "wbDeploy": {
+    "description": "Orchestrates deployment of consumer apps to web hosts (Vercel, AWS, VPS).",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbDeploy <target_app_path> <ENVIRONMENT>",
+        "example": {
+          "example1": {
+            "command": "/wbDeploy apps/demo.wbc-ui.com production",
+            "description": "Deploys the demo app to production."
+          }
+        },
+        "input": {
+          "path": "<target_app_path>",
+          "type": "directory",
+          "content": "Application code, environment variables"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/deployments/deploy_<app_name>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "DNS verification, build execution logs, deployment commands executed, smoke test results."
+        }
+      }
+    }
+  },
+  "wbClean": {
+    "description": "Scans for dead code, unused files, and obsolete dependencies.",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbClean <target_directory>",
+        "example": {
+          "example1": {
+            "command": "/wbClean packages/wb-dataviewer",
+            "description": "Scans wb-dataviewer for entropy and dead code."
+          }
+        },
+        "input": {
+          "path": "<target_directory>",
+          "type": "directory",
+          "content": "Code files, context.md"
+        },
+        "output": {
+          "path": "<target_directory>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/cleans/cleanup_report.md",
+          "type": "markdown",
+          "content": "Categorized findings: High Priority (Breaking Debt), Medium (Clutter), Low (Cosmetic)."
+        }
+      }
+    }
+  },
+  "wbLicense": {
+    "description": "Enforces business logic by injecting premium gating and license checks.",
+    "args": {
+      "withAFile": {
+        "syntax": "/wbLicense <target_component_path>",
+        "example": {
+          "example1": {
+            "command": "/wbLicense packages/wb-core/src/components/PremiumTable.vue",
+            "description": "Injects Pro tier gating into the PremiumTable component."
+          }
+        },
+        "input": {
+          "path": "<target_component_path>",
+          "type": "file",
+          "content": "Vue component source"
+        },
+        "output": {
+          "path": "stdout",
+          "type": "markdown",
+          "content": "Summary report confirming Free/Pro/Dev handling and graceful UI fallbacks."
+        }
+      }
+    }
+  },
+  "wbRefactor": {
+    "description": "Restructures and optimizes target code without changing visual behavior or props.",
+    "args": {
+      "withAFile": {
+        "syntax": "/wbRefactor <target_file_path>",
+        "example": {
+          "example1": {
+            "command": "/wbRefactor packages/wb-core/src/utils.js",
+            "description": "Refactors utils.js for performance."
+          }
+        },
+        "input": {
+          "path": "<target_file_path>",
+          "type": "file",
+          "content": "Target source code"
+        },
+        "output": {
+          "path": "stdout",
+          "type": "markdown",
+          "content": "Summary report confirming structural changes and API parity."
+        }
+      }
+    }
+  },
+  "wbDebug": {
+    "description": "Isolates and fixes errors following the Scientific Method.",
+    "args": {
+      "withAFile": {
+        "syntax": "/wbDebug <error_or_file>",
+        "example": {
+          "example1": {
+            "command": "/wbDebug packages/wb-core/src/App.vue",
+            "description": "Debugs the reactivity loop in App.vue."
+          },
+          "example2": {
+            "command": "/wbDebug \"TypeError: undefined is not an object\"",
+            "description": "Debugs based on a specific stack trace."
+          }
+        },
+        "input": {
+          "path": "<error_or_file>",
+          "type": "string",
+          "content": "Stack trace, error message, or file path"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/debugs/debug_report.md",
+          "type": "markdown",
+          "content": "Hypothesis, isolation steps, root cause explanation, and solution applied."
+        }
+      }
+    }
+  },
+  "wbDoc": {
+    "description": "Injects JSDoc/TSDoc comments and generates README files without modifying logic.",
+    "args": {
+      "withAFile": {
+        "syntax": "/wbDoc <target_file>",
+        "example": {
+          "example1": {
+            "command": "/wbDoc packages/wb-core/src/index.js",
+            "description": "Documents index.js with JSDoc."
+          }
+        },
+        "input": {
+          "path": "<target_file>",
+          "type": "file",
+          "content": "Source code"
+        },
+        "output": {
+          "path": "stdout",
+          "type": "markdown",
+          "content": "Summary of documented code."
+        }
+      },
+      "withAFolder": {
+        "syntax": "/wbDoc <target_folder>",
+        "example": {
+          "example1": {
+            "command": "/wbDoc packages/wb-chart",
+            "description": "Generates a comprehensive README for the wb-chart package."
+          }
+        },
+        "input": {
+          "path": "<target_folder>",
+          "type": "directory",
+          "content": "Package source"
+        },
+        "output": {
+          "path": "<target_folder>/README.md",
+          "type": "markdown",
+          "content": "Module purpose, usage examples, API surface."
+        }
+      }
+    }
+  },
+  "wbStandup": {
+    "description": "Consolidates unfinished work (open tickets, failing audits) into a single agenda.",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbStandup <target_folder>",
+        "example": {
+          "example1": {
+            "command": "/wbStandup frontEnd/wbc-ui/core2",
+            "description": "Generates a monorepo-wide daily standup report."
+          }
+        },
+        "input": {
+          "path": "<target_folder>",
+          "type": "directory",
+          "content": "All reports/**/plans/*.md and reports/**/audits/*.md"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/standups/daily_standup.md",
+          "type": "markdown",
+          "content": "Grouped open tickets, audit debt, and definitive next-command recommendation."
+        }
+      }
+    },
+    "flags": {
+      "--act": {
+        "flag": "--act",
+        "role": "Passes the standup to /wbActOn to rank the findings.",
+        "example": {
+          "example1": {
+            "command": "/wbStandup core2/ --act",
+            "description": "Generates standup and action order."
+          }
+        }
+      },
+      "--wbPlan": {
+        "flag": "--wbPlan",
+        "role": "Generates a plan directly from the standup items.",
+        "example": {
+          "example1": {
+            "command": "/wbStandup core2/ --wbPlan",
+            "description": "Generates standup and plan."
+          }
+        }
+      }
+    }
+  },
+  "wbVision": {
+    "description": "Proposes 3 highly innovative, strategic features to build next.",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbVision <target_package_or_root>",
+        "example": {
+          "example1": {
+            "command": "/wbVision packages/wb-code",
+            "description": "Proposes next-gen features for wb-code."
+          }
+        },
+        "input": {
+          "path": "<target_package_or_root>",
+          "type": "directory",
+          "content": "context.md, ecosystem_urls.md"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/visions/vision_proposal.md",
+          "type": "markdown",
+          "content": "3 distinct feature ideas with 'Why it matters' and 'Complexity'."
+        }
+      }
+    }
+  },
+  "wbBroadcast": {
+    "description": "Generates an Announcement Kit and manages version lifecycle status.",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbBroadcast <target_package_or_app>",
+        "example": {
+          "example1": {
+            "command": "/wbBroadcast packages/wb-press2",
+            "description": "Creates announcement kit for wb-press2 release."
+          }
+        },
+        "input": {
+          "path": "<target_package_or_app>",
+          "type": "directory",
+          "content": "Latest /wbRelease and /wbAudit reports"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/broadcasts/announcement_kit.md",
+          "type": "markdown",
+          "content": "Social media drafts, GitHub release notes, Blog post, VERSION_STATUS.md suggestion."
+        }
+      }
+    }
+  },
+  "wbGit": {
+    "description": "Analyzes current file changes and generates Conventional Commits.",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbGit",
+        "example": {
+          "example1": {
+            "command": "/wbGit",
+            "description": "Generates commit message for CWD."
+          }
+        },
+        "input": {
+          "path": "CWD",
+          "type": "directory",
+          "content": "git status, git diff, recent plans/standups"
+        },
+        "output": {
+          "path": "stdout",
+          "type": "string",
+          "content": "Strict Conventional Commit message with optional body."
+        }
+      }
+    }
+  },
+  "wbSecure": {
+    "description": "Scans for vulnerabilities (secrets, XSS, insecure deps).",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbSecure <target_path>",
+        "example": {
+          "example1": {
+            "command": "/wbSecure packages/wb-core",
+            "description": "Performs red team security scan on wb-core."
+          }
+        },
+        "input": {
+          "path": "<target_path>",
+          "type": "directory",
+          "content": "Source code, package.json"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/security/security_audit.md",
+          "type": "markdown",
+          "content": "Security findings categorized as CRITICAL, WARNING, or SAFE."
+        }
+      }
+    }
+  },
+  "wbTranslate": {
+    "description": "Extracts hardcoded strings and generates localized JSON files (EN, FR, AR).",
+    "args": {
+      "withAFile": {
+        "syntax": "/wbTranslate <target_ui_component>",
+        "example": {
+          "example1": {
+            "command": "/wbTranslate packages/wb-core/src/components/Banner.vue",
+            "description": "Translates strings in Banner.vue."
+          }
+        },
+        "input": {
+          "path": "<target_ui_component>",
+          "type": "file",
+          "content": "Vue component"
+        },
+        "output": {
+          "path": "stdout",
+          "type": "markdown",
+          "content": "Summary of extracted keys and generated JSON content."
+        }
+      }
+    }
+  },
+  "wbToWBC": {
+    "description": "Rewrites legacy bulky HTML/Vuetify into proprietary WBC-UI2 JSON components.",
+    "args": {
+      "withAFile": {
+        "syntax": "/wbToWBC <legacy_component>",
+        "example": {
+          "example1": {
+            "command": "/wbToWBC legacy-table.vue",
+            "description": "Converts legacy table to wb-dataviewer JSON prop."
+          }
+        },
+        "input": {
+          "path": "<legacy_component>",
+          "type": "file",
+          "content": "Legacy Vue code"
+        },
+        "output": {
+          "path": "<target_folder>/migration_report.md",
+          "type": "markdown",
+          "content": "Rewritten component code, Before & After line counts."
+        }
+      }
+    }
+  },
+  "wbMonetize": {
+    "description": "Bootstraps or maintains the Free/Pro/Dev tier splitting plumbing.",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbMonetize <package_path>",
+        "example": {
+          "example1": {
+            "command": "/wbMonetize packages/wb-dataviewer",
+            "description": "Bootstraps monetization for dataviewer."
+          }
+        },
+        "input": {
+          "path": "<package_path>",
+          "type": "directory",
+          "content": "package.json (.wbMonetize field), source code"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/monetize/monetize_<pkg>_<HHMMSS>.md",
+          "type": "markdown",
+          "content": "Mode (bootstrap/maintenance), feature split proposal, plumbing checklist, updated marker."
+        }
+      }
+    }
+  },
+  "wbActOn": {
+    "description": "Turns a diagnostic document (audit, plan, review) into a ranked execution order.",
+    "args": {
+      "withAFile": {
+        "syntax": "/wbActOn <file_path>",
+        "example": {
+          "example1": {
+            "command": "/wbActOn packages/wb-core/.../audit_wb-core_20260426.md",
+            "description": "Processes the audit and outputs an execution ranking."
+          }
+        },
+        "input": {
+          "path": "<file_path>",
+          "type": "file",
+          "content": "Markdown diagnostic document"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/actions/action_<source_type>_<short_name>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "Annotated source with [Model action] callouts and §0 Ranked Execution Order."
+        }
+      },
+      "withAFolder": {
+        "syntax": "/wbActOn <folder_path>",
+        "example": {
+          "example1": {
+            "command": "/wbActOn packages/wb-core",
+            "description": "Finds latest report in the folder to act on."
+          }
+        },
+        "input": {
+          "path": "<folder_path>",
+          "type": "directory",
+          "content": "Directory containing reports"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/actions/.../action_*.md",
+          "type": "markdown",
+          "content": "Annotated source with ranked order."
+        }
+      }
+    },
+    "flags": {
+      "--wbPlan": {
+        "flag": "--wbPlan",
+        "role": "Also produces a sibling plan file containing one task table per 🔵 finding from the action file.",
+        "example": {
+          "example1": {
+            "command": "/wbActOn audit_wb-core.md --wbPlan",
+            "description": "Generates the action ranking and the corresponding wbPlan."
+          }
+        }
+      }
+    }
+  },
+  "wbCheck": {
+    "description": "Pre-Flight Context Quiz to verify worker model understanding.",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbCheck <target_package_or_app>",
+        "example": {
+          "example1": {
+            "command": "/wbCheck packages/wb-core",
+            "description": "Tests all categories for that package."
+          }
+        },
+        "input": {
+          "path": "<target_package_or_app>",
+          "type": "directory",
+          "content": "Source code ONLY"
+        },
+        "output": {
+          "path": "stdout",
+          "type": "string",
+          "content": "Model answers to the quiz questions followed by pass verdict check."
+        }
+      }
+    }
+  },
+  "wbExplain": {
+    "description": "Generate persistent, formatted explanations for a specific task ID, a codebase architecture, or a general technical question, without executing code changes.",
+    "role": "The Teacher / The Architect",
+    "args": {
+      "withTask": {
+        "syntax": "/wbExplain <plan_file> --id=<task_id>",
+        "example": {
+          "example1": {
+            "command": "/wbExplain plan_wb-core_20260503.md --id=1 --as=eli5",
+            "description": "Explains task #1 from the plan using ELI5 style."
+          }
+        },
+        "input": {
+          "path": "<plan_file>",
+          "type": "file",
+          "content": "The plan markdown file containing the task"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/explanations/explain_<slug>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "High-level summary, deep dive, and recommended approach."
+        }
+      },
+      "withQuery": {
+        "syntax": "/wbExplain <target_folder> \"<query>\"",
+        "example": {
+          "example1": {
+            "command": "/wbExplain packages/wb-core/ \"How does the Tier parser work?\" --as=expert",
+            "description": "Deep dives into the architecture question for the wb-core package."
+          }
+        },
+        "input": {
+          "path": "<target_folder>",
+          "type": "directory",
+          "content": "Source files relevant to the query"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/explanations/explain_<slug>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "High-level summary, deep dive, and recommended approach."
+        }
+      }
+    },
+    "flags": {
+      "--as": {
+        "flag": "--as=<style>",
+        "role": "Adopts an exact tone or formatting style from shortcuts.md (e.g. eli5, expert, fr).",
+        "example": {
+          "example1": {
+            "command": "/wbExplain plan.md --id=1 --as=eli5,fr",
+            "description": "Explains the task in French, using an ELI5 analogy."
+          }
+        }
+      }
+    }
+  },
+  "wbValid": {
+    "description": "Validates a worker's output by running an adversarial review — a second model checks the first model's work for correctness, completeness, and quality.",
+    "role": "The Validator / QA",
+    "args": {
+      "withAFile": {
+        "syntax": "/wbValid <plan_or_report_path> --id=<task_id>",
+        "example": {
+          "example1": {
+            "command": "/wbValid packages/wb-core/.wb/workflows/reports/2026/05/01/plans/plan_wb-core_20260501.md --id=3",
+            "description": "Validates task 3 from the wb-core plan file."
+          }
+        },
+        "input": {
+          "path": "<plan_or_report_path>",
+          "type": "file",
+          "content": "Plan or report file with task table"
+        },
+        "output": {
+          "path": "<target>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/validations/valid_<target>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "Validation report with score, findings, and verdict"
+        }
+      }
+    }
+  },
+  "wbWork": {
+    "description": "Executes one or more tasks from a plan file as the Worker model, producing a task report and updating the plan's Done column.",
+    "role": "The Worker / Executor",
+    "args": {
+      "withAFileAndId": {
+        "syntax": "/wbWork <plan_path> --id=<task_ids>",
+        "example": {
+          "example1": {
+            "command": "/wbWork plan_wb-core_20260501.md --id=1,2,3",
+            "description": "Executes tasks 1, 2, and 3 from the plan file."
+          }
+        },
+        "input": {
+          "path": "<plan_path>",
+          "type": "file",
+          "content": "Plan file with task table containing Task, Verify, Worker, and Validator columns"
+        },
+        "output": {
+          "path": "<target>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/tasks_reports/task_<id>_<target>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "Task execution report with files read, files modified, and outcome commentary"
+        }
+      }
+    },
+    "flags": {
+      "--id": {
+        "flag": "--id=<task_ids>",
+        "role": "Specifies task indices to execute (supports =, >, <, !=, *).",
+        "example": {
+          "example1": {
+            "command": "/wbWork plan.md --id=2",
+            "description": "Execute only task 2 from the plan."
+          },
+          "example2": {
+            "command": "/wbWork plan.md --id=1,2,6",
+            "description": "Execute tasks 1, 2, and 6 from the plan."
+          }
+        }
+      },
+      "--open": {
+        "flag": "--open",
+        "role": "Sets Done column to ⬜ (Open) instead of executing. Overrides execution.",
+        "example": {
+          "example1": {
+            "command": "/wbWork plan.md --id=3 --open",
+            "description": "Re-open task 3 without executing it."
+          }
+        }
+      },
+      "--def": {
+        "flag": "--def",
+        "role": "Sets Done column to ⏸️ (Deferred). Overrides execution.",
+        "example": {
+          "example1": {
+            "command": "/wbWork plan.md --id=2 --def",
+            "description": "Defer task 2."
+          }
+        }
+      },
+      "--can": {
+        "flag": "--can",
+        "role": "Sets Done column to 🚫 (Cancelled). Overrides execution.",
+        "example": {
+          "example1": {
+            "command": "/wbWork plan.md --id=* --can",
+            "description": "Cancel all tasks."
+          }
+        }
+      }
+    }
+  },
+  "wbHelp": {
+    "description": "Meta-command that catalogs all /wb* commands (no args) or shows the per-command help block for a specific command; print-only, never writes reports.",
+    "role": "The Navigator",
+    "args": {
+      "catalog": {
+        "syntax": "/wbHelp",
+        "example": {
+          "example1": {
+            "command": "/wbHelp",
+            "description": "Prints the role-grouped table of all /wb* commands."
+          }
+        },
+        "input": {
+          "path": "frontEnd/wbc-ui/core2/packages/wb-flow/templates/commands/wb_commands_reference.claude.json",
+          "type": "file",
+          "content": "The command catalog JSON"
+        },
+        "output": {
+          "path": "stdout",
+          "type": "markdown",
+          "content": "Role-grouped table with #, Command, Role, Flags, What it does columns"
+        }
+      },
+      "perCommand": {
+        "syntax": "/wbHelp <wbX>",
+        "example": {
+          "example1": {
+            "command": "/wbHelp wbAudit",
+            "description": "Prints the HELP_BLOCK from the wbAudit template (identical to /wbAudit -h)."
+          }
+        },
+        "input": {
+          "path": "frontEnd/wbc-ui/core2/packages/wb-flow/templates/commands/<wbX>/<wbX>_template.md",
+          "type": "file",
+          "content": "The target command's template (specifically the HELP_GATE section)"
+        },
+        "output": {
+          "path": "stdout",
+          "type": "markdown",
+          "content": "Verbatim HELP_BLOCK from the target template"
+        }
+      }
+    }
+  },
+  "wbNext": {
+    "description": "Analyzes the current project state (recent reports, git status, stale TODOs) and produces a single ranked, actionable recommendation of what to do next.",
+    "role": "The Navigator",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbNext <target_folder>",
+        "example": {
+          "example1": {
+            "command": "/wbNext packages/wb-core",
+            "description": "Recommends the next action for wb-core based on recent reports and current state."
+          }
+        },
+        "input": {
+          "path": "<target_folder>",
+          "type": "directory",
+          "content": "Package reports/, git status, context.md, dev.md"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/nexts/next_<folder_root_name>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "Situation Summary, Suggested Next Actions (ranked table), Tips & Warnings"
+        }
+      },
+      "selfCorrect": {
+        "syntax": "/wbNext <existing_next_file>",
+        "example": {
+          "example1": {
+            "command": "/wbNext packages/wb-core/.wb/workflows/reports/2026/05/03/nexts/next_wb-core_20260503.md",
+            "description": "Re-ranks and fills missing fields in an existing next-action file (self-correct mode)."
+          }
+        },
+        "input": {
+          "path": "<existing_next_file>",
+          "type": "file",
+          "content": "Existing next-action markdown file matching the next-output schema"
+        },
+        "output": {
+          "path": "<same file>",
+          "type": "markdown",
+          "content": "Re-ranked suggestions with missing fields filled; user annotations preserved"
+        }
+      }
+    },
+    "flags": {
+      "--scope": {
+        "flag": "--scope",
+        "role": "Narrows the analysis to a specific package or path.",
+        "example": {
+          "example1": {
+            "command": "/wbNext --scope=packages/wb-core",
+            "description": "Scopes the recommendation to the wb-core package."
+          }
+        }
+      },
+      "--since": {
+        "flag": "--since",
+        "role": "Limits the report scan window; defaults to 7d.",
+        "example": {
+          "example1": {
+            "command": "/wbNext --since=14d",
+            "description": "Scans reports from the last 14 days instead of the default 7."
+          }
+        }
+      }
+    }
+  },
+  "wbIdea": {
+    "description": "Tracks, scores, and validates ideas before promoting them to active plans.",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbIdea <target_folder>",
+        "example": {
+          "example1": {
+            "command": "/wbIdea packages/wb-core",
+            "description": "Captures and scores an idea for the wb-core package."
+          }
+        },
+        "input": {
+          "path": "<target_folder>",
+          "type": "directory",
+          "content": "context.md, dev.md, source code"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/ideas/idea_<folder_root_name>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "Ideas table with Score, description, Priority, Est. Time, Valid column"
+        }
+      }
+    },
+    "flags": {
+      "--focus": {
+        "flag": "--focus",
+        "role": "Narrows the idea capture to a specific sub-system or concern.",
+        "example": {
+          "example1": {
+            "command": "/wbIdea packages/wb-core --focus=\"renderer\"",
+            "description": "Captures ideas scoped to the renderer sub-system."
+          }
+        }
+      }
+    }
+  },
+  "wbTrack": {
+    "description": "Toggles session tracking ON so every /wb* command produces its normal report AND appends a §N section to a universal daily session file with strategic commentary.",
+    "role": "The Synchronizer",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbTrack <target_path>",
+        "example": {
+          "example1": {
+            "command": "/wbTrack packages/wb-core",
+            "description": "Starts tracking for the wb-core package."
+          }
+        },
+        "input": {
+          "path": "<target_path>",
+          "type": "directory",
+          "content": "Package source code, .agents/ files, past reports"
+        },
+        "output": {
+          "path": "<target_path>/.wb/workflows/tracks/<YYYY>/<MM>/<DD>/track_<target_name>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "§0 Strategic Vision, contributor entries, per-command §N sections with Commentary and Recommended Next table"
+        }
+      }
+    },
+    "flags": {
+      "--finalize": {
+        "flag": "--finalize",
+        "role": "Extracts derivative files (tips, warnings, importants, commentaries, all_commands, resume) from the session file.",
+        "example": {
+          "example1": {
+            "command": "/wbStopTrack --finalize",
+            "description": "Ends tracking and extracts all derivatives from today's session file."
+          }
+        }
+      },
+      "--scope": {
+        "flag": "--scope",
+        "role": "Narrows the session tracking to a specific package or scope.",
+        "example": {
+          "example1": {
+            "command": "/wbTrack --scope=packages/wb-core",
+            "description": "Starts tracking scoped to wb-core."
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,2305 @@
+{
+  "$schema_version": "1.0",
+  "$generator": "Claude Opus 4.7 (extended companion to wb_commands_reference.json)",
+  "$generated_on": "2026-04-26",
+  "$purpose": "Tree representation of all /wb* commands with full dependencies, flags, chains, recommended models, prerequisites, and refusal conditions. Read this before running any /wb* command in chains.",
+  "$canon_reference": "../1_concepts/wbPlan_flag_claude.md",
+  "$flag_matrix_legend": {
+    "--act": "Routes the source command's output through the /wbActOn engine — produces a ranked execution thread (action file).",
+    "--wbPlan": "Routes the source command's output through the /wbActOn plan-generation phase — produces a sibling plan file with worker/validator task tables for 🔵 multi-step findings.",
+    "--act --wbPlan": "Composable. Produces source output + action file + plan file in one run.",
+    "self_no_op": "/wbPlan --wbPlan errors: cannot plan a plan."
+  },
+  "$smart_merge_protocol": {
+    "description": "When a second model appends to an existing daily file for a finding-based command, it MUST scan for duplicate findings and build a Consensus Table instead of blindly appending. First model writes normally; second model promotes to consensus.",
+    "applies_to": [
+      "wbPlan",
+      "wbAudit",
+      "wbActOn",
+      "wbSecure",
+      "wbClean",
+      "wbReview"
+    ],
+    "does_not_apply": [
+      "wbContext",
+      "wbStandup",
+      "wbTrack",
+      "wbDebug",
+      "wbVision",
+      "wbBroadcast",
+      "wbGit",
+      "wbRelease",
+      "wbPublish",
+      "wbDeploy",
+      "wbDoc",
+      "wbSetup",
+      "wbRefactor",
+      "wbTest",
+      "wbTranslate",
+      "wbToWBC",
+      "wbLicense",
+      "wbMonetize"
+    ],
+    "consensus_rules": {
+      "worker": "Unanimous → use it. Code-heavy → pick throughput model. Reasoning-heavy → pick depth model. Tie → first-mover.",
+      "validator": "Pick the model NOT chosen as worker (independent perspective).",
+      "severity": "When models disagree, use the HIGHER severity (conservative).",
+      "confidence": "🟢 N/N = all agree, 🟡 K/N = partial, 🔴 1/N = single model only."
+    }
+  },
+  "$unified_plan_backlog": {
+    "description": "The plan file is the single source of truth for ALL work items. Commands that detect issues auto-send findings to the plan file alongside their normal report output.",
+    "plan_file_path": "<target>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_<target>_<YYYYMMDD>.md",
+    "v3_table_columns": [
+      "#",
+      "Origin",
+      "Task",
+      "Verify",
+      "P",
+      "Worker",
+      "Validator",
+      "☐ Done",
+      "☐ Valid"
+    ],
+    "priority_scale": {
+      "P0": "critical",
+      "P1": "high",
+      "P2": "medium",
+      "P3": "low"
+    },
+    "sends_to_plan": {
+      "wbAudit": {
+        "section_title": "🔍 Audit Findings",
+        "threshold": "findings ≥ P2"
+      },
+      "wbReview": {
+        "section_title": "📝 Review Failures",
+        "threshold": "FAIL items"
+      },
+      "wbSecure": {
+        "section_title": "🛡️ Security Alerts",
+        "threshold": "CRITICAL + WARNING"
+      },
+      "wbClean": {
+        "section_title": "🧹 Cleanup Targets",
+        "threshold": "High + Medium"
+      },
+      "wbActOn": {
+        "section_title": "🎯 Action Items",
+        "threshold": "🔵 items"
+      },
+      "wbTest": {
+        "section_title": "🧪 Test Failures",
+        "threshold": "failing suites"
+      },
+      "wbDebug": {
+        "section_title": "🐛 Bug Fix",
+        "threshold": "root cause + fix"
+      },
+      "wbPlan": {
+        "section_title": "📋 Plan Batch",
+        "threshold": "all tasks (native)"
+      }
+    },
+    "does_not_send": [
+      "wbContext",
+      "wbStandup",
+      "wbTrack",
+      "wbGit",
+      "wbRefactor",
+      "wbSetup",
+      "wbVision",
+      "wbBroadcast",
+      "wbDoc",
+      "wbRelease",
+      "wbPublish",
+      "wbDeploy",
+      "wbTranslate",
+      "wbToWBC",
+      "wbLicense",
+      "wbMonetize"
+    ],
+    "recursive_tasks": {
+      "description": "When a Task cell contains a /wb* command, executing it spawns a sub-plan appended to the same file.",
+      "sub_task_numbering": "Hierarchical: Task #3 → sub-tasks 3.1, 3.2, 3.3",
+      "max_depth": 2,
+      "section_title": "🔄 Sub-plan for Task #N"
+    }
+  },
+  "$model_recommendation_legend": {
+    "sonnet_4": "Fast, cheap. Best for one-shot inline edits, simple lookups, formatting.",
+    "opus_4": "Reasoning-heavy. Best for triage, refactor judgment, strategic memos, plan decomposition.",
+    "qwen3_coder": "Code-throughput. Best for sweeps, mechanical refactors, scaffolding.",
+    "gemini_3_1_pro": "Long-form synthesis. Alternative to Opus for strategic / planning work.",
+    "gemini_flash": "High-throughput cheap. Best for repetitive jobs, batch translations.",
+    "deepseek_r1": "Validation. Best as a worker/validator pair counterpart to Claude or Qwen3."
+  },
+  "wbSetup": {
+    "description": "Initializes the Agentic Brain for the target folder by establishing its agentic identity.",
+    "role": "The Architect — bootstraps a new package's agentic context layer.",
+    "phase": "One-time per package",
+    "belt": "Black — used rarely; only when adding a new package",
+    "recommendedModel": "opus_4",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbSetup <target_path>",
+        "example": [
+          {
+            "command": "/wbSetup packages/wb-core",
+            "description": "Bootstrap wb-core's agentic context + dev rules."
+          },
+          {
+            "command": "/wbSetup packages/new-pkg --focus=\"render-engine\"",
+            "description": "Bootstrap with deep focus on a sub-system."
+          }
+        ],
+        "input": {
+          "path": "<target_path>",
+          "type": "directory",
+          "content": "package.json, source files"
+        },
+        "outputs": [
+          {
+            "path": "<target_path>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/setup/setup_<folder_root_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "Environmental Discovery, Core Workflow Files, Global Synchronization, Audit Trail"
+          },
+          {
+            "path": "<target_path>/.wb/workflows/context.md",
+            "type": "markdown",
+            "content": "Local context (created if missing)"
+          },
+          {
+            "path": "<target_path>/.wb/workflows/dev.md",
+            "type": "markdown",
+            "content": "Local dev rules (created if missing)"
+          }
+        ]
+      }
+    },
+    "flags": [
+      {
+        "long": "--focus",
+        "short": "-f"
+      },
+      {
+        "long": "--scope",
+        "short": "-s"
+      }
+    ],
+    "chains_with": {
+      "feeds_into": [
+        "wbContext",
+        "wbVision",
+        "wbPlan"
+      ],
+      "fed_by": []
+    },
+    "prerequisites": [
+      "package.json must exist at target_path",
+      "git working tree should be clean (recommended)"
+    ],
+    "refuses_when": [
+      "target already has a wbSetup marker (re-run requires explicit --force)"
+    ],
+    "notSuitableFor": [
+      "Adding rules to an already-bootstrapped package (use direct edits to dev.md instead)",
+      "Quick context refresh (use /wbContext)"
+    ],
+    "references": {
+      "template": "wbSetup/wbSetup_template.md"
+    }
+  },
+  "wbContext": {
+    "description": "Generates a comprehensive Context Report (identity, dependencies, constraints).",
+    "role": "The Synchronizer — catches up the AI on the package's current state.",
+    "phase": "Morning (after /wbStandup)",
+    "belt": "White — first command every session",
+    "recommendedModel": "opus_4",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbContext <target_folder_path>",
+        "example": [
+          {
+            "command": "/wbContext packages/wb-core",
+            "description": "Full package context."
+          },
+          {
+            "command": "/wbContext core2/ --scope=global",
+            "description": "Monorepo-wide context (rare)."
+          }
+        ],
+        "input": {
+          "path": "<target_folder_path>",
+          "type": "directory",
+          "content": "package.json, index.js, config files"
+        },
+        "outputs": [
+          {
+            "path": "<target_folder_path>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/contexts/context_<folder_root_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "Identity, Dependencies, Constraints"
+          }
+        ]
+      },
+      "withAFile": {
+        "syntax": "/wbContext <target_file_path>",
+        "example": [
+          {
+            "command": "/wbContext packages/wb-core/src/index.js",
+            "description": "Context for a single entry point."
+          }
+        ],
+        "input": {
+          "path": "<target_file_path>",
+          "type": "file",
+          "content": "Source code file"
+        },
+        "outputs": [
+          {
+            "path": "<target_file_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/contexts/context_<file_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "Identity, Dependencies, Constraints specific to the file"
+          }
+        ]
+      }
+    },
+    "flags": [
+      {
+        "long": "--focus",
+        "short": "-f"
+      },
+      {
+        "long": "--scope",
+        "short": "-s"
+      }
+    ],
+    "chains_with": {
+      "feeds_into": [
+        "wbPlan",
+        "wbAudit",
+        "wbReview",
+        "wbDebug",
+        "wbRefactor"
+      ],
+      "fed_by": [
+        "wbSetup",
+        "wbStandup"
+      ]
+    },
+    "prerequisites": [
+      "package.json exists",
+      "ideally a prior /wbSetup, but not required"
+    ],
+    "refuses_when": [],
+    "notSuitableFor": [
+      "Triaging existing reports (use /wbStandup or /wbActOn)",
+      "Auditing code quality (use /wbAudit)"
+    ],
+    "references": {
+      "template": "wbContext/wbContext_template.md"
+    }
+  },
+  "wbPlan": {
+    "description": "Creates a structured multi-agent task plan for a given problem or objective.",
+    "role": "The General — coordinates workers and validators.",
+    "phase": "Midday (when work is bigger than one sentence)",
+    "belt": "White — core loop with /wbContext + /wbAudit",
+    "recommendedModel": "opus_4",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbPlan <target_folder_path> [\"<problem description>\"]",
+        "example": [
+          {
+            "command": "/wbPlan packages/wb-press2",
+            "description": "Plan a feature on wb-press2."
+          },
+          {
+            "command": "/wbPlan packages/wb-core --focus=\"WBC render engine\"",
+            "description": "Focused plan on a sub-system."
+          },
+          {
+            "command": "/wbPlan packages/wb-code \"Add user auth UI\"",
+            "description": "Plan with explicit problem description."
+          }
+        ],
+        "input": {
+          "path": "<target_folder_path>",
+          "type": "directory",
+          "content": "Context files, past audit/review reports, optional user description"
+        },
+        "outputs": [
+          {
+            "path": "<target_folder_path>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_<folder_root_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "Task table with worker/validator assignments, checkboxes (⬜/✅), scoring, multi-agent SmartPrompt header."
+          }
+        ]
+      }
+    },
+    "flags": [
+      {
+        "long": "--resume",
+        "short": "-r"
+      },
+      {
+        "long": "--scope",
+        "short": "-s"
+      },
+      {
+        "long": "--task",
+        "short": "-t"
+      }
+    ],
+    "chains_with": {
+      "feeds_into": [
+        "wbReview (when plan is reviewed against execution)",
+        "wbActOn (via --act)"
+      ],
+      "fed_by": [
+        "wbContext",
+        "wbAudit (--wbPlan flag)",
+        "wbStandup (--wbPlan flag)",
+        "wbReview (--wbPlan flag)"
+      ]
+    },
+    "prerequisites": [
+      "recent /wbContext on the target",
+      "ideally context.md and dev.md exist"
+    ],
+    "refuses_when": [
+      "target has zero source files (nothing to plan)"
+    ],
+    "notSuitableFor": [
+      "Tasks describable in one sentence (just describe; skip /wbPlan)",
+      "Triaging existing audit findings (use /wbAudit --act --wbPlan)"
+    ],
+    "references": {
+      "template": "wbPlan/wbPlan_template.md"
+    }
+  },
+  "wbAudit": {
+    "description": "Performs a deep, honest, code-based technical audit.",
+    "role": "The Critic — brutal evidence-based review.",
+    "phase": "Afternoon (polish phase)",
+    "belt": "White — core loop with /wbContext + /wbPlan",
+    "recommendedModel": "opus_4",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbAudit <target_folder_path>",
+        "example": [
+          {
+            "command": "/wbAudit packages/wb-core",
+            "description": "Full audit of wb-core."
+          },
+          {
+            "command": "/wbAudit frontEnd/wbc-ui/core2",
+            "description": "Monorepo-wide audit (broader perspective)."
+          }
+        ],
+        "input": {
+          "path": "<target_folder_path>",
+          "type": "directory",
+          "content": "All code and architecture within the folder, prior audit reports for temporal memory"
+        },
+        "outputs": [
+          {
+            "path": "<target_folder_path>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_<folder_root_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "9-section audit report with tables, concrete evidence, score out of 10, status (BETA/PROD)."
+          }
+        ]
+      },
+      "withAFile": {
+        "syntax": "/wbAudit <target_file_path>",
+        "example": [
+          {
+            "command": "/wbAudit packages/wb-core/dev.md",
+            "description": "Audit a single doc/file for missing points + comparison table."
+          }
+        ],
+        "input": {
+          "path": "<target_file_path>",
+          "type": "file",
+          "content": "Single file content"
+        },
+        "outputs": [
+          {
+            "path": "<target_file_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_<file_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "File-level analysis + enhanced suggestion + comparison table."
+          }
+        ]
+      }
+    },
+    "flags": [
+      {
+        "long": "--profile",
+        "short": "-p"
+      },
+      {
+        "long": "--scope",
+        "short": "-s"
+      },
+      {
+        "long": "--security",
+        "short": "-S"
+      },
+      {
+        "long": "--act",
+        "short": "-a"
+      },
+      {
+        "long": "--wbPlan",
+        "short": "-P"
+      }
+    ],
+    "chains_with": {
+      "feeds_into": [
+        "wbPlan (manual or via --wbPlan)",
+        "wbRefactor (when audit flags messy file)",
+        "wbDebug (when audit surfaces error)",
+        "wbActOn (via --act)"
+      ],
+      "fed_by": [
+        "wbContext",
+        "wbStandup (recommends running audit on flagged packages)"
+      ]
+    },
+    "prerequisites": [
+      "recent /wbContext on the same target (otherwise audits last-week's understanding)"
+    ],
+    "refuses_when": [],
+    "notSuitableFor": [
+      "Adversarial security review (use /wbSecure)",
+      "Implementing fixes (use /wbRefactor or describe directly)"
+    ],
+    "references": {
+      "template": "wbAudit/wbAudit_template.md"
+    }
+  },
+  "wbReview": {
+    "description": "Performs a formal quality review of an executed task against its original plan.",
+    "role": "The Inspector — surgical Plan vs Reality check.",
+    "phase": "After plan execution",
+    "belt": "Black — used after Path-B multi-agent loops",
+    "recommendedModel": "opus_4",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbReview <target_path> <path_to_plan_file>",
+        "example": [
+          {
+            "command": "/wbReview packages/wb-press2 packages/wb-press2/.wb/workflows/reports/.../plan_wb-press2.md",
+            "description": "Review wb-press2 implementation against its plan."
+          }
+        ],
+        "input": {
+          "path": "<target_path>",
+          "type": "directory",
+          "content": "Current codebase + the ORIGINAL plan markdown file"
+        },
+        "outputs": [
+          {
+            "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/reviews/review_<folder_root_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "Plan vs Reality, Technical Integrity, Score (1-10), PASS/FAIL."
+          }
+        ]
+      }
+    },
+    "flags": [
+      {
+        "long": "--plan",
+        "short": "-p"
+      },
+      {
+        "long": "--act",
+        "short": "-a"
+      },
+      {
+        "long": "--wbPlan",
+        "short": "-P"
+      }
+    ],
+    "chains_with": {
+      "feeds_into": [
+        "wbPlan (--wbPlan)",
+        "wbActOn (--act)",
+        "wbRefactor (when review flags messy work)"
+      ],
+      "fed_by": [
+        "wbPlan (the plan being reviewed)"
+      ]
+    },
+    "prerequisites": [
+      "the plan file to review against must exist",
+      "execution work has happened (otherwise review is trivially FAIL)"
+    ],
+    "refuses_when": [
+      "plan file path is invalid",
+      "no implementation work to review"
+    ],
+    "notSuitableFor": [
+      "Code-quality review without a plan (use /wbAudit)",
+      "PR-level review without a plan (use a manual code review)"
+    ],
+    "references": {
+      "template": "wbReview/wbReview_template.md"
+    }
+  },
+  "wbTest": {
+    "description": "Executes dynamic tests (UNIT, E2E, MANUAL, PERF) to verify code behavior.",
+    "role": "The Tester — runs the existing test suites.",
+    "phase": "Evening (before shipping)",
+    "belt": "Brown",
+    "recommendedModel": "sonnet_4",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbTest <target_path> <TEST_TYPE>",
+        "example": [
+          {
+            "command": "/wbTest packages/wb-core UNIT",
+            "description": "Unit tests for wb-core."
+          },
+          {
+            "command": "/wbTest apps/demo.wbc-ui.com E2E",
+            "description": "E2E manual testing on the demo app."
+          }
+        ],
+        "input": {
+          "path": "<target_path>",
+          "type": "directory",
+          "content": "Executable code, test suites"
+        },
+        "outputs": [
+          {
+            "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/tests/test_<task_or_feature>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "Test setup, execution logs, verification results, PASS/FAIL."
+          }
+        ]
+      }
+    },
+    "chains_with": {
+      "feeds_into": [
+        "wbDebug (on FAIL)",
+        "wbPublish/wbDeploy (gate)"
+      ],
+      "fed_by": [
+        "wbPlan (test tasks)",
+        "wbRefactor (verify no regression)"
+      ]
+    },
+    "prerequisites": [
+      "test suite exists in target",
+      "dependencies installed"
+    ],
+    "refuses_when": [
+      "no test suite found (suggest creating one first)"
+    ],
+    "notSuitableFor": [
+      "Static analysis (use /wbAudit)",
+      "Security scanning (use /wbSecure)"
+    ],
+    "references": {
+      "template": "wbTest/wbTest_template.md"
+    },
+    "flags": [
+      {
+        "long": "--profile",
+        "short": "-p"
+      },
+      {
+        "long": "--task",
+        "short": "-t"
+      }
+    ]
+  },
+  "wbRelease": {
+    "description": "Orchestrates the release: resolves circular workspace deps, bumps versions across the monorepo.",
+    "role": "The Release Engineer — monorepo-wide version coordinator.",
+    "phase": "Evening (shipping)",
+    "belt": "Brown",
+    "recommendedModel": "opus_4",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbRelease <target_monorepo_path> <NEW_VERSION>",
+        "example": [
+          {
+            "command": "/wbRelease frontEnd/wbc-ui/core2 v1.0.0-r02",
+            "description": "Prepare v1.0.0-r02 across the monorepo."
+          },
+          {
+            "command": "/wbRelease frontEnd/wbc-ui/core2 --restore",
+            "description": "Restore workspace:* protocols after publish."
+          }
+        ],
+        "input": {
+          "path": "<target_monorepo_path>",
+          "type": "directory",
+          "content": "All package.json files, recent plans/audits"
+        },
+        "outputs": [
+          {
+            "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/releases/release_<folder_root_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "CHANGELOG, topological build order, unlinking strategy."
+          }
+        ]
+      }
+    },
+    "flags": [
+      {
+        "long": "--dry-run",
+        "short": "-d"
+      },
+      {
+        "long": "--prerelease",
+        "short": "-p"
+      },
+      {
+        "long": "--restore",
+        "short": "-r"
+      },
+      {
+        "long": "--tag",
+        "short": "-t"
+      }
+    ],
+    "chains_with": {
+      "feeds_into": [
+        "wbPublish (mandatory next step)",
+        "wbBroadcast"
+      ],
+      "fed_by": [
+        "wbAudit (ensures nothing critical pending)",
+        "wbTest (must pass)"
+      ]
+    },
+    "prerequisites": [
+      "recent /wbTest must PASS",
+      "no CRITICAL findings in /wbSecure",
+      "git working tree clean (recommended)"
+    ],
+    "refuses_when": [
+      "recent /wbTest report shows failures",
+      "uncommitted changes exist"
+    ],
+    "notSuitableFor": [
+      "Single-package release (use /wbPublish on the package directly)",
+      "Hot-fix without bumping (manual edit faster)"
+    ],
+    "references": {
+      "template": "wbRelease/wbRelease_template.md"
+    }
+  },
+  "wbPublish": {
+    "description": "Executes the final build and NPM deployment based on the wbRelease plan.",
+    "role": "The Shipper — pushes packages to npm.",
+    "phase": "Evening (shipping)",
+    "belt": "Brown",
+    "recommendedModel": "sonnet_4",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbPublish <target_monorepo_path>",
+        "example": [
+          {
+            "command": "/wbPublish frontEnd/wbc-ui/core2",
+            "description": "Build + publish to NPM."
+          }
+        ],
+        "input": {
+          "path": "<target_monorepo_path>",
+          "type": "directory",
+          "content": "Most recent release_*.md, prepared package.json files"
+        },
+        "outputs": [
+          {
+            "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/publishes/publish_<folder_root_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "Publish log, npm dry-run output, errors if any."
+          }
+        ]
+      }
+    },
+    "flags": [
+      {
+        "long": "--all",
+        "short": "-A"
+      },
+      {
+        "long": "--dry-run",
+        "short": "-d"
+      },
+      {
+        "long": "--prerelease",
+        "short": "-p"
+      },
+      {
+        "long": "--restore",
+        "short": "-r"
+      }
+    ],
+    "chains_with": {
+      "feeds_into": [
+        "wbBroadcast (announce the release)",
+        "wbRelease --restore (revert workspace links)"
+      ],
+      "fed_by": [
+        "wbRelease (mandatory)"
+      ]
+    },
+    "prerequisites": [
+      "recent /wbRelease in same cycle",
+      "/wbTest must PASS",
+      "/wbSecure must show no CRITICAL"
+    ],
+    "refuses_when": [
+      "no recent /wbRelease (publishing without bump = re-publishing same tarball)",
+      "/wbSecure has CRITICAL findings",
+      "dist/ vs dist-dev/ mismatch in package.json"
+    ],
+    "notSuitableFor": [
+      "Apps (use /wbDeploy)",
+      "Internal-only packages (skip)"
+    ],
+    "references": {
+      "template": "wbPublish/wbPublish_template.md"
+    }
+  },
+  "wbDeploy": {
+    "description": "Builds and deploys an app (e.g. to GitHub Pages, Vercel, custom host).",
+    "role": "The Shipper (apps) — pushes apps to the live web.",
+    "phase": "Evening (shipping)",
+    "belt": "Brown",
+    "recommendedModel": "sonnet_4",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbDeploy <target_app_path>",
+        "example": [
+          {
+            "command": "/wbDeploy apps/demo.wbc-ui.com",
+            "description": "Deploy demo app to the live web."
+          },
+          {
+            "command": "/wbDeploy apps/demo.wbc-ui.com --target=local",
+            "description": "Serve the prod build locally for sanity check."
+          }
+        ],
+        "input": {
+          "path": "<target_app_path>",
+          "type": "directory",
+          "content": "App build config, dist artifacts"
+        },
+        "outputs": [
+          {
+            "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/deployments/deploy_<app_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "Deploy log, URL, base-url verification."
+          }
+        ]
+      }
+    },
+    "flags": [
+      {
+        "long": "--dry-run",
+        "short": "-d"
+      },
+      {
+        "long": "--prod",
+        "short": "-P"
+      },
+      {
+        "long": "--target",
+        "short": "-t"
+      }
+    ],
+    "chains_with": {
+      "feeds_into": [
+        "wbBroadcast"
+      ],
+      "fed_by": [
+        "wbTest (must pass)",
+        "wbSecure (no CRITICAL)"
+      ]
+    },
+    "prerequisites": [
+      "recent /wbTest PASS",
+      "/wbSecure no CRITICAL",
+      "build artifacts up to date"
+    ],
+    "refuses_when": [
+      "recent /wbTest failed",
+      "/wbSecure has CRITICAL findings",
+      "app has handling user input AND no recent /wbSecure"
+    ],
+    "notSuitableFor": [
+      "NPM packages (use /wbPublish)",
+      "Hot-fix without test (build a tiny patch app instead)"
+    ],
+    "references": {
+      "template": "wbDeploy/wbDeploy_template.md"
+    }
+  },
+  "wbClean": {
+    "description": "Finds dead code, unused files, console.log, commented-out blocks.",
+    "role": "The Janitor — surface-level mess removal.",
+    "phase": "Afternoon (polish)",
+    "belt": "Blue",
+    "recommendedModel": "qwen3_coder",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbClean <target_folder>",
+        "example": [
+          {
+            "command": "/wbClean packages/wb-core",
+            "description": "Find cleanup candidates in wb-core."
+          }
+        ],
+        "input": {
+          "path": "<target_folder>",
+          "type": "directory",
+          "content": "Source files, test files"
+        },
+        "outputs": [
+          {
+            "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/cleans/clean_<folder_root_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "List of files to delete, blocks to remove, with reasons."
+          }
+        ]
+      }
+    },
+    "chains_with": {
+      "feeds_into": [
+        "wbAudit (clean before audit, but never refactor before audit)",
+        "wbRefactor (after clean)"
+      ],
+      "fed_by": [
+        "wbAudit (when audit flags accumulated debt)"
+      ]
+    },
+    "prerequisites": [],
+    "refuses_when": [
+      "target has no source files"
+    ],
+    "notSuitableFor": [
+      "Logic refactors (use /wbRefactor)",
+      "Single-file cleanup (just edit directly)"
+    ],
+    "references": {
+      "template": "wbClean/wbClean_template.md"
+    }
+  },
+  "wbLicense": {
+    "description": "Per-component license/tier gate injection on an already-monetized package.",
+    "role": "The Licensor — surgical tier-gate injection.",
+    "phase": "Cross-cutting",
+    "belt": "Black",
+    "recommendedModel": "opus_4",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbLicense <target_path> [--component <name>]",
+        "example": [
+          {
+            "command": "/wbLicense packages/wb-dataviewer --component AdvancedFilter",
+            "description": "Add Pro-tier gate to AdvancedFilter component."
+          }
+        ],
+        "input": {
+          "path": "<target_path>",
+          "type": "directory",
+          "content": "Already-monetized package (has wbMonetize marker)"
+        },
+        "outputs": [
+          {
+            "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/license/license_<component>_<YYYYMMDD>.md",
+            "type": "markdown"
+          }
+        ]
+      }
+    },
+    "chains_with": {
+      "feeds_into": [
+        "wbTest (verify gate works)"
+      ],
+      "fed_by": [
+        "wbMonetize (must be already bootstrapped)"
+      ]
+    },
+    "prerequisites": [
+      "package has wbMonetize marker (run /wbMonetize first if not)"
+    ],
+    "refuses_when": [
+      "package has no wbMonetize marker"
+    ],
+    "notSuitableFor": [
+      "First-time tier system bootstrap (use /wbMonetize)",
+      "Free packages without Pro tier"
+    ],
+    "references": {
+      "template": "wbLicense/wbLicense_template.md"
+    },
+    "flags": [
+      {
+        "long": "--scope",
+        "short": "-s"
+      }
+    ]
+  },
+  "wbRefactor": {
+    "description": "File-level structural refactor (split, extract, rename) without changing behavior.",
+    "role": "The Surgeon — structural surgery on a specific file.",
+    "phase": "Afternoon (polish, conditional on audit)",
+    "belt": "Blue",
+    "recommendedModel": "opus_4",
+    "args": {
+      "withAFile": {
+        "syntax": "/wbRefactor <target_file_path>",
+        "example": [
+          {
+            "command": "/wbRefactor packages/wb-core/src/WBC.js",
+            "description": "Split monolith file into smaller pieces."
+          },
+          {
+            "command": "/wbRefactor packages/wb-core/src/WBC.js \"split into lifecycle/computed/render\"",
+            "description": "Refactor with explicit split spec."
+          }
+        ],
+        "input": {
+          "path": "<target_file_path>",
+          "type": "file",
+          "content": "Source file (typically >500 LOC)"
+        },
+        "outputs": [
+          {
+            "path": "<target_file_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/refactors/refactor_<file>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "Refactor plan, before/after metrics, test impact."
+          }
+        ]
+      }
+    },
+    "chains_with": {
+      "feeds_into": [
+        "wbTest (verify no regression)",
+        "wbAudit (re-audit after refactor)"
+      ],
+      "fed_by": [
+        "wbAudit (audit flagged messy file)",
+        "wbClean (ran first to remove dead code)"
+      ]
+    },
+    "prerequisites": [
+      "recent /wbAudit on the target file or its package",
+      "tests must currently PASS (otherwise no safety net)"
+    ],
+    "refuses_when": [
+      "test runner is broken (refactoring without tests is gambling)",
+      "/wbAudit not run on this file recently"
+    ],
+    "notSuitableFor": [
+      "Behavior changes (those are features, not refactors)",
+      "Files <200 LOC (just edit directly)"
+    ],
+    "references": {
+      "template": "wbRefactor/wbRefactor_template.md"
+    }
+  },
+  "wbDebug": {
+    "description": "Form a hypothesis for an error before trying fixes.",
+    "role": "The Diagnostician — root-cause analysis, not patch attempts.",
+    "phase": "Anytime an error appears",
+    "belt": "Blue",
+    "recommendedModel": "opus_4",
+    "args": {
+      "withQuotedError": {
+        "syntax": "/wbDebug \"<exact error message>\"",
+        "example": [
+          {
+            "command": "/wbDebug \"TypeError: Cannot read properties of undefined (reading 'map')\"",
+            "description": "Diagnose a TypeError."
+          },
+          {
+            "command": "/wbDebug \"vitest finds 6 tests, expected 147\"",
+            "description": "Diagnose a test runner discrepancy."
+          }
+        ],
+        "input": {
+          "path": "stdin (error string)",
+          "type": "string",
+          "content": "Verbatim error message + optional stack trace"
+        },
+        "outputs": [
+          {
+            "path": "<cwd>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/debug/debug_<topic>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "Hypothesis, evidence cited, suggested fix path with rationale."
+          }
+        ]
+      }
+    },
+    "chains_with": {
+      "feeds_into": [
+        "wbRefactor (if root cause is structural)",
+        "wbTest (verify the fix)"
+      ],
+      "fed_by": [
+        "wbAudit (audit surfaced the error)",
+        "wbTest (test failed)"
+      ]
+    },
+    "prerequisites": [
+      "the error must be an actual error message, not vague 'something is wrong'"
+    ],
+    "refuses_when": [
+      "no error message provided"
+    ],
+    "notSuitableFor": [
+      "Implementing the fix (do that after the diagnosis lands)",
+      "Vague problems without an error message (clarify the symptom first)"
+    ],
+    "references": {
+      "template": "wbDebug/wbDebug_template.md"
+    }
+  },
+  "wbDoc": {
+    "description": "Generate or update documentation (README, JSDoc, API reference).",
+    "role": "The Scribe — keeps docs in sync with code.",
+    "phase": "Evening (before shipping)",
+    "belt": "Brown",
+    "recommendedModel": "sonnet_4",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbDoc <target_path>",
+        "example": [
+          {
+            "command": "/wbDoc packages/wb-core",
+            "description": "Update README + JSDoc for wb-core."
+          }
+        ],
+        "input": {
+          "path": "<target_path>",
+          "type": "directory",
+          "content": "Source code, existing README/JSDoc"
+        },
+        "outputs": [
+          {
+            "path": "<target_path>/README.md",
+            "type": "markdown",
+            "content": "Updated README"
+          },
+          {
+            "path": "<target_path>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/docs/doc_<folder_root_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "Doc generation log, JSDoc additions, gaps flagged."
+          }
+        ]
+      }
+    },
+    "chains_with": {
+      "feeds_into": [
+        "wbBroadcast (release notes)",
+        "wbPublish (consumers need docs)"
+      ],
+      "fed_by": [
+        "wbAudit (audit may flag missing docs)",
+        "wbContext (context informs doc updates)"
+      ]
+    },
+    "prerequisites": [],
+    "refuses_when": [
+      "target has no exports to document"
+    ],
+    "notSuitableFor": [
+      "Strategy docs (write those by hand)",
+      "User guides (different artifact)"
+    ],
+    "references": {
+      "template": "wbDoc/wbDoc_template.md"
+    },
+    "flags": [
+      {
+        "long": "--focus",
+        "short": "-f"
+      }
+    ]
+  },
+  "wbStandup": {
+    "description": "Consolidates unfinished work (open tickets, failing audits) into a single agenda.",
+    "role": "The Scrum Master — cures choice paralysis.",
+    "phase": "Morning (first command of the day)",
+    "belt": "Black — only when juggling multiple in-flight workstreams",
+    "recommendedModel": "opus_4",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbStandup <target_folder>",
+        "example": [
+          {
+            "command": "/wbStandup core2/",
+            "description": "Monorepo-wide daily standup."
+          }
+        ],
+        "input": {
+          "path": "<target_folder>",
+          "type": "directory",
+          "content": "All reports/**/plans/*.md and reports/**/audits/*.md"
+        },
+        "outputs": [
+          {
+            "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/standups/standup_<folder_root_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "Open tickets grouped by package, audit debt, definitive next-command recommendation."
+          }
+        ]
+      }
+    },
+    "flags": [
+      {
+        "long": "--act",
+        "short": "-a"
+      },
+      {
+        "long": "--wbPlan",
+        "short": "-P"
+      }
+    ],
+    "chains_with": {
+      "feeds_into": [
+        "wbContext (standup recommends a package; context syncs it)",
+        "wbActOn",
+        "wbPlan (manual or via --wbPlan)"
+      ],
+      "fed_by": [
+        "wbAudit / wbReview / wbPlan (their reports become standup input)"
+      ]
+    },
+    "prerequisites": [
+      "at least some prior reports exist in target's reports/ tree"
+    ],
+    "refuses_when": [],
+    "notSuitableFor": [
+      "Single-package focus (use /wbContext + /wbAudit)",
+      "Real-time monitoring (run as scheduled cron, not interactive)"
+    ],
+    "references": {
+      "template": "wbStandup/wbStandup_template.md"
+    }
+  },
+  "wbVision": {
+    "description": "Proposes 3 highly innovative, strategic features to build next.",
+    "role": "The Product Manager — generates feature ideas with rationale.",
+    "phase": "Cross-cutting (low-energy afternoons; pre-/wbSetup)",
+    "belt": "Black",
+    "recommendedModel": "gemini_3_1_pro",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbVision <target_package_or_root>",
+        "example": [
+          {
+            "command": "/wbVision packages/wb-code",
+            "description": "Propose next-gen features for wb-code."
+          }
+        ],
+        "input": {
+          "path": "<target_package_or_root>",
+          "type": "directory",
+          "content": "context.md, ecosystem_urls.md"
+        },
+        "outputs": [
+          {
+            "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/visions/vision_<folder_root_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "3 feature ideas with 'Why it matters' and 'Complexity'."
+          }
+        ]
+      }
+    },
+    "chains_with": {
+      "feeds_into": [
+        "wbIdea (auto-registers ideas in idea_*.md)",
+        "wbPlan (when you commit to a vision)",
+        "wbSetup (vision informs new package scope)"
+      ],
+      "fed_by": [
+        "wbContext"
+      ]
+    },
+    "prerequisites": [
+      "context.md exists for the target"
+    ],
+    "refuses_when": [],
+    "notSuitableFor": [
+      "Default 'nothing to do' command (close the laptop instead)",
+      "Bug fixing (use /wbDebug)"
+    ],
+    "references": {
+      "template": "wbVision/wbVision_template.md"
+    }
+  },
+  "wbIdea": {
+    "description": "Captures, scores, and tracks speculative ideas. Promotes validated ideas to plan tasks via the Promotion Protocol.",
+    "role": "The Ideator — scored idea pipeline between brainstorming and committed planning.",
+    "phase": "Anytime (when you have an idea worth tracking but not committing to)",
+    "belt": "Brown — strategic but regular",
+    "recommendedModel": "opus_4",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbIdea <target_folder_path> [\"<idea description>\"]",
+        "example": [
+          {
+            "command": "/wbIdea packages/wb-dataviewer",
+            "description": "AI proposes scored ideas for wb-dataviewer."
+          },
+          {
+            "command": "/wbIdea packages/wb-core --task=\"Add retry logic to API calls\"",
+            "description": "Register a specific idea with computed score."
+          },
+          {
+            "command": "/wbIdea packages/wb-core --id=1 --promote",
+            "description": "Promote idea #1 to today's plan file."
+          }
+        ],
+        "input": {
+          "path": "<target_folder_path>",
+          "type": "directory",
+          "content": "Context files, past audit/review reports, optional user description"
+        },
+        "outputs": [
+          {
+            "path": "<target_folder_path>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/ideas/idea_<folder_root_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "Idea table with Score (1-10), Idea description, Priority, Est. Time, Suggested By, ☐ Done, ☐ Valid, → Task link."
+          }
+        ]
+      }
+    },
+    "flags": [
+      {
+        "long": "--resume",
+        "short": "-r"
+      },
+      {
+        "long": "--scope",
+        "short": "-s"
+      },
+      {
+        "long": "--task",
+        "short": "-t"
+      },
+      {
+        "long": "--id",
+        "short": "-i"
+      },
+      {
+        "long": "--promote",
+        "short": "-p"
+      },
+      {
+        "long": "--reject",
+        "short": "-x"
+      },
+      {
+        "long": "--defer",
+        "short": "-d"
+      }
+    ],
+    "chains_with": {
+      "feeds_into": [
+        "wbPlan (promoted ideas auto-ingested as plan tasks)",
+        "wbWork (idea exploration mode)",
+        "wbExplain (idea details mode)",
+        "wbValid (idea validation with verdict scale)"
+      ],
+      "fed_by": [
+        "wbVision (always auto-registers ideas)",
+        "wbAudit (--ideas flag for P3/improvement findings)",
+        "wbNext (--ideas flag for lower-ranked suggestions)",
+        "wbWork (idea: prefix for inline registration)"
+      ]
+    },
+    "prerequisites": [
+      "context.md exists (recommended but not required)",
+      "ideally a prior /wbSetup, but not required"
+    ],
+    "refuses_when": [
+      "--promote on a 🚫 Rejected idea (must --open first)"
+    ],
+    "notSuitableFor": [
+      "Tasks ready for immediate execution (skip to /wbPlan or describe directly)",
+      "Free-form brainstorming with no tracking (use /wbVision)",
+      "Bug reports or defects (use /wbDebug or /wbPlan)"
+    ],
+    "references": {
+      "template": "wbIdea/wbIdea_template.md"
+    }
+  },
+  "wbBroadcast": {
+    "description": "Generates an Announcement Kit and manages version lifecycle status.",
+    "role": "The Marketer — release-day communication kit.",
+    "phase": "Evening (after release)",
+    "belt": "Black",
+    "recommendedModel": "gemini_3_1_pro",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbBroadcast <target_package_or_app>",
+        "example": [
+          {
+            "command": "/wbBroadcast packages/wb-press2",
+            "description": "Create announcement kit for wb-press2 release."
+          }
+        ],
+        "input": {
+          "path": "<target_package_or_app>",
+          "type": "directory",
+          "content": "Latest /wbRelease and /wbAudit reports"
+        },
+        "outputs": [
+          {
+            "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/broadcasts/broadcast_<folder_root_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "Social media drafts, GitHub release notes, blog post, VERSION_STATUS.md suggestion."
+          }
+        ]
+      }
+    },
+    "chains_with": {
+      "feeds_into": [],
+      "fed_by": [
+        "wbRelease + wbPublish (must have shipped)",
+        "wbDeploy (for apps)"
+      ]
+    },
+    "prerequisites": [
+      "successful /wbRelease + /wbPublish (or /wbDeploy) in the same cycle"
+    ],
+    "refuses_when": [
+      "no recent successful release in cycle (announcing nothing = embarrassing)"
+    ],
+    "notSuitableFor": [
+      "Internal refactors (no user-visible change)",
+      "Patch versions without new features"
+    ],
+    "references": {
+      "template": "wbBroadcast/wbBroadcast_template.md"
+    },
+    "flags": [
+      {
+        "long": "--status",
+        "short": "-s"
+      }
+    ]
+  },
+  "wbGit": {
+    "description": "Analyzes current file changes and generates Conventional Commits.",
+    "role": "The Scribe (Git) — produces commit message text.",
+    "phase": "Midday + Evening (after every logical unit + after release tag)",
+    "belt": "White",
+    "recommendedModel": "sonnet_4",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbGit",
+        "example": [
+          {
+            "command": "/wbGit",
+            "description": "Generate commit message for current working directory."
+          }
+        ],
+        "input": {
+          "path": "CWD",
+          "type": "directory",
+          "content": "git status, git diff, recent plans/standups"
+        },
+        "outputs": [
+          {
+            "path": "stdout",
+            "type": "string",
+            "content": "Strict Conventional Commit message with optional body."
+          }
+        ]
+      }
+    },
+    "chains_with": {
+      "feeds_into": [
+        "wbBroadcast (git history informs release notes)"
+      ],
+      "fed_by": []
+    },
+    "prerequisites": [
+      "git working tree has changes (uncommitted or staged)"
+    ],
+    "refuses_when": [
+      "no changes to commit",
+      "user has feedback_no_git memory active (then output text only, never run git commands)"
+    ],
+    "notSuitableFor": [
+      "Branch operations (rebase, merge — use git directly)",
+      "Commit history rewrites"
+    ],
+    "references": {
+      "template": "wbGit/wbGit_template.md"
+    },
+    "flags": [
+      {
+        "long": "--execute",
+        "short": "-e"
+      },
+      {
+        "long": "--force",
+        "short": "-F"
+      },
+      {
+        "long": "--no-verify",
+        "short": "-n"
+      },
+      {
+        "long": "--push",
+        "short": "-p"
+      },
+      {
+        "long": "--from-plan",
+        "short": "-P"
+      },
+      {
+        "long": "--diff-file",
+        "short": "-d"
+      },
+      {
+        "long": "--scan-recent",
+        "short": "-r"
+      }
+    ]
+  },
+  "wbSecure": {
+    "description": "Adversarial security scan: secrets, XSS, insecure deps, prototype pollution.",
+    "role": "The Red Team — opposite hat from /wbAudit.",
+    "phase": "Evening (before publish/deploy)",
+    "belt": "Brown",
+    "recommendedModel": "opus_4",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbSecure <target_path>",
+        "example": [
+          {
+            "command": "/wbSecure packages/wb-core",
+            "description": "Red-team security scan on wb-core."
+          }
+        ],
+        "input": {
+          "path": "<target_path>",
+          "type": "directory",
+          "content": "Source code, package.json, build outputs"
+        },
+        "outputs": [
+          {
+            "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/security/security_<folder_root_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "Findings categorized as CRITICAL, WARNING, SAFE."
+          }
+        ]
+      }
+    },
+    "chains_with": {
+      "feeds_into": [
+        "wbPublish/wbDeploy (gate)",
+        "wbDebug (CRITICAL findings)"
+      ],
+      "fed_by": [
+        "wbAudit (audit may delegate security questions to /wbSecure)"
+      ]
+    },
+    "prerequisites": [],
+    "refuses_when": [],
+    "notSuitableFor": [
+      "Code-quality review (use /wbAudit)",
+      "Performance (use /wbTest PERF)"
+    ],
+    "references": {
+      "template": "wbSecure/wbSecure_template.md"
+    },
+    "flags": [
+      {
+        "long": "--focus",
+        "short": "-f"
+      },
+      {
+        "long": "--force-past-security",
+        "short": "-F"
+      }
+    ]
+  },
+  "wbTranslate": {
+    "description": "Extracts hardcoded strings into i18n keys + EN/FR/AR JSON files.",
+    "role": "The Translator — i18n bootstrap.",
+    "phase": "Cross-cutting (one-shot per component)",
+    "belt": "Black",
+    "recommendedModel": "gemini_flash",
+    "args": {
+      "withAFile": {
+        "syntax": "/wbTranslate <target_ui_component>",
+        "example": [
+          {
+            "command": "/wbTranslate packages/wb-core/src/components/Banner.vue",
+            "description": "Extract strings from Banner.vue + write fr.json + ar.json."
+          }
+        ],
+        "input": {
+          "path": "<target_ui_component>",
+          "type": "file",
+          "content": "Vue component"
+        },
+        "outputs": [
+          {
+            "path": "<component_folder>/i18n/en.json",
+            "type": "json"
+          },
+          {
+            "path": "<component_folder>/i18n/fr.json",
+            "type": "json"
+          },
+          {
+            "path": "<component_folder>/i18n/ar.json",
+            "type": "json"
+          },
+          {
+            "path": "stdout",
+            "type": "string",
+            "content": "Summary of extracted keys."
+          }
+        ]
+      }
+    },
+    "chains_with": {
+      "feeds_into": [
+        "wbTest (verify nothing visually broken)"
+      ],
+      "fed_by": []
+    },
+    "prerequisites": [
+      "i18n framework already wired in the target (vue-i18n)"
+    ],
+    "refuses_when": [
+      "target component has no hardcoded strings"
+    ],
+    "notSuitableFor": [
+      "Re-running on already-translated component (almost always a mistake)",
+      "Backend strings (different surface)"
+    ],
+    "references": {
+      "template": "wbTranslate/wbTranslate_template.md"
+    },
+    "flags": [
+      {
+        "long": "--new-only",
+        "short": "-n"
+      }
+    ]
+  },
+  "wbToWBC": {
+    "description": "Rewrites legacy bulky HTML/Vuetify into proprietary WBC-UI2 JSON components.",
+    "role": "The Modernizer — legacy → wbc-ui2 migration.",
+    "phase": "Cross-cutting (one-shot per legacy file)",
+    "belt": "Black",
+    "recommendedModel": "qwen3_coder",
+    "args": {
+      "withAFile": {
+        "syntax": "/wbToWBC <legacy_component>",
+        "example": [
+          {
+            "command": "/wbToWBC legacy-table.vue",
+            "description": "Convert legacy table to wb-dataviewer JSON prop."
+          }
+        ],
+        "input": {
+          "path": "<legacy_component>",
+          "type": "file",
+          "content": "Legacy Vue/HTML code"
+        },
+        "outputs": [
+          {
+            "path": "<target_folder>/migration_report.md",
+            "type": "markdown",
+            "content": "Rewritten component code, before/after line counts."
+          }
+        ]
+      }
+    },
+    "chains_with": {
+      "feeds_into": [
+        "wbTest (verify visual parity)",
+        "wbAudit (audit the migration)"
+      ],
+      "fed_by": []
+    },
+    "prerequisites": [
+      "wbc-ui2 already a peer dep of the package"
+    ],
+    "refuses_when": [
+      "target file is already wbc-ui2 idiomatic"
+    ],
+    "notSuitableFor": [
+      "Re-running on already-migrated file (regression risk)",
+      "Non-table/grid components (use direct rewrite)"
+    ],
+    "references": {
+      "template": "wbToWBC/wbToWBC_template.md"
+    }
+  },
+  "wbMonetize": {
+    "description": "Bootstraps or maintains the Free/Pro/Dev tier splitting plumbing.",
+    "role": "The Tier Architect — installs the freemium scaffolding.",
+    "phase": "One-time per package",
+    "belt": "Black",
+    "recommendedModel": "opus_4",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbMonetize <package_path> [\"<split spec>\"]",
+        "example": [
+          {
+            "command": "/wbMonetize packages/wb-dataviewer",
+            "description": "Bootstrap monetization (auto-proposes split for confirmation)."
+          },
+          {
+            "command": "/wbMonetize packages/wb-dataviewer \"export Pro; live-edit Dev\"",
+            "description": "Bootstrap with explicit split spec, no prompt."
+          }
+        ],
+        "input": {
+          "path": "<package_path>",
+          "type": "directory",
+          "content": "package.json (.wbMonetize field), source code"
+        },
+        "outputs": [
+          {
+            "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/monetize/monetize_<pkg>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "Mode (bootstrap/maintenance/abort), split proposal, plumbing checklist, marker update."
+          },
+          {
+            "path": "<package_path>/package.json",
+            "type": "json",
+            "content": "wbMonetize marker injected"
+          }
+        ]
+      }
+    },
+    "chains_with": {
+      "feeds_into": [
+        "wbLicense (per-component gates after bootstrap)"
+      ],
+      "fed_by": [
+        "wbVision (vision informs which features are Pro)"
+      ]
+    },
+    "prerequisites": [
+      "package has source code",
+      "git working tree clean (recommended for bootstrap)"
+    ],
+    "refuses_when": [
+      "package has heuristic gating but no marker (ambiguous; abort with explanation)"
+    ],
+    "notSuitableFor": [
+      "Per-component gate (use /wbLicense)",
+      "Re-running bootstrap (revert + delete marker first)"
+    ],
+    "references": {
+      "template": "wbMonetize/wbMonetize_template.md"
+    }
+  },
+  "wbActOn": {
+    "description": "Turns any diagnostic markdown (audit, plan, review, standup) into a ranked execution order with per-action recommended model.",
+    "role": "The Triage Officer — converts diagnosis → prescription.",
+    "phase": "After any /wb* report (or any third-party doc)",
+    "belt": "Brown",
+    "recommendedModel": "opus_4",
+    "args": {
+      "withAFile": {
+        "syntax": "/wbActOn <file_path>",
+        "example": [
+          {
+            "command": "/wbActOn packages/wb-core/.wb/workflows/reports/20260429/audits/audit_wb-core_20260429.md",
+            "description": "Process the audit; output a ranked execution thread."
+          }
+        ],
+        "input": {
+          "path": "<file_path>",
+          "type": "file",
+          "content": "Markdown diagnostic document"
+        },
+        "outputs": [
+          {
+            "path": "<target>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/actions/action_<short_name>_<YYYYMMDD>.md",
+            "type": "markdown",
+            "content": "Annotated source with [Model action] callouts, §0 Ranked Execution Order, action tally."
+          }
+        ]
+      },
+      "withAFolder": {
+        "syntax": "/wbActOn <folder_path>",
+        "example": [
+          {
+            "command": "/wbActOn packages/wb-core",
+            "description": "Find latest report under reports/ and act on it (asks if multiple)."
+          }
+        ],
+        "input": {
+          "path": "<folder_path>",
+          "type": "directory",
+          "content": "Directory containing reports/"
+        },
+        "outputs": [
+          {
+            "path": "<target>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/actions/.../action_*.md",
+            "type": "markdown"
+          }
+        ]
+      }
+    },
+    "flags": [
+      {
+        "long": "--act",
+        "short": "-a"
+      },
+      {
+        "long": "--wbPlan",
+        "short": "-P"
+      }
+    ],
+    "chains_with": {
+      "feeds_into": [
+        "wbPlan (when --wbPlan generates the plan)",
+        "wbDebug (when 🔴 actions surface)"
+      ],
+      "fed_by": [
+        "wbAudit (--act and/or --wbPlan)",
+        "wbReview (--act and/or --wbPlan)",
+        "wbStandup (--act and/or --wbPlan)",
+        "wbPlan (--act for re-rank)"
+      ]
+    },
+    "prerequisites": [
+      "the source file must have at least some structure (sections, tables, lists)"
+    ],
+    "refuses_when": [
+      "source has zero structure (free-form notes)"
+    ],
+    "notSuitableFor": [
+      "Generating new audits/reviews (use upstream commands)",
+      "Executing the actions (run the prompts /wbActOn produced)"
+    ],
+    "references": {
+      "template": "wbActOn/wbActOn_template.md",
+      "central_flag_reference": "../1_concepts/wbPlan_flag_claude.md"
+    },
+    "$design_notes": [
+      "Outputs ALWAYS go to <target>/.wb/workflows/reports/, NEVER to docs/ai_reference/ (canon-only).",
+      "v2 Universal Daily File: action_<name>_<YYYYMMDD>.md and plan_<name>_<YYYYMMDD>.md — no model subfolder.",
+      "Multi-model: same source can be processed by N different models — each appends a new Entry #N to the same file, tagged *(ModelName — HH:MM)*. Diff entries to compare opinions.",
+      "Per-action model recommendation is mandatory: every callout includes a 'Recommended model: <name>' line."
+    ]
+  },
+  "$flow_diagrams": {
+    "morning_routine": {
+      "description": "Default daily startup: orient → load → triage",
+      "sequence": [
+        {
+          "step": 1,
+          "command": "/wbStandup core2/",
+          "purpose": "What's in flight monorepo-wide?",
+          "feeds_into": "step 2 (recommends a package)"
+        },
+        {
+          "step": 2,
+          "command": "/wbContext packages/<chosen-pkg>",
+          "purpose": "Sync AI on the chosen package",
+          "feeds_into": "step 3"
+        },
+        {
+          "step": 3,
+          "command": "describe task in natural language OR /wbPlan",
+          "purpose": "Path A (small) vs Path B (big)",
+          "feeds_into": "implementation"
+        }
+      ]
+    },
+    "afternoon_polish": {
+      "description": "Code is done; polish before shipping.",
+      "sequence_classic": [
+        {
+          "step": 1,
+          "command": "/wbClean packages/<pkg>/",
+          "purpose": "Find dead code"
+        },
+        {
+          "step": 2,
+          "command": "/wbAudit packages/<pkg>/",
+          "purpose": "Brutal review",
+          "warning": "Always audit BEFORE refactoring"
+        },
+        {
+          "step": 3,
+          "command": "/wbRefactor <file>",
+          "purpose": "Only if audit flagged messy file"
+        }
+      ],
+      "sequence_chained": [
+        {
+          "step": 1,
+          "command": "/wbAudit packages/<pkg>/ --act --wbPlan",
+          "purpose": "Audit + ranked actions + plan in one run",
+          "produces": [
+            "audit_*.md",
+            "action_audit_*.md",
+            "plan_audit_*.md"
+          ]
+        }
+      ]
+    },
+    "evening_shipping_npm": {
+      "description": "Ship a package to npm",
+      "sequence": [
+        {
+          "step": 1,
+          "command": "/wbDoc packages/<pkg>/"
+        },
+        {
+          "step": 2,
+          "command": "/wbTest packages/<pkg>/",
+          "gate": "must PASS"
+        },
+        {
+          "step": 3,
+          "command": "/wbSecure packages/<pkg>/",
+          "gate": "no CRITICAL"
+        },
+        {
+          "step": 4,
+          "command": "/wbRelease core2/",
+          "scope": "monorepo-wide due to workspace:*"
+        },
+        {
+          "step": 5,
+          "command": "/wbPublish packages/<pkg>/",
+          "gate": "requires step 4 in same cycle"
+        },
+        {
+          "step": 6,
+          "command": "/wbRelease core2/ --restore",
+          "purpose": "Put workspace:* protocols back"
+        },
+        {
+          "step": 7,
+          "command": "/wbGit",
+          "purpose": "Commit version bumps + tag"
+        },
+        {
+          "step": 8,
+          "command": "/wbBroadcast packages/<pkg>/",
+          "condition": "only if user-visible change"
+        }
+      ]
+    },
+    "evening_shipping_app": {
+      "description": "Ship an app to the live web",
+      "sequence": [
+        {
+          "step": 1,
+          "command": "/wbDoc apps/<app>/",
+          "optional": true
+        },
+        {
+          "step": 2,
+          "command": "/wbTest apps/<app>/",
+          "gate": "must PASS"
+        },
+        {
+          "step": 3,
+          "command": "/wbSecure apps/<app>/",
+          "gate": "no CRITICAL (esp. user input handlers)"
+        },
+        {
+          "step": 4,
+          "command": "/wbDeploy apps/<app>/ --target=local",
+          "purpose": "Sanity check prod build locally"
+        },
+        {
+          "step": 5,
+          "command": "/wbDeploy apps/<app>/",
+          "purpose": "Push to live host"
+        },
+        {
+          "step": 6,
+          "command": "/wbGit"
+        }
+      ]
+    },
+    "audit_to_plan_chain": {
+      "description": "The /wbActOn-engine flag chain (the new shortcut)",
+      "old_two_step": [
+        {
+          "step": 1,
+          "command": "/wbAudit packages/<pkg>/"
+        },
+        {
+          "step": 2,
+          "manual": "Read findings, decide what to plan"
+        },
+        {
+          "step": 3,
+          "command": "/wbPlan packages/<pkg>/"
+        }
+      ],
+      "new_one_step": [
+        {
+          "step": 1,
+          "command": "/wbAudit packages/<pkg>/ --act --wbPlan",
+          "produces": [
+            "audit_*.md",
+            "action_audit_*.md (ranked execution thread)",
+            "plan_audit_*.md (worker/validator tasks for 🔵 findings)"
+          ]
+        }
+      ],
+      "value_proposition": "The chain forces the 5-color triage discipline BEFORE planning. Hand-run audit→plan often skips ranking. The chain produces a richer paper trail.",
+      "fallback": "Manual two-step remains valid when you want explicit control over what gets planned. Flags are convenience, not mandate."
+    }
+  },
+  "$dependency_graph_text_view": {
+    "$description": "ASCII view of which commands feed into which, for chains and gates.",
+    "$graph": [
+      "wbSetup ─────────────► wbContext ────► wbVision",
+      "                          │",
+      "                          ▼",
+      "wbStandup ───────────► (chooses pkg) ────► wbContext",
+      "  │                                             │",
+      "  ├──[--act]────────► wbActOn ────────► (action file)",
+      "  └──[--wbPlan]─────► wbActOn ────────► (plan file)",
+      "                                                │",
+      "                                                ▼",
+      "wbContext ────────► wbPlan ────► (plan execution)",
+      "                       │                ▼",
+      "                       ├──[--act]──► wbActOn (re-rank)",
+      "                       │             ▼",
+      "                       │     [✗ --wbPlan errors here]",
+      "                       │",
+      "                       └────► wbReview (against plan) ────[--act/--wbPlan]──► wbActOn",
+      "",
+      "wbContext ────► wbAudit ────────► wbActOn (via --act)",
+      "                  │                     │",
+      "                  ├──[--act]──────► (action file)",
+      "                  ├──[--wbPlan]───► (plan file, skips action)",
+      "                  ├──[--act --wbPlan]► (action + plan, the obvious chain)",
+      "                  │",
+      "                  └────► wbRefactor (file) ────► wbTest (verify)",
+      "                  └────► wbDebug (errors)  ────► wbRefactor (if structural)",
+      "                  └────► wbClean (sweep)   ────► wbRefactor (afterwards)",
+      "",
+      "wbDoc ───┐",
+      "wbTest ──┤",
+      "wbSecure ┼──► (gate: must PASS / no CRITICAL) ──► wbRelease ──► wbPublish ──► wbBroadcast",
+      "         │                                            │",
+      "         │                                            └──► wbRelease --restore",
+      "         │",
+      "         └──► (alt path for apps) ──► wbDeploy --target=local ──► wbDeploy ──► wbGit",
+      "",
+      "wbGit ───────────────────────► (informs wbBroadcast release notes)",
+      "",
+      "wbMonetize (one-time bootstrap) ────► wbLicense (per-component gates)",
+      "wbTranslate / wbToWBC: cross-cutting one-shots (no chain dependencies)"
+    ]
+  },
+  "$gates_and_refusals_summary": {
+    "$description": "Cross-command gates that prevent shipping mistakes. The harness should refuse these; if it doesn't, dev.md is missing the rule.",
+    "gates": [
+      {
+        "command": "wbDeploy",
+        "refuses_if": "recent /wbTest report shows failures"
+      },
+      {
+        "command": "wbPublish",
+        "refuses_if": "no recent /wbRelease in the same cycle"
+      },
+      {
+        "command": "wbPublish",
+        "refuses_if": "/wbSecure has CRITICAL findings"
+      },
+      {
+        "command": "wbDeploy",
+        "refuses_if": "/wbSecure has CRITICAL findings"
+      },
+      {
+        "command": "wbPublish",
+        "refuses_if": "dist/ vs dist-dev/ mismatch in package.json"
+      },
+      {
+        "command": "wbBroadcast",
+        "refuses_if": "no successful /wbRelease or /wbPublish in the same cycle"
+      },
+      {
+        "command": "wbRefactor",
+        "refuses_if": "/wbAudit not run on this file recently OR test runner is broken"
+      },
+      {
+        "command": "wbMonetize",
+        "refuses_if": "heuristic gating found without marker (ambiguous; needs --force-bootstrap)"
+      },
+      {
+        "command": "wbLicense",
+        "refuses_if": "package has no /wbMonetize marker"
+      },
+      {
+        "command": "wbPlan",
+        "refuses_if": "called with --wbPlan flag (no-op recursion)"
+      }
+    ]
+  },
+  "$belt_progression": {
+    "$description": "Suggested learning order. See 2_daily_use/the_daily_playbook_claude.md for the canonical version.",
+    "white_belt_week_1": [
+      "wbContext",
+      "wbPlan",
+      "wbAudit",
+      "wbGit"
+    ],
+    "blue_belt_week_2": [
+      "wbDebug",
+      "wbRefactor",
+      "wbClean"
+    ],
+    "brown_belt_week_3": [
+      "wbDoc",
+      "wbTest",
+      "wbSecure",
+      "wbRelease",
+      "wbPublish",
+      "wbDeploy",
+      "wbActOn"
+    ],
+    "black_belt_week_4_plus": [
+      "wbStandup",
+      "wbVision",
+      "wbSetup",
+      "wbLicense",
+      "wbMonetize",
+      "wbReview",
+      "wbBroadcast",
+      "wbTranslate",
+      "wbToWBC"
+    ],
+    "rule_that_beats_the_belt_system": "If you only ever use /wbContext at session start, /wbAudit before shipping, and /wbGit to commit — you're already 80% of the way there."
+  },
+  "wbCheck": {
+    "description": "Pre-Flight Context Quiz to verify worker model understanding.",
+    "role": "The Quizmaster — verifies the AI actually understands the codebase before acting.",
+    "phase": "Pre-flight (before any heavy /wb*)"
+  },
+  "wbNext": {
+    "description": "Determine the immediate next optimal command to run based on codebase state.",
+    "role": "The Navigator — picks the next step when you're stuck.",
+    "phase": "Anytime (decision point)",
+    "belt": "White — first command when the path is unclear",
+    "recommendedModel": "sonnet_4",
+    "references": {
+      "template": "wbNext/wbNext_template.md"
+    },
+    "flags": [
+      {
+        "long": "--scope",
+        "short": "-s"
+      },
+      {
+        "long": "--since",
+        "short": "-S"
+      }
+    ]
+  },
+  "wbTrack": {
+    "description": "Universal session logging — every subsequent /wb* invocation is appended to a walkthrough file with strategic commentary.",
+    "role": "The Stenographer — records the session.",
+    "phase": "Session start (toggles ON)",
+    "belt": "Black — meta-command, used in long sessions",
+    "recommendedModel": "flash_3",
+    "references": {
+      "template": "wbTrack/wbTrack_template.md"
+    },
+    "flags": [
+      {
+        "long": "--finalize",
+        "short": "-f"
+      },
+      {
+        "long": "--scope",
+        "short": "-s"
+      }
+    ]
+  },
+  "wbStopTrack": {
+    "description": "Stop session tracking, write final §END section, extract derivative files.",
+    "role": "The Stenographer (closer) — closes the recording.",
+    "phase": "Session end",
+    "belt": "Black — companion to /wbTrack",
+    "recommendedModel": "flash_3",
+    "references": {
+      "template": "wbTrack/wbTrack_template.md"
+    },
+    "alias_of": "wbTrack"
+  },
+  "wbHelp": {
+    "description": "Print the role-grouped command catalog (no args) or one command's manual (`/wbHelp <wbX>` ≡ `/<wbX> -h`).",
+    "role": "The Librarian — print-and-stop catalog/help.",
+    "phase": "Anytime (meta-command)",
+    "belt": "White — always available",
+    "recommendedModel": "haiku_4_5",
+    "references": {
+      "template": "wbHelp/wbHelp_template.md"
+    }
+  },
+  "wbWork": {
+    "description": "Executes tasks defined in an active plan file.",
+    "role": "The Worker — writes code and produces execution reports.",
+    "phase": "Midday (execution phase)",
+    "belt": "White — core loop",
+    "recommendedModel": "sonnet_35",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbWork <path_to_plan.md> [--id=<task_ids>]",
+        "example": [
+          {
+            "command": "/wbWork plan_core2_20260503.md --id=2",
+            "description": "Executes task 2 from the plan."
+          },
+          {
+            "command": "/wbWork plan_core2_20260503.md *",
+            "description": "Executes all pending tasks."
+          }
+        ],
+        "input": {
+          "path": "<path_to_plan.md>",
+          "type": "directory",
+          "content": "Active plan file."
+        },
+        "outputs": [
+          {
+            "path": "<target_folder_path>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/tasks_reports/task_<ID>_<TARGET>.md",
+            "type": "markdown",
+            "content": "Task execution report."
+          }
+        ]
+      }
+    },
+    "flags": [
+      {
+        "flag": "--id",
+        "shortcut": "-i",
+        "description": "Specifies task indices to execute (supports =, *, >, <, !=)."
+      }
+    ],
+    "notSuitableFor": [
+      "Planning new tasks (use /wbPlan)",
+      "Validating work (use /wbValid)"
+    ],
+    "references": {
+      "template": "wbWork/wbWork_template.md"
+    }
+  },
+  "wbValid": {
+    "description": "Validates executed tasks against their original plan requirements.",
+    "role": "The Validator / QA — checks the Worker's code.",
+    "phase": "Afternoon (QA phase)",
+    "belt": "White — core loop",
+    "recommendedModel": "opus_4",
+    "args": {
+      "withAFolder": {
+        "syntax": "/wbValid <path_to_plan.md> [--id=<task_ids>]",
+        "example": [
+          {
+            "command": "/wbValid plan_core2_20260503.md --id=2",
+            "description": "Validates task 2."
+          }
+        ],
+        "input": {
+          "path": "<path_to_plan.md>",
+          "type": "directory",
+          "content": "Active plan file and worker's task reports."
+        },
+        "outputs": [
+          {
+            "path": "<target_folder_path>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/tasks_reports/task_<ID>_<TARGET>.md",
+            "type": "markdown",
+            "content": "Appends PASS/FAIL findings to the worker's report."
+          }
+        ]
+      }
+    },
+    "flags": [
+      {
+        "flag": "--id",
+        "shortcut": "-i",
+        "description": "Specifies task indices to validate (supports =, *)."
+      }
+    ],
+    "notSuitableFor": [
+      "Executing code (use /wbWork)",
+      "General code auditing (use /wbAudit)"
+    ],
+    "references": {
+      "template": "wbValid/wbValid_template.md"
+    }
+  },
+  "wbExplain": {
+    "description": "Generate persistent, formatted explanations for a specific task ID, a codebase architecture, or a general technical question, without executing code changes.",
+    "role": "The Teacher / The Architect",
+    "args": {
+      "withTask": {
+        "syntax": "/wbExplain <plan_file> --id=<task_id>",
+        "example": {
+          "example1": {
+            "command": "/wbExplain plan_wb-core_20260503.md --id=1 --as=eli5",
+            "description": "Explains task #1 from the plan using ELI5 style."
+          }
+        },
+        "input": {
+          "path": "<plan_file>",
+          "type": "file",
+          "content": "The plan markdown file containing the task"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/explanations/explain_<slug>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "High-level summary, deep dive, and recommended approach."
+        }
+      },
+      "withQuery": {
+        "syntax": "/wbExplain <target_folder> \"<query>\"",
+        "example": {
+          "example1": {
+            "command": "/wbExplain packages/wb-core/ \"How does the Tier parser work?\" --as=expert",
+            "description": "Deep dives into the architecture question for the wb-core package."
+          }
+        },
+        "input": {
+          "path": "<target_folder>",
+          "type": "directory",
+          "content": "Source files relevant to the query"
+        },
+        "output": {
+          "path": "<target_folder>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/explanations/explain_<slug>_<YYYYMMDD>.md",
+          "type": "markdown",
+          "content": "High-level summary, deep dive, and recommended approach."
+        }
+      }
+    },
+    "flags": {
+      "--as": {
+        "flag": "--as=<style>",
+        "role": "Adopts an exact tone or formatting style from shortcuts.md (e.g. eli5, expert, fr).",
+        "example": {
+          "example1": {
+            "command": "/wbExplain plan.md --id=1 --as=eli5,fr",
+            "description": "Explains the task in French, using an ELI5 analogy."
+          }
+        }
+      }
+    }
+  }
+}
