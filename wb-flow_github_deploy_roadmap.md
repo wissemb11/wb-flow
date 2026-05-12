@@ -55,11 +55,16 @@ Because `packages/wb-flow` lives inside the `wb-labs` monorepo, you must extract
 Run these manual bash steps to extract the folder:
 ```bash
 rm -rf ~/tmp/wb-flow-deploy
-git clone https://github.com/wissemb11/wb-flow.git ~/tmp/wb-flow-deploy
+git clone git@github.com:wissemb11/wb-flow.git ~/tmp/wb-flow-deploy
 cd ~/tmp/wb-flow-deploy
 find . -mindepth 1 -maxdepth 1 ! -name ".git" -exec rm -rf {} +
 cp -r ~/Allprojects/wb-labs/frontEnd/wbc-ui/core2/packages/wb-flow/* ~/tmp/wb-flow-deploy/
-```
+
+# 3a. Create .gitignore to exclude internal scaffolding (docs/.wb/ reports + node_modules/)
+cat > ~/tmp/wb-flow-deploy/.gitignore << 'EOF'
+node_modules/
+docs/.wb/
+EOF
 
 Now, instead of manually writing the commit message, let your agent do it:
 ```bash
@@ -103,7 +108,7 @@ To preserve your GitHub commit history (instead of force-pushing), you should cl
 ```bash
 # 1. Clone the existing standalone repo to a temp folder
 rm -rf ~/tmp/wb-flow-deploy
-git clone https://github.com/wissemb11/wb-flow.git ~/tmp/wb-flow-deploy
+git clone git@github.com:wissemb11/wb-flow.git ~/tmp/wb-flow-deploy
 
 # 2. Remove all old files in the cloned repo (EXCEPT the hidden .git folder!)
 cd ~/tmp/wb-flow-deploy
@@ -111,6 +116,12 @@ find . -mindepth 1 -maxdepth 1 ! -name ".git" -exec rm -rf {} +
 
 # 3. Copy the fresh contents from the monorepo
 cp -r ~/Allprojects/wb-labs/frontEnd/wbc-ui/core2/packages/wb-flow/* ~/tmp/wb-flow-deploy/
+
+# 3a. Create .gitignore to exclude internal scaffolding
+cat > ~/tmp/wb-flow-deploy/.gitignore << 'EOF'
+node_modules/
+docs/.wb/
+EOF
 
 # 4. Commit and push the updates manually
 git add .
