@@ -1,0 +1,77 @@
+{
+  "nodes": [
+    {
+      "id": "file:src/main.js",
+      "type": "file",
+      "name": "main.js",
+      "filePath": "src/main.js",
+      "summary": "Application entry point mounting the Vue instance.",
+      "fileCategory": "code"
+    },
+    {
+      "id": "file:src/App.vue",
+      "type": "file",
+      "name": "App.vue",
+      "filePath": "src/App.vue",
+      "summary": "Root Vue component for the application.",
+      "fileCategory": "code"
+    },
+    {
+      "id": "file:vite.config.js",
+      "type": "file",
+      "name": "vite.config.js",
+      "filePath": "vite.config.js",
+      "summary": "Vite bundler configuration file.",
+      "fileCategory": "config"
+    },
+    {
+      "id": "file:package.json",
+      "type": "file",
+      "name": "package.json",
+      "filePath": "package.json",
+      "summary": "NPM package manifest and dependency definitions.",
+      "fileCategory": "config"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:src/main.js",
+      "target": "file:src/App.vue",
+      "type": "imports"
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer:configuration",
+      "name": "Configuration",
+      "description": "Build and dependency configurations",
+      "nodeIds": [
+        "file:vite.config.js",
+        "file:package.json"
+      ]
+    },
+    {
+      "id": "layer:presentation",
+      "name": "Presentation",
+      "description": "Vue components and UI rendering",
+      "nodeIds": [
+        "file:src/App.vue",
+        "file:src/main.js"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "id": "step:entry",
+      "title": "Application Entry",
+      "description": "The app boots here, mounting the root component.",
+      "nodeIds": ["file:src/main.js"]
+    },
+    {
+      "id": "step:root-component",
+      "title": "Root Component",
+      "description": "The main layout and routing boundary for the SaaS Dashboard.",
+      "nodeIds": ["file:src/App.vue"]
+    }
+  ]
+}

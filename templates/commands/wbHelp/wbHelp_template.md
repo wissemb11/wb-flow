@@ -62,7 +62,7 @@ Inspect `$ARGUMENTS` and pick exactly one mode:
 ---
 
 **Need details on one command?** Run `/wbHelp <command>` (or `/<command> -h`).
-**Model picks per command:** see [`flow.wb-ui.com/concepts/model_recommendations_claude.md`](../../../../../apps/wb-flow/flow.wb-ui.com/concepts/model_recommendations_claude.md).
+**Model picks per command:** see [`flow.wbc-ui.com/concepts/model_recommendations_claude.md`](../../../../../apps/wb-flow/flow.wbc-ui.com/concepts/model_recommendations_claude.md).
 ```
 
 4. The `#` column uses the catalog's natural order (1, 2, 3 …) — read the JSON keys in their order of appearance and number sequentially. Don't invent positional numbers.

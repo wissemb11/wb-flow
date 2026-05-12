@@ -9,7 +9,7 @@
 [5.823399, "o", "\u001b[1;32m$\u001b[0m npx wb-flow\r\n"]
 [6.655918, "o", "🚀 Initializing wb-flow inside your project...\r\n"]
 [6.656331, "o", "📁 Creating .wb/ folder in /tmp/wb-flow-demo-target...\r\n"]
-[6.667382, "o", "\r\n📍 Templates installed to: .wb/\r\n📖 Documentation: https://flow.wb-ui.com\r\n"]
+[6.667382, "o", "\r\n📍 Templates installed to: .wb/\r\n📖 Documentation: https://flow.wbc-ui.com\r\n"]
 [6.667409, "o", "🚀 Start here: /wbSetup <your-project-path>\r\n✅ Done! 40 created.\r\n"]
 [8.671188, "o", "\r\n\u001b[0;90m# .wb/ is now materialized — 31 ready-to-use commands:\u001b[0m\r\n"]
 [9.472076, "o", "\u001b[1;32m$\u001b[0m ls .wb/commands/ | head -10\r\n"]

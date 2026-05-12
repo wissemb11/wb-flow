@@ -147,7 +147,7 @@ try {
 
 // Post-install guidance
 if (!dryRun) {
-  const docsUrl = 'https://flow.wb-ui.com';
+  const docsUrl = 'https://flow.wbc-ui.com';
   console.log('');
   console.log('📍 Templates installed to: .wb/');
   console.log('📖 Documentation: ' + docsUrl);

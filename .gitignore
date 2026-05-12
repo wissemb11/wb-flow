@@ -1,7 +1,0 @@
-node_modules/
-*.tgz
-*.log
-.DS_Store
-.idea/
-.vscode/
-_archived_/
