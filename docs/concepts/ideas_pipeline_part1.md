@@ -2,6 +2,26 @@
 
 > The Ideas Pipeline is wb-flow's structured incubation system. It transforms raw brainstorming into validated, executable plan tasks through a deterministic 5-stage lifecycle.
 
+<div style="max-width:650px;margin:16px auto">
+
+```mermaid
+flowchart LR
+  classDef plan fill:#161b22,stroke:#d2a8ff,color:#c9d1d9
+  classDef work fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+  classDef valid fill:#161b22,stroke:#3fb950,color:#c9d1d9
+  classDef teal fill:#161b22,stroke:#00d4aa,color:#c9d1d9
+
+  I[💡 Idea]:::plan --> C[/wbIdea\]:::plan
+  C --> S[Score & Rank]:::work
+  S --> P[/wbPlan\]:::work
+  P --> W[/wbWork\]:::work
+  W --> V[/wbValid\]:::valid
+  V -- "PASS" --> D[🚀 Ship]:::teal
+  V -- "FAIL" --> P
+```
+
+</div>
+
 ---
 
 ## 1. The Five Stages

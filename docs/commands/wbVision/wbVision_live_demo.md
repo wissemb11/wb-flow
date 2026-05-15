@@ -67,6 +67,8 @@ This document is the **Real-Time Execution Log** of the `/wbVision` command. It 
 [AST] Tracing function calls from `renderString.js`...
 [TYPE] Generating Mermaid Sequence Diagram...
 [OUTPUT] 
+<div style="max-width:650px;margin:16px auto">
+
 ```mermaid
 sequenceDiagram
     participant User
@@ -77,6 +79,8 @@ sequenceDiagram
     tierEnforcement-->>WBC: true
     WBC-->>User: Return Regex Sanitized String
 ```
+
+</div>
 [SUCCESS] Sequence visualized.
 ```
 

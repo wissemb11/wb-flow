@@ -27,7 +27,7 @@ In a 28-command ecosystem, knowledge of which command to invoke for a given goal
 
 ## 🔗 Related
 
-- [`wb_commands_reference.json`](../../../../../../packages/wb-flow/templates/commands/wb_commands_reference.json) — The data source `/wbHelp` renders.
+- [`wb_commands_reference.json`](../../../templates/commands/wb_commands_reference.json) — The data source `/wbHelp` renders.
 - [`concepts/flags_and_shortcuts_part1.md`](../../concepts/flags_and_shortcuts_part1.md) — The system-wide flag→shortcut grammar that the catalog's `Flags` column documents.
 - [`concepts/model_recommendations_part1.md`](../../concepts/model_recommendations_part1.md) — Per-command model picks (orthogonal to `/wbHelp`).
 

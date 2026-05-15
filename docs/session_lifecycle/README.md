@@ -1,5 +1,27 @@
 # Session Lifecycle —
 
+<div style="max-width:650px;margin:16px auto">
+
+```mermaid
+flowchart TD
+  classDef plan fill:#161b22,stroke:#d2a8ff,color:#c9d1d9
+  classDef work fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+  classDef valid fill:#161b22,stroke:#3fb950,color:#c9d1d9
+  classDef teal fill:#161b22,stroke:#00d4aa,color:#c9d1d9
+  classDef muted fill:#161b22,stroke:#30363d,color:#8b949e
+
+  Open[Open Session 🚀]:::plan --> Context[/wbContext\]:::work
+  Context --> Work[/wbWork\]:::work
+  Work --> Audit[/wbAudit\]:::valid
+  Audit --> Git[/wbGit\]:::teal
+  Git --> Close{Close?}:::plan
+  Close -- "Save" --> Save[Golden Save Point 💾]:::valid
+  Close -- "Publish" --> Release[Publish Release 🎉]:::teal
+  Save --> Open
+```
+
+</div>
+
 AI agents have finite context windows. Managing sessions — when to open, when to close, and how to save state between them — is critical to avoiding hallucinations, token bloat, and lost work.
 
 ## Index

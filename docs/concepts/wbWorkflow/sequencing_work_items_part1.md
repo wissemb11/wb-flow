@@ -1,5 +1,26 @@
 # Sequencing Work Items — The DAG Dependency Model
 
+<div style="max-width:650px;margin:16px auto">
+
+```mermaid
+flowchart TD
+  classDef plan fill:#161b22,stroke:#d2a8ff,color:#c9d1d9
+  classDef work fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+  classDef valid fill:#161b22,stroke:#3fb950,color:#c9d1d9
+  classDef muted fill:#161b22,stroke:#30363d,color:#8b949e
+
+  T1[Task #1]:::plan --> T3[Task #3]:::work
+  T2[Task #2]:::plan --> T3
+  T1 --> T4[Task #4]:::work
+  T2 --> T4
+  T3 --> T5[Task #5]:::valid
+  T4 --> T6[Task #6]:::valid
+  T5 --> T7[Task #7 🏁]:::teal
+  T6 --> T7
+```
+
+</div>
+
 > This page explains how wb-flow determines the execution order of plan tasks using a Directed Acyclic Graph (DAG) dependency model.
 
 ---

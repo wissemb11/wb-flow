@@ -2,6 +2,64 @@
 
 > This page defines the role taxonomy that governs every `/wb*` command. Each command is assigned exactly one role, which determines its permissions, output type, and position in the composition chain.
 
+<div style="max-width:650px;margin:16px auto">
+
+```mermaid
+mindmap
+  root((33 Commands))
+    Context Builders
+      ::icon(fa fa-search)
+      wbSetup
+      wbContext
+      wbStandup
+    Planners
+      ::icon(fa fa-compass)
+      wbPlan
+      wbVision
+      wbIdea
+      wbNext
+      wbHelp
+      wbActOn
+      wbExplain
+    Workers & Validators
+      ::icon(fa fa-code)
+      wbWork
+      wbValid
+    Critics
+      ::icon(fa fa-check)
+      wbAudit
+      wbReview
+      wbTest
+      wbCheck
+    Surgeons
+      ::icon(fa fa-tools)
+      wbClean
+      wbRefactor
+      wbDebug
+      wbDoc
+    Shippers
+      ::icon(fa fa-rocket)
+      wbRelease
+      wbPublish
+      wbDeploy
+      wbLicense
+      wbBroadcast
+      wbMonetize
+    Archivists
+      ::icon(fa fa-archive)
+      wbGit
+      wbLog
+    Security & More
+      ::icon(fa fa-shield)
+      wbSecure
+      wbTranslate
+      wbToWBC
+      wbTrack
+      wbStopTrack
+```
+
+</div>
+
 ---
 
 ## The Four Roles

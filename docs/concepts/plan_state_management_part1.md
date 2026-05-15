@@ -1,5 +1,21 @@
 # Plan State Management — The Task Lifecycle
 
+<div style="max-width:650px;margin:16px auto">
+
+```mermaid
+stateDiagram-v2
+  [*] --> Planned: /wbPlan
+  Planned --> InProgress: /wbWork
+  InProgress --> Blocked: dependency
+  Blocked --> InProgress: dep resolved
+  InProgress --> Validating: /wbValid
+  Validating --> InProgress: FAIL → rework
+  Validating --> Done: PASS ✅
+  Done --> [*]
+```
+
+</div>
+
 > This page defines the state machine governing every task in a wb-flow plan. Understanding these states and their transitions is essential for operating `/wbPlan`, `/wbWork`, and `/wbValid` correctly.
 
 ---

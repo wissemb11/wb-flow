@@ -31,7 +31,7 @@ After reaching a Golden Save Point, proceed to close the session (`2_closing_the
 - **[Session Lifecycle Hub](README.md)** — Overview of the full session lifecycle
 - **[Closing the Session](2_closing_the_session.md)** — How to close formally and commit
 - **[Opening a New Session](3_opening_a_new_session.md)** — Starting fresh with full context
-- **[Daily Use](../../daily_use/README.md)** — Daily operational procedures
+- **[Daily Use](../daily_use/README.md)** — Daily operational procedures
 
 
 

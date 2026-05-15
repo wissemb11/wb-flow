@@ -1,5 +1,32 @@
 # Sequencing Work Items — Real-World Examples
 
+<div style="max-width:650px;margin:16px auto">
+
+```mermaid
+flowchart LR
+  classDef plan fill:#161b22,stroke:#d2a8ff,color:#c9d1d9
+  classDef work fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+  classDef valid fill:#161b22,stroke:#3fb950,color:#c9d1d9
+  classDef teal fill:#161b22,stroke:#00d4aa,color:#c9d1d9
+
+  subgraph ScopeA["Scope: Frontend"]
+    A1[Audit UI]:::plan --> A2[Fix components]:::work
+  end
+
+  subgraph ScopeB["Scope: API"]
+    B1[Audit routes]:::plan --> B2[Add endpoints]:::work
+  end
+
+  subgraph ScopeC["Scope: Integration"]
+    C1[E2E tests]:::valid --> C2[Deploy]:::teal
+  end
+
+  A2 --> C1
+  B2 --> C1
+```
+
+</div>
+
 > Part 2 shows real-world sequencing patterns from multi-package refactors, cross-scope dependencies, and how `/wbNext` uses the DAG to recommend actions.
 
 ---

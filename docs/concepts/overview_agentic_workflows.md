@@ -1,5 +1,22 @@
 # Core Concepts & Architecture
 
+<div style="max-width:650px;margin:16px auto">
+
+```mermaid
+flowchart TD
+  classDef plan fill:#161b22,stroke:#d2a8ff,color:#c9d1d9
+  classDef work fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+  classDef valid fill:#161b22,stroke:#3fb950,color:#c9d1d9
+  classDef teal fill:#161b22,stroke:#00d4aa,color:#c9d1d9
+
+  P[/wbPlan\]:::plan --> W[/wbWork\]:::work
+  W --> V[/wbValid\]:::valid
+  V -- "PASS" --> D[Done]:::teal
+  V -- "FAIL" --> P
+```
+
+</div>
+
 The WB-Labs workflow is defined by two foundational architectures: **4D Temporal Navigation** and the **Smart Merge Protocol**.
 
 ## 1. 4D Temporal Navigation

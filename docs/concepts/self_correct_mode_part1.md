@@ -1,5 +1,23 @@
 # Self-Correct Mode — Detection & Actions
 
+<div style="max-width:650px;margin:16px auto">
+
+```mermaid
+flowchart TD
+  classDef plan fill:#161b22,stroke:#d2a8ff,color:#c9d1d9
+  classDef work fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+  classDef valid fill:#161b22,stroke:#3fb950,color:#c9d1d9
+  classDef teal fill:#161b22,stroke:#00d4aa,color:#c9d1d9
+
+  A[Audit Code]:::plan --> B[Identify Issues]:::work
+  B --> C[Fix Issues]:::work
+  C --> D[Re-audit]:::valid
+  D -- "Still failing" --> B
+  D -- "All clear" --> E[Done ✅]:::teal
+```
+
+</div>
+
 > Self-correct mode is an automatic behavior that activates when a `/wb*` command receives an existing report file as input instead of a folder path. It repairs inconsistencies, fills gaps, and synchronizes state.
 
 ---

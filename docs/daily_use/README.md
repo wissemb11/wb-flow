@@ -19,6 +19,7 @@ Guides for the day-to-day rhythm of operating within the WB-Labs agentic workflo
 
 See [the_daily_playbook_part1.md](the_daily_playbook_part1.md) for the full breakdown with exact command sequences.
 
+![The Daily Workflow Loop — Orient → Plan → Execute → Validate → Commit → Close](../diagrams/daily_workflow_loop.png)
 
 ## Common Workflow
 

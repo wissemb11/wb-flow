@@ -1,5 +1,34 @@
 # The WB-Labs Workflow Lifecycle
 
+<div style="max-width:650px;margin:16px auto">
+
+```mermaid
+flowchart TD
+  classDef plan fill:#161b22,stroke:#d2a8ff,color:#c9d1d9
+  classDef work fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+  classDef valid fill:#161b22,stroke:#3fb950,color:#c9d1d9
+  classDef muted fill:#161b22,stroke:#30363d,color:#8b949e
+  classDef teal fill:#161b22,stroke:#00d4aa,color:#c9d1d9
+
+  subgraph Reports["Reports Layer"]
+    Audit[audit_*.md]:::valid
+    Plan[plan_*.md]:::plan
+    Track[track_*.md]:::muted
+    Standup[standup_*.md]:::plan
+    Idea[idea_*.md]:::plan
+  end
+
+  subgraph Commands["Command Layer"]
+    A[/wbAudit\]:::valid --> Audit
+    P[/wbPlan\]:::plan --> Plan
+    T[/wbTrack\]:::muted --> Track
+    S[/wbStandup\]:::plan --> Standup
+    I[/wbIdea\]:::plan --> Idea
+  end
+```
+
+</div>
+
 Every work item in the WB-Labs agentic system follows a structured pipeline from discovery to deployment. This guide maps the complete lifecycle and explains how commands chain together.
 
 ## The 6-Phase Pipeline

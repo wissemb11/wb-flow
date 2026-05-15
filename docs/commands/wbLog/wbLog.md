@@ -63,7 +63,6 @@ Result: A `[LOG]` entry appears in `track_core2_20260512.md`.
 - [ELI5](wbLog_eli5.md) — What `/wbLog` does in one sentence
 - [Practical](wbLog_practical.md) — When and how to log during a session
 - [Expert](wbLog_expert.md) — Architecture of the session tracker and log format
-- [Examples](wbLog_examples.md) — Annotated log transcripts
 - [Exhaustive Simulation](wbLog_exhaustive_simulation.md) — All log scenarios with expected behavior
 - [Live Demo](wbLog_live_demo.md) — Real-time logging walkthrough
 

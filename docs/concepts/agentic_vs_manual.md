@@ -1,5 +1,30 @@
 # Agentic vs Manual Workflow
 
+<div style="max-width:650px;margin:16px auto">
+
+```mermaid
+flowchart LR
+  classDef plan fill:#161b22,stroke:#d2a8ff,color:#c9d1d9
+  classDef work fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+  classDef valid fill:#161b22,stroke:#3fb950,color:#c9d1d9
+  classDef muted fill:#161b22,stroke:#30363d,color:#8b949e
+
+  subgraph Manual["Manual Workflow"]
+    M1[Write Code]:::muted --> M2[Run Tests]:::muted
+    M2 --> M3[Debug]:::muted
+    M3 --> M1
+  end
+
+  subgraph Agentic["Agentic Workflow"]
+    A1[/wbAudit\]:::plan --> A2[/wbPlan\]:::work
+    A2 --> A3[/wbWork\]:::work
+    A3 --> A4[/wbValid\]:::valid
+    A4 -- "FAIL → retry" --> A2
+  end
+```
+
+</div>
+
 When evaluating whether to adopt `wb-flow`, the most common question is: *Why do I need a CLI tool for this? Why can't I just tell the AI what to do?*
 
 The answer comes down to **cognitive load** and **hygiene**. Below is a side-by-side comparison of a standard release cycle executed via `wb-flow`'s strict agentic commands versus doing it manually.

@@ -1,6 +1,6 @@
 {
   "name": "wb-flow",
-  "version": "1.0.0-r01",
+  "version": "1.0.1",
   "description": "Zero-dependency CLI that bootstraps an agentic AI workflow system into any repo. Universal — works with Vue, React, Python, or any codebase. Compatible with Claude Code, OpenCode, Gemini CLI, Cursor, and other AI coding assistants.",
   "bin": {
     "wb-flow": "./bin/install.js"
@@ -38,7 +38,7 @@
     "type": "git",
     "url": "git+https://github.com/wissemb11/wb-flow.git"
   },
-  "homepage": "https://flow.wb-ui.com",
+  "homepage": "https://flow.wbc-ui.com",
   "bugs": {
     "url": "https://github.com/wissemb11/wb-flow/issues",
     "email": "wissemb11@gmail.com"

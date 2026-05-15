@@ -1,5 +1,21 @@
 # The Daily Playbook — Morning Routine
 
+<div style="max-width:650px;margin:16px auto">
+
+```mermaid
+flowchart LR
+  classDef plan fill:#161b22,stroke:#d2a8ff,color:#c9d1d9
+  classDef work fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+  classDef valid fill:#161b22,stroke:#3fb950,color:#c9d1d9
+  classDef teal fill:#161b22,stroke:#00d4aa,color:#c9d1d9
+
+  W1[White Belt<br/>3 commands]:::plan --> G1[Green Belt<br/>10 commands]:::work
+  G1 --> B1[Black Belt<br/>20 commands]:::valid
+  B1 --> R1[Red Belt<br/>33 commands]:::teal
+```
+
+</div>
+
 > This page defines the recommended morning workflow for a wb-flow developer. It covers the three commands you should run at the start of every session to establish context, resume work, and begin execution.
 
 ---

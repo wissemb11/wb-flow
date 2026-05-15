@@ -1,8 +1,29 @@
 # wb-flow Publishing Lifecycle
 
+<div style="max-width:650px;margin:16px auto">
+
+```mermaid
+flowchart LR
+  classDef plan fill:#161b22,stroke:#d2a8ff,color:#c9d1d9
+  classDef work fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+  classDef valid fill:#161b22,stroke:#3fb950,color:#c9d1d9
+  classDef teal fill:#161b22,stroke:#00d4aa,color:#c9d1d9
+
+  A[Pre-flight Check]:::plan --> B[Bump Version]:::work
+  B --> C[Update Changelog]:::work
+  C --> D[Commit & Tag]:::teal
+  D --> E[Push to GitHub]:::work
+  E --> F[Publish to NPM]:::valid
+  F --> G[🎉 Released]:::teal
+```
+
+</div>
+
 This section outlines the natural, deterministic process for publishing a package using the `wb*` command system. It covers the end-to-end lifecycle from pre-flight checks to post-publish procedures.
 
 ## Publishing Lifecycle Diagram
+
+<div style="max-width:650px;margin:16px auto">
 
 ```mermaid
 flowchart TD
@@ -36,6 +57,8 @@ flowchart TD
     S --> T["Post-Publish Handoff"]
     T --> U["/wbNext, /wbDeploy, /wbVision, /wbBroadcast"]
 ```
+
+</div>
 
 ## Step-by-Step Guide
 

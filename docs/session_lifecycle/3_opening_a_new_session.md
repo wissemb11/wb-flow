@@ -39,7 +39,7 @@ A well-opened session starts with full context: the project state, the previous 
 - **[The Golden Save Point](1_the_golden_save_point.md)** — The ideal state before closing the previous session
 - **[Closing the Session](2_closing_the_session.md)** — How to close formally
 - **[Session Lifecycle Hub](README.md)** — Full lifecycle overview
-- **[Daily Use](../../daily_use/README.md)** — Daily operational procedures
+- **[Daily Use](../daily_use/README.md)** — Daily operational procedures
 
 
 ## Common Pitfalls

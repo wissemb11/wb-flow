@@ -1,5 +1,26 @@
 # Closing the Session
 
+<div style="max-width:650px;margin:16px auto">
+
+```mermaid
+flowchart LR
+  classDef plan fill:#161b22,stroke:#d2a8ff,color:#c9d1d9
+  classDef work fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+  classDef valid fill:#161b22,stroke:#3fb950,color:#c9d1d9
+  classDef teal fill:#161b22,stroke:#00d4aa,color:#c9d1d9
+  classDef muted fill:#161b22,stroke:#30363d,color:#8b949e
+
+  S[Session Start]:::plan --> T1[Task 1]:::work
+  T1 --> T2[Task 2]:::work
+  T2 --> T3[Task 3]:::work
+  T3 --> B[Context Bloated 🧠💥]:::muted
+  B --> C{Close Session?}:::teal
+  C -- "Yes" --> Save[Golden Save Point 💾]:::valid
+  C -- "No" --> T4[❌ Errors mount]:::muted
+```
+
+</div>
+
 ## Why Close a Session?
 AI Agents have a "context window." As you chat, the window fills up with old logs, executed code, and discarded thoughts. If a session gets too long, the AI becomes "bloated"—it starts hallucinating, forgetting instructions, and costing more tokens per message.
 

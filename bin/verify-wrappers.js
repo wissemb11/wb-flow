@@ -16,6 +16,11 @@ if (!fs.existsSync(TEMPLATES_DIR)) {
   process.exit(1);
 }
 
+if (!fs.existsSync(CLAUDE_DIR) || !fs.existsSync(OPENCODE_DIR)) {
+  console.log('⚠️ Skipping wrapper verification (running outside monorepo development environment).');
+  process.exit(0);
+}
+
 const manifestPath = path.join(TEMPLATES_DIR, 'wb_commands_reference.json');
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 const commands = Object.keys(manifest);

@@ -24,7 +24,7 @@ wbBroadcast --message "Staging ready for QA" --channel staging
 
 `wbBroadcast` belongs to the **Strategists** family. Sibling commands in this family:
 
-- **[WbHelp](../wbHelp/README.md)** — [WbHelp Hub](../wbHelp/README.md)
+- **[WbHelp](../wbHelp/wbHelp.md)** — [WbHelp Hub](../wbHelp/wbHelp.md)
 - **[WbStandup](../wbStandup/README.md)** — [WbStandup Hub](../wbStandup/README.md)
 
 ## See Also

@@ -2,6 +2,38 @@
 
 > This page explains the conceptual model behind command composition in wb-flow. For the formal specification, see [command_composition_spec_v1](../_specs/command_composition_spec_v1_part1.md).
 
+<div style="max-width:650px;margin:16px auto">
+
+```mermaid
+flowchart LR
+  classDef plan fill:#161b22,stroke:#d2a8ff,color:#c9d1d9
+  classDef work fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+  classDef valid fill:#161b22,stroke:#3fb950,color:#c9d1d9
+
+  P["1. PLAN<br/>Write the contract"]:::plan --> W["2. WORK<br/>Execute the code"]:::work
+  W --> V["3. VALIDATE<br/>Audit the output"]:::valid
+  V -. "FAIL → Retry" .-> P
+```
+
+</div>
+
+<div style="max-width:650px;margin:16px auto">
+
+```mermaid
+flowchart LR
+  classDef plan fill:#161b22,stroke:#d2a8ff,color:#c9d1d9
+  classDef work fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+  classDef valid fill:#161b22,stroke:#3fb950,color:#c9d1d9
+  classDef teal fill:#161b22,stroke:#00d4aa,color:#c9d1d9
+
+  A[/wbAudit --act\]:::plan --> P[/wbPlan --act\]:::work
+  P --> W[/wbWork\]:::work
+  W --> V[/wbValid\]:::valid
+  V --> G[/wbGit\]:::teal
+```
+
+</div>
+
 ---
 
 ## 1. The Core Idea

@@ -63,7 +63,6 @@ Result: `track_core2_20260512.md` is sealed, summarized, and archived.
 - [ELI5](wbStopTrack_eli5.md) — What `/wbStopTrack` does in one sentence
 - [Practical](wbStopTrack_practical.md) — When to finalize a session
 - [Expert](wbStopTrack_expert.md) — Tracker lifecycle and archiving internals
-- [Examples](wbStopTrack_examples.md) — Annotated session-finalization transcripts
 - [Exhaustive Simulation](wbStopTrack_exhaustive_simulation.md) — All scenarios
 - [Live Demo](wbStopTrack_live_demo.md) — End-to-end session close walkthrough
 

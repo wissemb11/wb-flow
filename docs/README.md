@@ -33,6 +33,10 @@ The AI cannot skip steps because you haven't given it the next command yet.
 
 ---
 
+![The Daily Workflow Loop — Orient → Plan → Execute → Validate → Commit → Close](diagrams/daily_workflow_loop.png)
+
+---
+
 ## What is wb-flow?
 
 wb-flow is a **prompt-based command system** that runs inside your AI assistant. Install it once and it drops 33 structured slash-command templates into your repo — pure Markdown files your AI reads and follows as operating procedures.
