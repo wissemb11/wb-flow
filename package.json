@@ -1,0 +1,56 @@
+{
+  "name": "wb-flow",
+  "version": "1.0.1",
+  "description": "Zero-dependency CLI that bootstraps an agentic AI workflow system into any repo. Universal — works with Vue, React, Python, or any codebase. Compatible with Claude Code, OpenCode, Gemini CLI, Cursor, and other AI coding assistants.",
+  "bin": {
+    "wb-flow": "./bin/install.js"
+  },
+  "files": [
+    "bin/",
+    "templates/",
+    "assets/demo.gif",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "test": "node test/smoke.js && node bin/verify-wrappers.js",
+    "prepublishOnly": "npm test"
+  },
+  "keywords": [
+    "ai",
+    "agentic",
+    "agentic-ai",
+    "workflow",
+    "claude",
+    "claude-code",
+    "gemini",
+    "opencode",
+    "cursor",
+    "cli",
+    "sop",
+    "developer-tools",
+    "templates",
+    "scaffolding",
+    "zero-dependency"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wissemb11/wb-flow.git"
+  },
+  "homepage": "https://flow.wbc-ui.com",
+  "bugs": {
+    "url": "https://github.com/wissemb11/wb-flow/issues",
+    "email": "wissemb11@gmail.com"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": {
+    "name": "Wissem Boughamoura",
+    "email": "wissemb11@gmail.com",
+    "url": "https://github.com/wissemb11"
+  },
+  "license": "MIT",
+  "type": "commonjs"
+}
