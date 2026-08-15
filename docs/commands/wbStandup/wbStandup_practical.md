@@ -1,73 +1,64 @@
-# wbStandup — Practical Walkthrough
+# /wbStandup — Practical
 
-> How to generate and use daily standup summaries.
+## Two forms
 
----
-
-## 1. End-of-Day Standup
-
-```bash
-/wbStandup packages/my-project
+```
+/wbStandup core2/ # monorepo-wide — morning default
+/wbStandup <package>/ # package-scoped — afternoon re-orient
 ```
 
-```text
-[AI] ## Standup: my-project — 2026-05-11
-[AI]
-[AI] ### Done today
-[AI] - Task #1: Add unit tests (✅ 9/10)
-[AI] - Task #2: Remove unused exports (✅ 10/10)
-[AI] - Task #3: Add JSDoc (✅ 8/10)
-[AI]
-[AI] ### Next session
-[AI] - Task #4: Fix package.json description (5 min)
-[AI] - Re-audit for score improvement
-```
+## When to run
 
----
+- **Every morning.** Literally first thing. Before `/wbContext`.
+- **After interruptions.** Back from lunch, back from a meeting, returning to a branch you haven't touched in a week.
+- **Before starting a new feature.** Clear the backlog view first, so you don't forget an open blocker.
 
-## 2. When to Run
+## When *not* to run
 
-| Timing | Purpose |
+- Multiple times per hour. It's a fresh-pair-of-eyes command; reading the same standup twice adds no value.
+- Right after you've done 10 commits. Your memory is still hot; you don't need the standup to remind you.
+
+## Reading the output
+
+Four sections, ranked by what should grab your attention:
+
+1. **Unresolved findings** (BLOCKERs / CRITICAL) — top priority
+2. **Stale reports** (🔨 in progress > 24h) — verify before continuing
+3. **Open plans** — ongoing work you can resume
+4. **Suggested next action** — AI opinion, you decide
+
+## The value is in the surface
+
+`/wbStandup` doesn't add information. Every finding it lists already exists in `reports/`. Its value is making you *see* it, at the moment you're choosing what to do next. Without the standup, you'd probably forget the 8-day-old security finding.
+
+## The `/wbStandup` → `/wbContext` handoff
+
+Standup is *breadth*. Context is *depth*. Sequence:
+
+1. `/wbStandup core2/` — tells you which package needs attention.
+2. `/wbContext <that-package>` — loads the AI's detailed knowledge of that package.
+3. Execute.
+
+Skipping the first → you work on the wrong package. Skipping the second → the AI works on the right package with stale context.
+
+## When /wbStandup is the wrong command
+
+- "What does package X do?" → `/wbContext <x>`.
+- "Is package X good?" → `/wbAudit <x>`.
+- "What should I build next?" → `/wbVision`, not standup (standup reconciles existing work).
+- "Did the AI finish its plan?" → `/wbReview <plan>`.
+
+<!-- FLAGS_SHORTCUTS_START -->
+## Flags & shortcuts
+
+Long-form and short-form are equivalent — `/wbStandup --execute` and `/wbStandup -e` produce the same behavior.
+
+| Long form | Shortcut |
 |---|---|
-| End of work session | Capture what was accomplished |
-| Before `/wbGit` | Summary informs the commit message |
-| Start of next session | Review yesterday's standup for context |
+| `--act` | `-a` |
+| `--wbPlan` | `-P` |
+
+`-h`, `--h`, and `--help` are accepted on **every** `/wb*` command and print the manual instead of executing.
+<!-- FLAGS_SHORTCUTS_END -->
 
 ---
-
-## 3. The Evening Trifecta
-
-The recommended end-of-day sequence:
-
-```bash
-/wbValid plan_*.md --task=*    # 1. Validate all work
-/wbStandup .                   # 2. Generate summary
-/wbGit .                       # 3. Prepare commit message
-```
-
----
-
-## 4. Reading Past Standups
-
-Previous standups are in the reports tree:
-
-```
-reports/2026/05/11/standups/standup_my-project_20260511.md
-reports/2026/05/10/standups/standup_my-project_20260510.md
-```
-
-Use these for sprint retrospectives or progress tracking.
-
----
-
-## 5. Monorepo Standup
-
-```bash
-/wbStandup .   # from monorepo root
-```
-
-Aggregates activity across all packages into one summary, showing which packages had work done today.
-
----
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

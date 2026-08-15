@@ -1,5 +1,7 @@
 # /wbVision: Execution Template
 
+> Conforms to output_conventions v1.12 · template v1.0
+
 
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
@@ -18,7 +20,7 @@ Otherwise, ignore this section and proceed to the rest of the template.
 
 ```
 /wbVision <package>            # package-specific feature ideas
-/wbVision core2/               # cross-package / monorepo-wide ideas
+/wbVision <monorepo-root>/               # cross-package / monorepo-wide ideas
 ```
 
 The cross-package form is generally more useful than the per-package form.
@@ -56,7 +58,7 @@ You read 6 ideas. You discard 4 as obvious or generic. You discard 1 more as "in
 
 ## The most useful invocation
 
-Cross-package (`/wbVision core2/`) with a focus on integration ideas — things that couldn't be seen at package scope. This is where `/wbVision` earns its place over "just brainstorm with an AI."
+Cross-package (`/wbVision <monorepo-root>/`) with a focus on integration ideas — things that couldn't be seen at package scope. This is where `/wbVision` earns its place over "just brainstorm with an AI."
 
 ## When /wbVision is the wrong command
 
@@ -65,15 +67,20 @@ Cross-package (`/wbVision core2/`) with a focus on integration ideas — things 
 - Fix a bug → `/wbDebug`.
 - Business / market / user research → `/wbVision` can't see these; do it yourself.
 
-> For deeper reading: [`docs_claude/commands/wbVision/wbVision_practical_claude.md`](../../docs/docs_claude/commands/wbVision/wbVision_practical_claude.md) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+> For deeper reading: [`wbVision_practical.md`](https://flow.wbc-ui.com/commands/wbVision/wbVision_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
 ## Self-correct mode (dual-mode invocation)
 
 ```
 /wbVision <scope_folder>           # normal mode — produce a fresh output file
-/wbVision <previous_output_file>   # self-correct mode — verify & repair the file in place
+/wbVision <previous_output_file>   # consolidate mode — absorb every still-open item from older visions/ files, then repair in place
+/wbVision <previous_output_file> --archive   # …and then retire the visions/ folders it just superseded
 ```
 
 When the first arg is an existing output file from a prior `/wbVision` run (detected by its first H1 — see this template's **Detection** section), the command runs in **verify-and-repair** mode: gap-fills missing fields, normalizes links, ticks done/valid checkboxes whose reports exist, never rewrites authored content. See [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §3.
+
+**Consolidation (§13.2) runs first, before any repair.** Sweep this scope's whole `reports/` tree for other `vision_<scope>_*.md` files and absorb every item still open into THIS file — de-duplicated on the item's text (never its ID, which restarts per file), each carrying a relative `Origin` link back to the oldest file that raised it. Sources are read, never modified.
+
+**Archiving is opt-in and never implied.** With `--archive`, and only once consolidation has completed, retire the superseded folders by shelling out to the CLI — `wb-flow archive <this file> --dry-run` first, read the move list, then apply. Without the flag, merely offer it in `What's Next?`. Archiving before consolidating does not delete an open item; it makes it invisible, which is worse. Full contract: [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §13.
 
 <!-- HELP_GATE_END -->
 
@@ -113,6 +120,21 @@ Generate a proposal file:
 - **No `<model>/` subfolder.** Create-or-append: if the file exists, append your vision as the next Entry #N tagged `*(ModelName — HH:MM)*`.
 - **Format:** Present 3 distinct feature ideas. For each, explain *Why it matters* and *How complex it would be*. Apply output_conventions.md §1 (relative links for every existing-component reference) and §2 (full-syntax for any /wb* command cited).
 - **Next Steps:** End the file with a `## 🧭 What's Next?` section: *"If you like one of these ideas, run `/wbPlan <target> "<idea>"` to begin execution. Run `/wbNext <target>` to see how it ranks against current debt."*
+
+### Consolidate & Archive (`/wbVision <vision_file.md>` · `--archive`)
+
+```
+/wbVision <vision_file.md>              # consolidate: repair + absorb every un-acted older proposal
+/wbVision <vision_file.md> --archive    # …then retire the emptied visions/ folders
+```
+
+Full contract: [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §13. Vision-specific:
+
+1. **Absorb first.** Scan this scope's `reports/` tree for other `vision_<scope>_*.md`. A proposal is **still live** when it was never promoted to an idea (PHASE 4) or a plan task. De-duplicate on the premise, keep an `Origin` link to the oldest file, and carry its original *Why it matters* wording verbatim — a strategic proposal paraphrased three times becomes a different proposal.
+2. **Say how old it is.** A vision carried forward for a month without being promoted is telling you something; surface the age next to the premise rather than letting it blend in with today's three fresh ideas.
+3. **Then, with `--archive` only:** `wb-flow archive <vision_file.md> --dry-run`, read it, apply.
+
+**Without `--archive`,** offer it in `What's Next?`.
 
 ## ━━━ PHASE 4: AUTO-REGISTER IDEAS ━━━
 

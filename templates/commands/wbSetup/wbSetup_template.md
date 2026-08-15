@@ -1,5 +1,7 @@
 # wbSetup Template v2.0
 
+> Conforms to output_conventions v1.12 · template v2.0
+
 
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
@@ -27,7 +29,7 @@ Do NOT run it "to refresh" an existing, working package. That's `/wbContext`, no
 ```
 /wbSetup <pkg-path>                          # standard: context.md + dev.md
 /wbSetup <pkg-path> --focus="<subsystem>"    # + focused deep-dive file
-/wbSetup core2/ --scope=global               # monorepo_rules.md only
+/wbSetup <monorepo-root>/ --scope=global               # monorepo_rules.md only
 ```
 
 ## What to check after it runs
@@ -41,7 +43,7 @@ Do NOT run it "to refresh" an existing, working package. That's `/wbContext`, no
 
 Running `/wbSetup` and not reading the output. The AI's inferences are fallible. A 2-minute read of `dev.md` catches 90% of mistaken rules before they cause damage.
 
-> For deeper reading: [`docs_claude/commands/wbSetup/wbSetup_practical_claude.md`](../../docs/docs_claude/commands/wbSetup/wbSetup_practical_claude.md) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+> For deeper reading: [`wbSetup_practical.md`](https://flow.wbc-ui.com/commands/wbSetup/wbSetup_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
 
 <!-- FLAGS_TABLE_START -->
 ## Flags & shortcuts
@@ -52,6 +54,8 @@ Both forms are equivalent — pass either:
 |---|---|
 | `--focus` | `-f` |
 | `--scope` | `-s` |
+| `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
+| `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
 
 `-h` / `--help` / `--h` (any command) prints this help block instead of executing.
 ## Self-correct mode (dual-mode invocation)
@@ -62,6 +66,7 @@ Both forms are equivalent — pass either:
 ```
 
 When the first arg is an existing output file from a prior `/wbSetup` run (detected by its first H1 — see this template's **Detection** section), the command runs in **verify-and-repair** mode: gap-fills missing fields, normalizes links, ticks done/valid checkboxes whose reports exist, never rewrites authored content. See [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §3.
+
 
 <!-- FLAGS_TABLE_END -->
 <!-- HELP_GATE_END -->
@@ -155,7 +160,7 @@ You are the **Lead Architect Agent**. Your task is to initialize the "Agentic Br
      - Automatically generate a `/wbPlan` blueprint (`wbplan_setup.md`) so Worker agents can validate and refine the architecture.
 
 4. **Global Synchronization**:
-   - Read `core2/.wb/workflows/monorepo_rules.md`.
+   - Read `<monorepo-root>/.wb/workflows/monorepo_rules.md`.
    - Ensure local `dev.md` rules align with the monorepo's shared standards.
 
 5. **Audit Trail** — SAVE using the Universal Daily File pattern:
@@ -180,16 +185,16 @@ Format required:
 ### 📚 Base Reference Files
 | Type | File | Description |
 |---|---|---|
-| Foundational | [context.md](../../../../../context.md) | Permanent Identity and Architecture (Source of Truth) |
+| Foundational | [context.md](../../../../../../../context.md) | Permanent Identity and Architecture (Source of Truth) |
 | Snapshot | [context_<scope>_<date>.md](../contexts/context_<scope>_<date>.md) | Daily snapshot used for current session context |
-| Foundational | [dev.md](../../../../../dev.md) | Permanent Development Commands and Status |
+| Foundational | [dev.md](../../../../../../../dev.md) | Permanent Development Commands and Status |
 
-### Global Files (`core2/` monorepo root)
+### Global Files (`<monorepo-root>/` monorepo root)
 | Category | File | Source Command |
 |---|---|---|
-| Reports | [audit_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_core2_<date>.md) | `/wbAudit core2/` |
-| Reports | [plan_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_core2_<date>.md) | `/wbPlan core2/` |
-| Tracks | [track_core2_<date>.md](../../../../../../../../../../.wb/workflows/tracks/<YYYY>/<MM>/<DD>/track_core2_<date>.md) | `/wbTrack core2/` |
+| Reports | [audit_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_core2_<date>.md) | `/wbAudit <monorepo-root>/` |
+| Reports | [plan_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_core2_<date>.md) | `/wbPlan <monorepo-root>/` |
+| Tracks | [track_core2_<date>.md](../../../../../../../../../../.wb/workflows/tracks/<YYYY>/<MM>/<DD>/track_core2_<date>.md) | `/wbTrack <monorepo-root>/` |
 
 <details>
   <summary>📂 Sub-Package: [Active Package Name]</summary>

@@ -1,53 +1,102 @@
+# `/wbWork` Documentation Hub
 
-<!-- MERGED CONTENT FROM commands/wbWork/wbWork_eli5.md -->
+Welcome to the official documentation hub for `/wbWork` in **wb-flow**.
 
-# /wbWork — Explain Like I'm 5
 
-Imagine you have a big coloring book, and on the very first page is a list of instructions:
-1. Color the sun yellow.
-2. Color the grass green.
-3. Draw a little bird in the sky.
+> [!TIP]
+> **Running a wave costs the orchestrator's context.** `--summary` is already the default and saved a
+> measured **63,002 tokens** on one 10-cell wave. For the rest of the levers — merged dispatches,
+> `--list` before you spend, when `--sessions` helps and when it hurts — and for **who may root a run**
+> (plus the temporary `codex` fallback when Claude is limited), see
+> [`concepts/orchestrator_and_tokens`](../../concepts/orchestrator_and_tokens).
 
-This list is your **Plan**. 
+## Overview
+`/wbWork` is the work execution engine of **wb-flow**. It executes tasks defined in your plan files (`plan_<scope>.md`), generates formal task reports (`task_<N>_report.md`), updates the `☐ Done` checkboxes, and dispatches parallel sub-agent wave jobs via `wb-flow wave`.
 
-Now, imagine you have a magical robot friend holding a box of crayons. If you tell the robot, "Please do step number 2!" the robot will pick up the green crayon, find the grass, color it in perfectly, and then put a big checkmark next to step 2 on your list.
 
-That magical robot friend is **`/wbWork`**! 
+### 💡 `--as` Explanation Gate Behavior
+- **Standard Invocations (without `--as`)**: Matrix task cells contain **ONLY** the direct execution command:
+  ```markdown
+  `/wbWork plan.md --id=B23`<br>→ *DeepSeek V4 Pro* *(⏱️ 15 min)*
+  ```
+- **Explanation-Enabled Invocations (with `--as="<style>"`)**: Matrix task cells prepend `/wbExplain`:
+  ```markdown
+  `/wbExplain plan.md --id=B23 --as="expert,steps"`<br>`/wbWork plan.md --id=B23`<br>→ *DeepSeek V4 Pro* *(⏱️ 15 min)*
+  ```
 
-It's the tool that actually reads the instructions and does the hard work. You tell it which task to do by giving it an ID (like `--id=2`), and it writes the code, updates the files, and checks off the box so you know it's done!
 
-*(New magic trick!)* You can also just give the robot a brand new problem (like `"Fix the broken toy!"`). The robot is smart enough to think: "Is this easy? I'll just fix it and add it to the list." or "Is this hard? I better write down a mini-plan first, and then do the steps one by one!"
+### ⏱️ Wave Execution Session Tracking (`/wbTrack`)
+Whenever `/wbWork` or `/wbPlan` is executed with the `--wave=<label>` flag, the execution pipeline automatically wraps the wave dispatches with session tracking:
 
-### Fixes a specific bug with analysis.
 ```bash
-wbWork "Fix login button not clickable on mobile"
+# Executing /wbWork <path_scope> --wave=A follows this sequence:
+1. /wbTrack <path_scope>   # Starts/joins today's session tracking log
+2. wave_A.sh dispatches     # Executes parallel wave tasks
+3. /wbTrack --stop          # Stops and finalizes session tracking log
 ```
 
-### Multi-step refactor with verification.
-```bash
-wbWork "Refactor API client to use fetch instead of axios"
+
+### 🚀 Next Wave Execution Command Suggestions
+Below the `## 🌊 Next Executable Sequence` matrix and Wave notes, `/wbPlan` and `/wbWork` output a dedicated recommendation block calculating total estimated duration (`Est. Time`) and offering ready-to-run CLI commands tailored for time and cost considerations:
+
+- **Option 1 (Next Wave)**: `.wb/bin/wbRun claude -p --permission-mode auto "/wbWork plan.md --wave=A -y"`
+- **Option 2 (With `--as`)**: `.wb/bin/wbRun claude -p --permission-mode auto "/wbWork plan.md --wave=A --as="expert,steps" -y"`
+- **Option 3 (All Waves)**: `.wb/bin/wbRun claude -p --permission-mode auto "/wbWork plan.md --wave=all -y"`
+
+## Flag Effects & Orchestration Capabilities
+- **`--wave=<label>` / `-w`**: Activates wave mode. Launches collision-free matrix cells as background subshell tasks in parallel (`wave_A.sh`).
+- **`--as="<style>"` / `-a`**: Explanation mode. Generates `/wbExplain` blueprint artifacts before task execution.
+- **`--yes` / `-y`**: Autonomous mode. Auto-adopts recommended decisions for plan ambiguities and auto-spawns wave scripts without pausing.
+- **`--worker="<models>"` / `-w`**: Overrides Worker fallback models (e.g. `--worker="DeepSeek V4 Pro,Kimi K3"`).
+- **`--validator="<models>"` / `-v`**: Overrides Validator fallback models (e.g. `--validator="Gemini 3.5 Pro"`).
+- **`--planner="<models>"` / `-p`**: Overrides Planner models.
+- **`--mechanical="<models>"` / `-m`**: Overrides Mechanical helper models.
+
+## Standard 9-File Documentation Suite
+1. [`wbWork.md`](wbWork.md) — Complete `/wbWork` specification & flag matrix.
+2. [`wbWork_eli5.md`](wbWork_eli5.md) — Simple plain-language explanation of wave execution.
+3. [`wbWork_examples.md`](wbWork_examples.md) — Baseline invocations & single-task execution.
+4. [`wbWork_examples.md`](wbWork_examples.md) — Exhaustive wave examples, `--as` blueprints, and per-role model overrides.
+5. [`wbWork_exhaustive_simulation.md`](wbWork_exhaustive_simulation.md) — Step-by-step state trace of a multi-task wave execution.
+6. [`wbWork_expert.md`](wbWork_expert.md) — Deep dive into `.wb/bin/wbRun` subshell error guarding & 80% token reduction.
+7. [`wbWork_live_demo.md`](wbWork_live_demo.md) — Real terminal logs demonstrating fallback chains & visual banners.
+8. [`wbWork_practical.md`](wbWork_practical.md) — Production recipes, CI/CD pipelines, and autonomous execution.
+
+
+### ⏱️ Matrix Task Duration Estimations
+In the `## 🌊 Next Executable Sequence` matrix table, each task dispatch cell appends the estimated task duration extracted from the task table's `Est. (min)` column, formatted as `*(⏱️ <min> min)*`:
+
+```markdown
+`/wbWork plan.md --id=B23`<br>→ *DeepSeek V4 Pro* *(⏱️ 15 min)*
 ```
 
-## Related Commands
 
-`wbWork` belongs to the **Workers** family. Sibling commands in this family:
+### 💡 Pre-Flight Explanation Blueprint Gate (`--as`)
+- **Standard Mode (default, without `--as`)**: Matrix cells contain **ONLY** the direct execution command:
+  ```markdown
+  `/wbWork plan.md --id=B23`<br>→ *DeepSeek V4 Pro* *(⏱️ 15 min)*
+  ```
+- **Explanation Mode (with `--as="<style>"`)**: Matrix cells prepend `/wbExplain`:
+  ```markdown
+  `/wbExplain plan.md --id=B23 --as="expert,steps"`<br>`/wbWork plan.md --id=B23`<br>→ *DeepSeek V4 Pro* *(⏱️ 15 min)*
+  ```
 
-- **[WbRefactor](../wbRefactor/README.md)** — [WbRefactor Hub](../wbRefactor/README.md)
-- **[WbDoc](../wbDoc/README.md)** — [WbDoc Hub](../wbDoc/README.md)
-- **[WbDebug](../wbDebug/README.md)** — [WbDebug Hub](../wbDebug/README.md)
+## 🎛️ Universal model flags *(2026-08-01)*
 
-## See Also
+| Flag | Alias | Effect |
+|---|---|---|
+| `--planner=` | `-p` | 🧠 Planner chain — **persists** via `/wbModel` |
+| `--validator=` | `-v` | ✅ Validator chain — persists |
+| `--worker=` | `-w` | 🔨 Worker chain — persists. ⚠️ `-w` is **not** `--wave` |
+| `--mechanical=` | `-m` | 📋 Mechanical chain — persists |
+| `--model=` | `-M` | **Delegate this run.** Highest priority: outranks role routing, the roster and the executor≠validator rule |
+| `--wave=<L>:<R>` | `-W` | Run **one cell** — `:P` Planner · `:V` Validator · `:W` Worker · `:M` Mechanical |
 
-- [Commands Overview](../README.md#the-command-catalog)
-- [Concepts: Agentic Workflows](../../concepts/overview_agentic_workflows.md)
-- [Session Lifecycle](../../session_lifecycle/README.md)
-- [Start Here](../../start_here/README.md)
+```bash
+/wbWork <folder>/ --wave="A:W" -M="claude:opus 5"      # one cell, delegated
+/wbValid <folder>/ --id="<i>" -v="go:ds4pro"           # persists the validator roster, then runs
+```
 
+Role flags are shorthand for running `/wbModel` first. An unknown role letter in `--wave` exits non-zero rather than silently running the whole row. **Precedence:** `-M` → role flag → plan-header roster → `model_recommendations.md` → defaults.
 
-## Common Workflow
-
-The central orchestrator — use for multi-step tasks instead of chaining commands manually.
-
----
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+After the 🌊 matrix, a **copy/paste block** of bare runnable commands is printed — no table markup, no `<br>`, no duration annotations.

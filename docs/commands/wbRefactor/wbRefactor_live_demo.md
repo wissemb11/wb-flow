@@ -1,82 +1,330 @@
-# wb-flow Protocol: /wbRefactor Live Workspace Demo
+# /wbRefactor — Live Demo ()
 
-This document is the **Real-Time Execution Log** of the `/wbRefactor` command. It applies the exact structural matrix from the Exhaustive Simulation to the *current, live state* of the `wb-labs` workspace as of 2026-05-04.
+What `/wbRefactor` would actually do on `wb-labs` right now. The candidate target files and their tests are real.
 
 ---
 
-## 1. Role & Definition Matrix (Live Application)
-**Target:** `wb-labs/frontEnd/wbc-ui/core2/packages/wb-core`
-**Live State Evaluated:** 
-*   Active Directory: `packages/wb-core`
-*   Status: `src/WBC.js` is a massive monolith (1,171 LOC). `src/tierEnforcement.js` is relatively small.
+<CommandLiveDemoAnimation command="wbRefactor" />
 
-| Scenario | Live System Behavior (wb-labs) |
+## 1. Live target
+
+| Field | Live value |
 |---|---|
-| Target is Monolith File | **[ACTIVE]** System is primed to target `WBC.js` for major AST extraction. |
-| Target is UI Component | **[INACTIVE]** `wb-core` does not contain Vue/React UI components. |
-| Tests are Missing | **[ACTIVE]** System will block refactoring of `tierEnforcement.js` unless `-g` (via `wbTest`) was run previously. |
+| Most-refactor-worthy file in the active plan | `core2/packages/wb-core/src/WBC.js` (row 3, deferred) |
+| Refactor-worthy *despite* being deferred | Yes — the plan defers row 3 because the *architectural shape* needs discussion, not because the surgery is unsafe |
+| Test coverage on WBC.js | Existing — `core2/packages/wb-core/tests/WBC.spec.js` (per typical layout) |
+| Memory note flagging caution | `wbc-ui2-tech-debt.md` records the parked nature of certain restructure work |
+| Other refactor candidates | `tierEnforcement.js` (security finding mixed with structural concern); various sibling-package files in `core2/packages/wbc-ui2-cdn/` (parked, do not refactor) |
+
+The first row is the most useful — there's a real candidate (WBC.js) where the refactor is *deferred*, so `/wbRefactor` would correctly refuse pre-conversation.
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix (Live Application)
-| Argument Type | Input Executed | Live Parsed State (wb-labs) | Live Output Generation |
-|---|---|---|---|
-| Specific File Path | `Command: /wbRefactor src/WBC.js` | Locks onto the 1,171 LOC monolith. | `[PROCEED] Decomposing WBC.js into modular exports.` |
-| Directory Path | `Command: /wbRefactor src/utils` | Targets utility folder. | `[PROCEED] Consolidating 4 utility files into pure functions.` |
-| Wildcard Glob | `Command: /wbRefactor src/**/*.js` | Sweeps all 14 files. | `[PROCEED] Searching for duplicated logic across wb-core.` |
-| Natural Language | `Command: /wbRefactor "decouple the tier checks"` | Fuzzily matches `tierEnforcement.js`. | `[PROCEED] Extracting JWT checks into separate service.` |
+## 2. What each input form would resolve to today
+
+| Input | Live resolution |
+|---|---|
+| `/wbRefactor core2/packages/wb-core/src/WBC.js` | Would propose decomposition shape; ask for confirmation. **Memory-aware caveat:** the row is deferred — agent surfaces this and asks if the architectural conversation has happened. |
+| `/wbRefactor core2/packages/wb-core/src/tierEnforcement.js` | Would propose strategy-table refactor; flag (but not fix) the security and cleanup findings. |
+| `/wbRefactor core2/packages/wbc-ui2-cdn/src/index.js` | Refuse — memory says this package is parked tech debt. Refactoring would re-trigger the dist-folder mismatch conversation. |
+| `/wbRefactor "extract the parser"` | Halt — file-required. |
+| `/wbRefactor core2/packages/wb-core/` | Halt — directory targets refused. |
+| `/wbRefactor src/index.js,src/types.ts` (atomic) | Permitted if both files exist; atomic transformation. |
 
 ---
 
-## 3. Flag Processing Matrix (Isolated Live Runs)
+## 3. Per-input behavior, applied live
 
-| Flag | Live Executed Command | Live Output Impact |
-|---|---|---|
-| `--pattern="<str>"` | `Command: /wbRefactor src/WBC.js -p="facade"` | `[PATTERN] Abstracting WBC.js into a Facade pattern for consumers.` |
-| `--dry-run` | `Command: /wbRefactor src/**/*.js -d` | `[DRY-RUN] Would consolidate 2 duplicated fetch wrappers. Disk untouched.` |
-| `--wbPlan` | `Command: /wbRefactor src/WBC.js -P` | `[SYNC] Writing 4 decomposition tasks to plan_wb-core_20260504.md.` |
-| `--strict` | `Command: /wbRefactor src/WBC.js -s` | `[STRICT] Aborted. Refactoring WBC.js breaks exports used by wbc-ui.com.` |
+`/wbRefactor` has no flags. The behavior matrix is by input shape:
 
----
-
-## 4. Omni-Channel Execution Pipeline (Live Chaining)
-
-### 💠 The "Architectural Blueprint" (`src/WBC.js -p="facade" -P`)
-**Live Context:** The developer knows `WBC.js` needs to be rewritten, but it's too risky to do it all at once. They want the AI to plan the Facade refactoring steps.
-**Command Executed:** `/wbRefactor src/WBC.js -p="facade" -P`
-**Live Output:**
-```text
-> Command: /wbRefactor src/WBC.js -p="facade" -P
-
-[SYSTEM] Analyzing WBC.js AST...
-[PATTERN] Facade pattern requested. Identifying external API boundaries.
-[SYNC] Generating structured DAG plan.
-[SUCCESS] Appended Task 4: "Create WBC Facade Interface" and Task 5: "Migrate internal state" to plan_wb-core_20260504.md.
-```
-
-### 💠 The "Massive DRY Sweep" (`src/**/*.js -d`)
-**Live Context:** Running a safe check across `wb-core` to see if there's any technical debt that can be easily consolidated.
-**Command Executed:** `/wbRefactor src/**/*.js -d`
-**Live Output:**
-```text
-> Command: /wbRefactor src/**/*.js -d
-
-[SYSTEM] Glob resolved to 14 files in wb-core.
-[DRY-RUN] Analysis complete. 
-[REPORT] `renderString.js` and `auth.js` both contain identical string-sanitization functions.
-[SUCCESS] Dry-run complete. Run without -d to consolidate into `utils/sanitize.js`.
-```
+| Input shape | Live behavior |
+|---|---|
+| Single file with passing tests | Standard refactor flow: propose → confirm → edit → test → report. |
+| Single file with no test coverage | Warns prominently; asks to confirm. Suggests adding a test first. |
+| File where memory says "parked" | Refuse. Explains why; suggests the architectural conversation as the actual blocker. |
+| Two-file atomic target | Both must exist; both succeed or both revert. |
+| Directory target | Halt. |
+| Free-text only | Halt. |
 
 ---
 
-## 5. Operational Edge Cases (Live Workspace Check)
+## 4. Pipelines
 
-| Fault Trigger | Live System State | Live Resolution |
-|---|---|---|
-| Missing Tests | **[TRIGGERED]** If user attempts to refactor `tierEnforcement.js`. | `❌ Error: No tests found. Aborting refactor to prevent regression.` |
-| Circular Dependency | **[PASS]** Current imports in `wb-core` are strictly unidirectional. | Execution proceeds. |
-| Glob Explosion | **[PASS]** `wb-core/src` only has 14 files. | Scope is safe for full AST sweep. |
+<script setup>
+const wbRefactorPipelines = [
+  {
+    "title": "The right refusal for WBC.js right now",
+    "cmd": "/wbRefactor core2/packages/wb-core/src/WBC.js",
+    "logs": [
+      {
+        "text": "[SYSTEM] Target: core2/packages/wb-core/src/WBC.js",
+        "type": "sys"
+      },
+      {
+        "text": "[CONTEXT] Reading active plan: plan_wb-core_20260504.md...",
+        "type": "ctx"
+      },
+      {
+        "text": "Row 3 (WBC.js decomposition) is currently \u23f8\ufe0f Deferred.",
+        "type": "gen"
+      },
+      {
+        "text": "[CONTEXT] Reading memory wbc-ui2-tech-debt.md and feedback rules...",
+        "type": "ctx"
+      },
+      {
+        "text": "[REFUSE] The refactor target corresponds to a deferred plan row.",
+        "type": "error"
+      },
+      {
+        "text": "[REASON] Row 3's deferral isn't about *whether* WBC.js should be",
+        "type": "gen"
+      },
+      {
+        "text": "decomposed \u2014 it's about *what shape* the decomposition",
+        "type": "gen"
+      },
+      {
+        "text": "should take. Running /wbRefactor before that conversation",
+        "type": "gen"
+      },
+      {
+        "text": "locks in a shape unilaterally.",
+        "type": "gen"
+      },
+      {
+        "text": "[SUGGEST] Two paths:",
+        "type": "gen"
+      },
+      {
+        "text": "1. Have the architectural conversation; capture the agreed shape",
+        "type": "gen"
+      },
+      {
+        "text": "in a plan row's task description; reactivate row 3 with",
+        "type": "gen"
+      },
+      {
+        "text": "/wbPlan --id=\"3\" -o; then /wbRefactor.",
+        "type": "gen"
+      },
+      {
+        "text": "2. If you genuinely just want to explore decomposition shapes,",
+        "type": "gen"
+      },
+      {
+        "text": "use /wbExplain WBC.js --as=\"senior architect, 3 candidate",
+        "type": "gen"
+      },
+      {
+        "text": "decompositions\" to draft options without editing.",
+        "type": "gen"
+      },
+      {
+        "text": "[NO MUTATION] Refactor not started.",
+        "type": "gen"
+      }
+    ],
+    "note": "Running `/wbRefactor` on the deferred row's target file:",
+    "noteType": "info"
+  },
+  {
+    "title": "The \"surface findings, refactor only\" pipeline on tierEnforcement.js",
+    "cmd": "/wbRefactor core2/packages/wb-core/src/tierEnforcement.js",
+    "logs": [
+      {
+        "text": "[SYSTEM] Target: tierEnforcement.js",
+        "type": "sys"
+      },
+      {
+        "text": "[SCAN] Reading file (87 lines, 1 export: enforceTier)...",
+        "type": "gen"
+      },
+      {
+        "text": "[TEST] Running tests...",
+        "type": "gen"
+      },
+      {
+        "text": "tierEnforcement.spec.js: 8 passed.",
+        "type": "gen"
+      },
+      {
+        "text": "[BASELINE] Test baseline captured.",
+        "type": "gen"
+      },
+      {
+        "text": "[ANALYZE]",
+        "type": "gen"
+      },
+      {
+        "text": "Current shape: 3 nested if-elif blocks for the 3 tiers.",
+        "type": "gen"
+      },
+      {
+        "text": "Proposed shape: strategy table { tier: validatorFn }, single dispatch.",
+        "type": "gen"
+      },
+      {
+        "text": "[NOTICE] During scan, observed (out of scope for refactor):",
+        "type": "gen"
+      },
+      {
+        "text": "- line 42: alg:\"none\" not in JWT denylist (security finding)",
+        "type": "gen"
+      },
+      {
+        "text": "- line 71: import `legacyVerify` from removed module \u2014 currently",
+        "type": "gen"
+      },
+      {
+        "text": "unused",
+        "type": "gen"
+      },
+      {
+        "text": "[FOCUS] These are NOT in scope. Logged as follow-ups.",
+        "type": "gen"
+      },
+      {
+        "text": "[CONFIRM] Apply strategy-table refactor? [y/N] > y",
+        "type": "gen"
+      },
+      {
+        "text": "[EDIT] tierEnforcement.js rewritten with strategy dispatch.",
+        "type": "gen"
+      },
+      {
+        "text": "[TEST] All 8 tests still pass.",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Refactor complete. Same behavior, clearer structure.",
+        "type": "ok"
+      },
+      {
+        "text": "[FOLLOW-UPS LOGGED]",
+        "type": "gen"
+      },
+      {
+        "text": "1. Security: alg:\"none\" acceptance at line 42 (now line 38 post-refactor).",
+        "type": "gen"
+      },
+      {
+        "text": "Suggest: /wbAudit core2/packages/wb-core/src/tierEnforcement.js --profile=\"security\"",
+        "type": "gen"
+      },
+      {
+        "text": "2. Cleanup: unused `legacyVerify` import.",
+        "type": "gen"
+      },
+      {
+        "text": "Suggest: /wbClean core2/packages/wb-core/src/tierEnforcement.js",
+        "type": "gen"
+      }
+    ],
+    "note": "Assuming the architectural conversation happened and tierEnforcement.js is on the table for a strategy-table refactor:",
+    "noteType": "info"
+  },
+  {
+    "title": "The atomic two-file move",
+    "cmd": "/wbRefactor core2/packages/wb-core/src/utils/escape.js,core2/packages/wb-core/src/renderString.js",
+    "logs": [
+      {
+        "text": "[SYSTEM] Atomic refactor across 2 files.",
+        "type": "sys"
+      },
+      {
+        "text": "[SCAN]",
+        "type": "gen"
+      },
+      {
+        "text": "utils/escape.js: 18 lines, 1 export (escapeHTML).",
+        "type": "gen"
+      },
+      {
+        "text": "renderString.js: imports escapeHTML, single usage at line 11.",
+        "type": "gen"
+      },
+      {
+        "text": "[CONSUMERS] grep across workspace: only renderString.js consumes escape.js.",
+        "type": "gen"
+      },
+      {
+        "text": "[TEST] All tests pass at baseline.",
+        "type": "gen"
+      },
+      {
+        "text": "[PROPOSAL]",
+        "type": "gen"
+      },
+      {
+        "text": "- Inline escapeHTML's body into renderString.js as a private helper.",
+        "type": "gen"
+      },
+      {
+        "text": "- Delete utils/escape.js.",
+        "type": "gen"
+      },
+      {
+        "text": "- No external API change (escapeHTML was not re-exported).",
+        "type": "gen"
+      },
+      {
+        "text": "[CONFIRM] Atomic two-file refactor (one rewrite, one delete)? [y/N] > y",
+        "type": "gen"
+      },
+      {
+        "text": "[EDIT] renderString.js updated.",
+        "type": "gen"
+      },
+      {
+        "text": "[DELETE] utils/escape.js removed.",
+        "type": "gen"
+      },
+      {
+        "text": "[TEST] All tests pass.",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Atomic refactor complete. Both edits succeeded.",
+        "type": "ok"
+      }
+    ],
+    "note": "Hypothetical but realistic: `escape.js` is a one-function utility and `renderString.js` is its only consumer. Time to inline:",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbRefactor" :pipelines="wbRefactorPipelines" />
+
+
+### 💠 Pipeline The right refusal for WBC.js right now
+
+Running `/wbRefactor` on the deferred row's target file:
+
+
+### 💠 Pipeline The "surface findings, refactor only" pipeline on tierEnforcement.js
+
+Assuming the architectural conversation happened and tierEnforcement.js is on the table for a strategy-table refactor:
+
+
+### 💠 Pipeline The atomic two-file move
+
+Hypothetical but realistic: `escape.js` is a one-function utility and `renderString.js` is its only consumer. Time to inline:
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 5. What would refuse today
+
+| Trigger | Live response |
+|---|---|
+| `/wbRefactor` (no target) | Halt. Refactor is target-required. |
+| `/wbRefactor core2/packages/wb-core/` | Halt. Directory targets refused. |
+| `/wbRefactor "extract the parser"` | Halt. File required. |
+| `/wbRefactor core2/packages/wbc-ui2-cdn/src/index.js` | Refuse + memory citation (parked tech debt). |
+| `/wbRefactor core2/packages/wb-core/src/WBC.js` | Memory-aware refuse: row 3 deferred pending architectural conversation. |
+| `/wbRefactor` on a file with no test coverage | Warn prominently; asks to confirm. Suggests `/wbTest` first if helpers exist. |
+| `/wbRefactor` proposal that changes external API | Halt — external API change is a `/wbWork` job (corresponds to a plan row), not a refactor. |
+| Tests fail post-refactor | Auto-revert. Edit-set rolled back atomically. |
+
+The pattern: **`/wbRefactor` is behavior-preserving, target-required, memory-aware, and atomic.** No flags, no scope creep, no silent feature additions. It refuses targets that memory marks as parked, and refuses scope shapes (directories, free-text) that would dilute the surgical premise. When unrelated findings surface during scan, they're logged as follow-ups with the right next command — never auto-actioned.

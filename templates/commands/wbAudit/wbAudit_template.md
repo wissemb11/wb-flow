@@ -1,5 +1,7 @@
 # wbAudit Template v3.1 — Sends to Unified Backlog
 
+> Conforms to output_conventions v1.12 · template v3.1
+
 
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
@@ -78,7 +80,7 @@ Every good audit names these limits in its "did NOT check" section.
 
 `/wbAudit` answers one question: *"Is this code ready to ship?"*
 
-> For deeper reading: [`docs_claude/commands/wbAudit/wbAudit_practical_claude.md`](../../docs/docs_claude/commands/wbAudit/wbAudit_practical_claude.md) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+> For deeper reading: [`wbAudit_practical.md`](https://flow.wbc-ui.com/commands/wbAudit/wbAudit_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
 
 <!-- FLAGS_TABLE_START -->
 ## Flags & shortcuts
@@ -93,16 +95,25 @@ Both forms are equivalent — pass either:
 | `--act` | `-a` |
 | `--wbPlan` | `-P` |
 | `--ideas` | `-I` | Routes P3/cosmetic findings as ideas to `idea_*.md` instead of discarding them. |
+| `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
+| `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
+| `--archive` | `-A` | **Universal** (`_shared/output_conventions.md` §13). Consolidate first, then retire every superseded `<DD>/audits/` folder into `.wb/workflows/archives/` at the same depth. `--archive=all` sweeps every category; `--dry-run` previews. Shell out to `wb-flow archive` — never `mv` by hand. Never implied by another flag. |
 
 `-h` / `--help` / `--h` (any command) prints this help block instead of executing.
 ## Self-correct mode (dual-mode invocation)
 
 ```
 /wbAudit <scope_folder>           # normal mode — produce a fresh output file
-/wbAudit <previous_output_file>   # self-correct mode — verify & repair the file in place
+/wbAudit <previous_output_file>   # consolidate mode — absorb every still-open item from older audits/ files, then repair in place
+/wbAudit <previous_output_file> --archive   # …and then retire the audits/ folders it just superseded
 ```
 
 When the first arg is an existing output file from a prior `/wbAudit` run (detected by its first H1 — see this template's **Detection** section), the command runs in **verify-and-repair** mode: gap-fills missing fields, normalizes links, ticks done/valid checkboxes whose reports exist, never rewrites authored content. See [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §3.
+
+**Consolidation (§13.2) runs first, before any repair.** Sweep this scope's whole `reports/` tree for other `audit_<scope>_*.md` files and absorb every item still open into THIS file — de-duplicated on the item's text (never its ID, which restarts per file), each carrying a relative `Origin` link back to the oldest file that raised it. Sources are read, never modified.
+
+**Archiving is opt-in and never implied.** With `--archive`, and only once consolidation has completed, retire the superseded folders by shelling out to the CLI — `wb-flow archive <this file> --dry-run` first, read the move list, then apply. Without the flag, merely offer it in `What's Next?`. Archiving before consolidating does not delete an open item; it makes it invisible, which is worse. Full contract: [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §13.
+
 
 <!-- FLAGS_TABLE_END -->
 <!-- HELP_GATE_END -->
@@ -118,6 +129,8 @@ Before processing `$ARGUMENTS`, normalize these short-form flags to their long e
 - `-a` → `--act`
 - `-P` → `--wbPlan`
 - `-I` → `--ideas`
+- `-A` → `--archive`   *(universal — consolidate-then-sweep, §13)*
+- `-n` → `--dry-run`   *(universal — preview a sweep)*
 
 The rest of this template documents only the long forms; the substitution above is the only place short forms are mentioned.
 <!-- FLAG_NORMALIZE_END -->
@@ -183,6 +196,29 @@ When you are the **second (or Nth) model** appending to an existing audit file, 
 5. **Add a merge log** at the bottom: `> *Merged by <ModelName> — HH:MM — X duplicates enriched, Y new findings added*`
 
 > **First model?** Just write normally as Entry #1. No Consensus Table needed — it will be created by the second model.
+
+### Consolidate & Archive (`/wbAudit <audit_file.md>` · `--archive`)
+
+```
+/wbAudit <audit_file.md>              # consolidate: repair this file + absorb every unresolved older finding
+/wbAudit <audit_file.md> --archive    # …then retire the emptied audits/ folders
+/wbAudit <scope>/ --archive           # fresh audit, then the same sweep
+```
+
+Full contract: [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §13. Audit-specific:
+
+1. **Absorb first.** Walk this scope's whole `reports/` tree for other `audit_<scope>_*.md`. A finding is **still open** when it is 🔴/🟡 and no later audit, review or task report records it as resolved. Carry each one into today's file through the **Smart Merge Protocol above** — the same ≥2-of-3 match criteria — so a finding raised on three consecutive days lands as one row with three votes, not three rows. Each absorbed finding keeps a relative `Origin` link to the **oldest** file that raised it; that date is what makes "this has been open 8 days" visible, and it is the single most useful number in a consolidated audit.
+2. **Resolved findings do not come forward.** They stay in the file that closed them. Consolidation carries debt, not history.
+3. **Then, and only with `--archive`,** sweep:
+
+   ```bash
+   wb-flow archive <audit_file.md> --dry-run    # the file pins itself as the keeper
+   wb-flow archive <audit_file.md>
+   ```
+
+   Never `mv` by hand. Never sweep if step 1 did not complete — an unresolved finding whose only record just moved out of the scanned tree is a finding that has been silently dropped.
+
+**Without `--archive`,** end with the offer instead: `📋 Mechanical — N superseded audit folders hold no unresolved findings. → /wbAudit <this file> --archive`.
 
 ---
 
@@ -275,6 +311,8 @@ User is the sole developer of a Vue 2 monorepo UI engine with 12 sub-packages, f
 
 8. END THE AUDIT FILE WITH:
 
+   **Before "What's Next?", append the 🌊 Next Executable Sequence** — the wave × role matrix defined in `_shared/output_conventions.md` §10 (canonical: rows = parallel-safe waves, columns = the four `Requires` roles, each cell a full invocable command + `→ *Model · ~$cost*`, mandatory collision check, required Wave notes). Source rows: the 🔵 findings that need a follow-up command; a finding whose fix is gated on another finding lands in a later wave. Emit it only when there are **2 or more** actionable items; for a single one, print `Next: <command> → *Model*` instead. Also print the matrix in the chat response. On a self-correct pass, insert it if absent and recompute it in place if present (§10.5).
+
    ## 🧭 What's Next?
 
    Run `/wbNext <target_folder>` to get a current, ranked list of next actions based on this audit + any other recent reports.
@@ -292,16 +330,16 @@ Format required:
 ### 📚 Base Reference Files
 | Type | File | Description |
 |---|---|---|
-| Foundational | [context.md](../../../../../context.md) | Permanent Identity and Architecture (Source of Truth) |
+| Foundational | [context.md](../../../../../../../context.md) | Permanent Identity and Architecture (Source of Truth) |
 | Snapshot | [context_<scope>_<date>.md](../contexts/context_<scope>_<date>.md) | Daily snapshot used for current session context |
-| Foundational | [dev.md](../../../../../dev.md) | Permanent Development Commands and Status |
+| Foundational | [dev.md](../../../../../../../dev.md) | Permanent Development Commands and Status |
 
-### Global Files (`core2/` monorepo root)
+### Global Files (`<monorepo-root>/` monorepo root)
 | Category | File | Source Command |
 |---|---|---|
-| Reports | [audit_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_core2_<date>.md) | `/wbAudit core2/` |
-| Reports | [plan_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_core2_<date>.md) | `/wbPlan core2/` |
-| Tracks | [track_core2_<date>.md](../../../../../../../../../../.wb/workflows/tracks/<YYYY>/<MM>/<DD>/track_core2_<date>.md) | `/wbTrack core2/` |
+| Reports | [audit_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_core2_<date>.md) | `/wbAudit <monorepo-root>/` |
+| Reports | [plan_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_core2_<date>.md) | `/wbPlan <monorepo-root>/` |
+| Tracks | [track_core2_<date>.md](../../../../../../../../../../.wb/workflows/tracks/<YYYY>/<MM>/<DD>/track_core2_<date>.md) | `/wbTrack <monorepo-root>/` |
 
 <details>
   <summary>📂 Sub-Package: [Active Package Name]</summary>

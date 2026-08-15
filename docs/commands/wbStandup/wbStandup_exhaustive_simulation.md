@@ -1,91 +1,316 @@
-# wb-flow Protocol: /wbStandup Execution & Simulation Specification
+# /wbStandup — Exhaustive Simulation ()
 
-This document defines the **exhaustive behavior matrix** for the `/wbStandup` command. It serves as the definitive reference for generating automated morning briefs, aggregating cross-package status, parsing blocked DAG tasks, and delivering project-wide context to the developer.
+`/wbStandup` is the morning briefer. It reads — never writes to — plans, reports, and track files, then delivers a synthesized status snapshot. The central design constraint: **read-only**. Unlike `/wbNext` (which recommends and can auto-execute), `/wbStandup` simply reports. It tells you where things stand and lets you decide what to do about it.
+
+Read this if you want to know how the briefing aggregates cross-package data and where the read-only boundary sits.
 
 ---
 
-## 1. Role & Definition Matrix
-**Role:** The Project Manager & Morning Briefer
-**Target:** Reads `plan_*.md` files, `track_report.md` histories, and current git statuses to synthesize a high-level briefing.
-**Core Protocol:** Strict "Read-Only" operation. `/wbStandup` never alters plans or code. It simply reports the current reality.
+## 1. Role & target
 
-| Scenario | System Behavior |
+| Aspect | Behavior |
 |---|---|
-| Active Blockers Exist | **[PROCEED]** Highlights blocked tasks immediately. Proposes diagnostic commands (e.g., `/wbDebug`) to resolve them. |
-| No Active Plan | **[PROCEED]** Reports that the workspace is idle. Suggests running `/wbContext` followed by `/wbPlan`. |
-| Cross-Package Status | **[PROCEED]** Aggregates data from multiple sub-packages if run from the monorepo root. |
+| **Role** | The Project Manager. Reports current reality, never alters it. |
+| **Target** | Plan files (`plan_*.md`), track reports (`track_report.md`), and git status — scoped by directory argument. |
+| **Cell scope** | None. `/wbStandup` is strictly read-only. |
+| **Side effects allowed** | None. Reading files is the only operation. |
+| **Side effects forbidden** | Editing plans, running tests, modifying code, writing reports. |
+
+The read-only constraint is load-bearing. `/wbStandup` gets called inside `/wbTrack`'s §0 as a sub-command — its full output gets pasted inline. If it had side effects, the session initialization would mutate state as a byproduct of *describing* state. That would break the observer/actor separation that the whole framework relies on.
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix
-`/wbStandup` parses different depths to provide the right level of briefing granularity.
+## 2. Argument resolution
 
-| Argument Type | Example | Parsing Logic | Simulated Output Profile |
-|---|---|---|---|
-| No Argument | `Command: /wbStandup` | Defaults to current directory. | Generates a standard briefing for the active scope. |
-| Specific Package | `Command: /wbStandup packages/wb-core` | Locks onto `wb-core`. | Reports specifically on the core library's progress and backlog. |
-| Comma-Separated | `Command: /wbStandup apps/ui,packages/core` | Parses multiple scopes. | Delivers a unified briefing showing the interaction between the app and library. |
-| Wildcard Glob | `Command: /wbStandup apps/*` | Extracts all apps. | Massive sprint overview for all consumer-facing applications. |
-
----
-
-## 3. Flag Processing Matrix (Isolated Capabilities)
-
-| Flag | Shortcut | Purpose | Example | Simulated Output Impact |
-|---|---|---|---|---|
-| `--focus="<topic>"` | `-f` | Forces the standup to highlight a specific domain (e.g., `blockers`, `completed`, `auth`). | `Command: /wbStandup -f="blockers"` | `[FOCUS] Suppressing completed tasks. Showing only 3 blocked DAG nodes.` |
-| `--yesterday` | `-y` | Explicitly reads yesterday's `track_report.md` to start the briefing. | `Command: /wbStandup -y` | `[YESTERDAY] "Yesterday we completed the JWT integration..."` |
-| `--voice="<tone>"` | `-v` | Adjusts the briefing style (`scrum_master`, `exec_summary`, `developer`). | `Command: /wbStandup -v="exec_summary"` | `[VOICE] Generating high-level bullet points. Skipping technical details.` |
-| `--markdown` | `-m` | Outputs the briefing as a formatted `.md` file instead of console text. | `Command: /wbStandup -m` | `[MARKDOWN] Wrote briefing to reports/YYYY/MM/DD/standup.md.` |
-
----
-
-## 4. Omni-Channel Execution Pipeline (Flag Chaining)
-
-### 💠 The "Monday Morning Exec Brief" (`apps/* -y -v="exec_summary" -m`)
-**Context:** It's Monday morning. The lead architect wants a massive overview of all frontend apps, referencing Friday's work, formatted for management.
-**Command Executed:** `/wbStandup apps/* -y -v="exec_summary" -m`
-**Simulated Protocol Chain:**
-1. Resolves all `apps/*`.
-2. Reads Friday's `track_report.md` (`-y`).
-3. Evaluates all active `plan_*.md` files in the apps.
-4. Applies Executive Summary tone (`-v`).
-5. Writes to disk (`-m`).
-**Simulated Output:**
-```markdown
-> Command: /wbStandup apps/* -y -v="exec_summary" -m
-
-[SYSTEM] Initiating Executive Standup for apps/*...
-[YESTERDAY] Loaded track data from last session.
-[PLAN] Aggregating 3 active plans...
-[VOICE] Formatting as Exec Summary...
-[SUCCESS] Generated reports/2026/05/04/standup_exec.md.
-```
-
-### 💠 The "Blocker Triage" (`packages/wb-core -f="blockers"`)
-**Context:** Developer is stuck. They want the agent to tell them exactly what is blocking progress in the core package right now.
-**Command Executed:** `/wbStandup packages/wb-core -f="blockers"`
-**Simulated Output:**
-```markdown
-> Command: /wbStandup packages/wb-core -f="blockers"
-
-[SYSTEM] Initiating Triage Standup...
-[FOCUS] Filtering for DAG blockages...
-[REPORT] Task 3 (Decomposition) is BLOCKED.
-[REASON] Task 2 (Regex Fix) is marked ⬜ Pending.
-[RECOMMENDATION] Run `/wbWork -i="2"` to clear the blockage.
-```
-
----
-
-## 5. Operational Edge Cases & Protocol Faults
-
-| Fault Trigger | System Detection | Resolution / Output |
+| Form | Example | What `/wbStandup` reads |
 |---|---|---|
-| Missing Track Data | User runs `-y`, but no track file exists for yesterday. | `⚠️ Warning: No track data found for yesterday. Briefing will rely solely on current plan state.` |
-| Glob Explosion | User runs `/wbStandup **/*`. System attempts to read 50 plans. | `❌ Error: Too many active plans found. Scope the standup to a specific workspace.` |
-| Blank Plan | Active plan exists but contains 0 tasks. | `⚠️ Warning: Plan is empty. Run /wbAudit -a to generate new tasks.` |
+| No argument | `Command: /wbStandup` | Current directory's plan + reports + tracks. |
+| Package path | `Command: /wbStandup packages/wb-core` | wb-core's `.agents/workflows/reports/` tree. |
+| Comma-separated | `Command: /wbStandup packages/wb-core,packages/wb-dataviewer` | Both packages. Unified briefing showing cross-package dependencies. |
+| Wildcard glob | `Command: /wbStandup apps/*` | All consumer apps. Sprint-level overview. |
+
+The comma-separated form is the interesting one. When you brief on `wb-core,wb-dataviewer` together, the standup doesn't just concatenate two reports — it identifies cross-package dependencies. If wb-dataviewer's plan has a task that depends on wb-core's row 3, and row 3 is `⬜`, that shows up as a cross-package blocker.
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 3. Flag matrix
+
+| Flag | Shortcut | Purpose |
+|---|---|---|
+| `--act` | `-a` | Independent and composable with `--wbPlan`. |
+| `--wbPlan` | `-P` | Independent and composable with `--act`. |
+| `--archive` | `-A` | Universal, and here it means the **fleet-wide sweep**: consolidate into every scope's newest file per category, then retire the superseded folders below the target. Defaults to `--archive=all`. The standup's own `standups/` folder and every `tracks/` folder are never swept. Previews first, and asks before applying. |
+| `--dry-run` | `-n` | With `--archive`: print the move list for every scope, move nothing. |
+| `--snap` | — | Universal. Pins this run's output into `.wb/snaps/<YYYYMMDD>_<label>/`. |
+| `--next` | — | Universal. Prints the `/wbNext` recommendation after the briefing. |
+
+---
+
+## 4. Pipelines (the agent-native scenarios)
+
+<script setup>
+const wbStandupSimPipelines = [
+  {
+    "title": "Morning kickoff with blocker triage",
+    "cmd": "/wbStandup packages/wb-core -f=\"blockers\"",
+    "logs": [
+      {
+        "text": "[SYSTEM] Initiating Blocker Triage for packages/wb-core...",
+        "type": "sys"
+      },
+      {
+        "text": "[READ] plan_wb-core_20260504.md (3 rows)",
+        "type": "gen"
+      },
+      {
+        "text": "[FOCUS] Filtering for DAG blockages and validation failures.",
+        "type": "gen"
+      },
+      {
+        "text": "# Standup: wb-core \u2014 Blocker Report",
+        "type": "gen"
+      },
+      {
+        "text": "## Blocked Tasks",
+        "type": "sys"
+      },
+      {
+        "text": "- **Row 3** (WBC.js decomposition) \u2014 \u2b1c Pending",
+        "type": "gen"
+      },
+      {
+        "text": "- Blocked by: nothing (Deps 1, 2 satisfied \u2705)",
+        "type": "gen"
+      },
+      {
+        "text": "- Actual status: **unblocked but untouched**",
+        "type": "gen"
+      },
+      {
+        "text": "## Validation Gaps",
+        "type": "sys"
+      },
+      {
+        "text": "- Row 1 (JWT handshake) \u2014 \u2705 Done, \u2705 Valid",
+        "type": "gen"
+      },
+      {
+        "text": "- Row 2 (renderString escape) \u2014 \u2705 Done, \u2705 Valid",
+        "type": "gen"
+      },
+      {
+        "text": "## Summary",
+        "type": "sys"
+      },
+      {
+        "text": "No hard blockers. 1 unstarted task with satisfied deps.",
+        "type": "gen"
+      },
+      {
+        "text": "**Recommendation:** Run `/wbWork --id=\"3\"` to clear the queue.",
+        "type": "sys"
+      }
+    ],
+    "note": "The developer starts the day and wants to know exactly what's blocking progress in wb-core:",
+    "noteType": "info"
+  },
+  {
+    "title": "Executive summary across all apps",
+    "cmd": "/wbStandup apps/* -y -v=\"exec_summary\" -m",
+    "logs": [
+      {
+        "text": "[SYSTEM] Aggregating apps/*...",
+        "type": "sys"
+      },
+      {
+        "text": "[READ] plans from: demo.wbc-ui.com, md.wbc-ui.com, wbc-ui.com",
+        "type": "gen"
+      },
+      {
+        "text": "[YESTERDAY] Loading track data from 2026-05-04.",
+        "type": "gen"
+      },
+      {
+        "text": "[VOICE] Formatting as Executive Summary.",
+        "type": "gen"
+      },
+      {
+        "text": "# Executive Standup \u2014 All Consumer Apps (2026-05-05)",
+        "type": "gen"
+      },
+      {
+        "text": "## Progress",
+        "type": "sys"
+      },
+      {
+        "text": "| App | Tasks Done | Tasks Open | Blockers |",
+        "type": "sys"
+      },
+      {
+        "text": "|---|---|---|---|",
+        "type": "sys"
+      },
+      {
+        "text": "| demo.wbc-ui.com | 2/4 | 2 | 0 |",
+        "type": "sys"
+      },
+      {
+        "text": "| md.wbc-ui.com | 5/5 | 0 | 0 \u2705 |",
+        "type": "sys"
+      },
+      {
+        "text": "| wbc-ui.com | 1/6 | 5 | 2 (auth, VuePress) |",
+        "type": "sys"
+      },
+      {
+        "text": "## Yesterday's Highlights",
+        "type": "sys"
+      },
+      {
+        "text": "- md.wbc-ui.com completed architecture stabilization.",
+        "type": "gen"
+      },
+      {
+        "text": "- wbc-ui.com hit the VuePress incompatibility wall (parked).",
+        "type": "gen"
+      },
+      {
+        "text": "## Risks",
+        "type": "sys"
+      },
+      {
+        "text": "- wbc-ui.com has 2 blocked tasks with no clear resolution path.",
+        "type": "gen"
+      },
+      {
+        "text": "- The WBDataViewer apiResponse_ cache gap affects consumers downstream.",
+        "type": "gen"
+      },
+      {
+        "text": "[WROTE] reports/2026/05/05/standups/standup_apps_20260505.md",
+        "type": "gen"
+      }
+    ],
+    "note": "Monday morning. The lead wants a high-level view of all consumer apps for management:",
+    "noteType": "info"
+  },
+  {
+    "title": "Deep standup on a package with stale data",
+    "cmd": "/wbStandup packages/wb-core -y",
+    "logs": [
+      {
+        "text": "[SYSTEM] Standup for packages/wb-core...",
+        "type": "sys"
+      },
+      {
+        "text": "[YESTERDAY] Loading track_wb-core_20260504.md (finalized, 6 sections).",
+        "type": "gen"
+      },
+      {
+        "text": "[READ] Current plan state + git status.",
+        "type": "gen"
+      },
+      {
+        "text": "# Standup: wb-core \u2014 2026-05-05",
+        "type": "gen"
+      },
+      {
+        "text": "## Yesterday (from track file)",
+        "type": "sys"
+      },
+      {
+        "text": "- the AI agent: Completed rows 1-2 (JWT handshake, renderString escape).",
+        "type": "gen"
+      },
+      {
+        "text": "- the AI agent: Validated rows 1-2. Recommended row 3 as priority.",
+        "type": "gen"
+      },
+      {
+        "text": "- Session ended without starting row 3.",
+        "type": "gen"
+      },
+      {
+        "text": "## Current State",
+        "type": "sys"
+      },
+      {
+        "text": "| # | Task | Done | Valid | Status |",
+        "type": "sys"
+      },
+      {
+        "text": "|---|---|---|---|---|",
+        "type": "sys"
+      },
+      {
+        "text": "| 1 | JWT handshake | \u2705 | \u2705 | Complete |",
+        "type": "sys"
+      },
+      {
+        "text": "| 2 | renderString escape | \u2705 | \u2705 | Complete |",
+        "type": "sys"
+      },
+      {
+        "text": "| 3 | WBC.js decomposition | \u2b1c | \u2b1c | **Ready** \u2014 deps satisfied |",
+        "type": "sys"
+      },
+      {
+        "text": "## Deferred Items",
+        "type": "sys"
+      },
+      {
+        "text": "- dist-folder mismatch in wbc-ui2-cdn (project_pkg_dist_mismatch.md)",
+        "type": "gen"
+      },
+      {
+        "text": "- apiResponse_ cache invalidation gap (project_wbdataviewer_apiResponse.md)",
+        "type": "gen"
+      },
+      {
+        "text": "## Recommendation",
+        "type": "sys"
+      },
+      {
+        "text": "Start with `/wbWork --id=\"3\"`. The plan has one remaining task.",
+        "type": "gen"
+      },
+      {
+        "text": "After completion, run `/wbValid --id=\"3\"` then `/wbGit` to close the epic.",
+        "type": "gen"
+      }
+    ],
+    "note": "The developer suspects yesterday's reports are outdated. They want the standup to also surface *git diff* evidence:",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbStandup" titleSuffix="Exhaustive Simulation" :pipelines="wbStandupSimPipelines" />
+
+
+### 💠 Pipeline Morning kickoff with blocker triage
+
+The developer starts the day and wants to know exactly what's blocking progress in wb-core:
+
+
+### 💠 Pipeline Executive summary across all apps
+
+Monday morning. The lead wants a high-level view of all consumer apps for management:
+
+
+### 💠 Pipeline Deep standup on a package with stale data
+
+The developer suspects yesterday's reports are outdated. They want the standup to also surface *git diff* evidence:
+
+---
+
+## 5. Edge cases & refusals
+
+| Trigger | What `/wbStandup` does |
+|---|---|
+| No plan file in scope | Reports: `⚠️ No active plan found for <scope>. Run /wbContext followed by /wbPlan to generate one.` |
+| `**/*` glob (too broad) | `❌ Too many scopes. Narrow to a specific directory or use apps/* or packages/*.` |
+| Empty plan (file exists, 0 rows) | `⚠️ Plan exists but contains 0 tasks. Run /wbAudit to generate findings, then /wbPlan.` |
+| `/wbStandup` on a scope with no `.agents/workflows/` | `⚠️ No workflow directory found. Run /wbContext <scope> to initialize.` |
+
+The pattern across all of these: **`/wbStandup` never halts on missing data — it degrades gracefully.** Missing track file? Skip the "yesterday" section. Missing plan? Suggest how to create one. Empty plan? Point to the audit command. The standup is the *entry point* for many sessions, so it can't be brittle. Compare to `/wbWork`, which halts aggressively on missing data — the worker can't guess what to implement, but the briefer can always summarize what exists.

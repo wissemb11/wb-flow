@@ -1,91 +1,250 @@
-# wb-flow Protocol: /wbToWBC Execution & Simulation Specification
+# /wbToWBC — Exhaustive Simulation ()
 
-This document defines the **exhaustive behavior matrix** for the `/wbToWBC` command. It serves as the definitive reference for how the agent automatically refactors generic code into the proprietary architecture and design patterns required by the `wbc-ui.com` ecosystem.
+`/wbToWBC` is the architectural translator. It takes generic code (standard Vue/React, raw CSS, native hooks) and converts it into `wbc-ui.com` compliant code — proprietary imports from `@wbc-ui2/wb-core`, WBC design tokens, and ecosystem-specific patterns. The central principle: **framework adherence without logic alteration.** The agent rewrites the *how* (imports, hooks, tokens) without changing the *what* (business logic, data flow, user-facing behavior).
+
+Read this if you want to know what "WBC-compliant" means in practice, and where the boundary sits between translating a framework layer and rewriting business logic.
 
 ---
 
-## 1. Role & Definition Matrix
-**Role:** The Pattern Enforcer & Architectural Translator
-**Target:** Transforms generic code (e.g., standard React/Vue, raw CSS) into `wbc-ui.com` compliant code (e.g., using `@wbc-ui2/wb-core` imports, custom hooks, and strict theming tokens).
-**Core Protocol:** Strict "Framework Adherence". The agent must parse the source code, identify generic patterns, and replace them with the highly specific, proprietary equivalents defined in the `core2` monorepo.
+## 1. Role & target
 
-| Scenario | System Behavior |
+| Aspect | Behavior |
 |---|---|
-| Target is Generic Component | **[PROCEED]** Analyzes AST. Swaps generic `useState` for proprietary state management. Converts raw CSS into WBC Design Tokens. |
-| Target is 3rd-Party Code | **[PROCEED]** Wraps 3rd-party logic in a `wb-core` compatibility layer (Facade pattern) to isolate external dependencies. |
-| Code is Already Compliant | **[PROCEED]** Scans silently and returns an "All Clear" validation without modifying the disk. |
+| **Role** | The Pattern Enforcer. Converts generic code to WBC ecosystem patterns. |
+| **Target** | Component files (`.vue`, `.jsx`), stylesheets (`.css`), utility files (`.js`). |
+| **Cell scope** | None. `/wbToWBC` doesn't interact with plans. |
+| **Side effects allowed** | Rewriting imports, swapping hooks, replacing CSS values, updating component exports. |
+| **Side effects forbidden** | Changing business logic, altering data flow, modifying test assertions. |
+
+The distinction from `/wbRefactor`: `/wbRefactor` improves code quality within the same framework. `/wbToWBC` changes the framework while preserving behavior. You refactor *after* migration — never during.
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix
-`/wbToWBC` relies on deep AST traversal to map generic syntax to proprietary syntax.
+## 2. Argument resolution
 
-| Argument Type | Example | Parsing Logic | Simulated Output Profile |
-|---|---|---|---|
-| Specific File Path | `Command: /wbToWBC src/components/Button.jsx` | Locks onto the specific component. | Rewrites the file to use `WbcButton` base classes. |
-| Directory Path | `Command: /wbToWBC src/legacy/` | Sweeps the directory. | Mass-migrates an entire legacy folder to the new architecture. |
-| Comma-Separated | `Command: /wbToWBC src/Auth.js,src/Login.js` | Parses multiple files. | Migrates both files to use the proprietary `useWbcAuth()` hook. |
-| Wildcard Glob | `Command: /wbToWBC **/*.css` | Extracts all CSS. | Replaces all hardcoded HEX colors with `var(--wbc-primary)`. |
-
----
-
-## 3. Flag Processing Matrix (Isolated Capabilities)
-
-| Flag | Shortcut | Purpose | Example | Simulated Output Impact |
-|---|---|---|---|---|
-| `--css` | `-c` | Forces strict CSS-to-Token translation. Ignores JavaScript logic. | `Command: /wbToWBC src/ -c` | `[CSS] Replaced 14 instances of '#FF0000' with 'var(--wbc-error)'.` |
-| `--hooks` | `-h` | Forces migration from standard React hooks to WBC proprietary hooks. | `Command: /wbToWBC src/ -h` | `[HOOKS] Swapped 5 `useEffect` with `useWbcLifecycle`.` |
-| `--dry-run` | `-d` | Simulates the transformation and displays a git-style diff without saving. | `Command: /wbToWBC src/App.jsx -d` | `[DRY-RUN] Would alter 45 lines of code. Disk untouched.` |
-| `--strict` | `-s` | Aborts the transformation if the agent cannot find a 1:1 proprietary equivalent for a piece of code. | `Command: /wbToWBC src/ -s` | `[STRICT] Failed. No WBC equivalent found for `indexedDB` native API.` |
-
----
-
-## 4. Omni-Channel Execution Pipeline (Flag Chaining)
-
-### 💠 The "Massive Component Migration" (`src/components/**/*.jsx -h -c`)
-**Context:** A developer copy-pasted a generic open-source dashboard component. They need to instantly translate it into the `wbc-ui.com` proprietary standard before committing.
-**Command Executed:** `/wbToWBC src/components/**/*.jsx -h -c`
-**Simulated Protocol Chain:**
-1. Resolves glob to 12 generic React components.
-2. Engages CSS Translation (`-c`): Replaces generic Tailwind classes with proprietary WBC utility classes.
-3. Engages Hook Translation (`-h`): Swaps native data fetching for proprietary `useWbcQuery()`.
-4. Updates all import statements to pull from `@wbc-ui2/wb-core`.
-**Simulated Output:**
-```markdown
-> Command: /wbToWBC src/components/**/*.jsx -h -c
-
-[SYSTEM] Initiating Massive WBC Architecture Migration...
-[CSS] Transpiling 140 utility classes into WBC tokens.
-[HOOKS] Migrating data layer to WBC standards.
-[IMPORTS] Injecting `@wbc-ui2/wb-core` dependencies.
-[SYNC] Rewriting ASTs...
-[SUCCESS] 12 components are now fully WBC-compliant.
-```
-
-### 💠 The "Strict Architectural Audit" (`src/legacy/ -s -d`)
-**Context:** The team wants to see if an old legacy folder *can* be migrated to the new standard without manually rewriting business logic.
-**Command Executed:** `/wbToWBC src/legacy/ -s -d`
-**Simulated Output:**
-```markdown
-> Command: /wbToWBC src/legacy/ -s -d
-
-[SYSTEM] Executing Strict Architectural Audit...
-[DRY-RUN] Parsing legacy ASTs...
-[STRICT] ALERT: File `src/legacy/customCanvas.js` uses raw DOM manipulation.
-[STRICT] Resolution: No proprietary WBC wrapper exists for Canvas API.
-[SUCCESS] Dry-run complete. Manual intervention required for Canvas logic.
-```
-
----
-
-## 5. Operational Edge Cases & Protocol Faults
-
-| Fault Trigger | System Detection | Resolution / Output |
+| Form | Example | What `/wbToWBC` does |
 |---|---|---|
-| Unrecognized Pattern | Code uses an obscure library that has no WBC equivalent. | `⚠️ Warning: Cannot translate 'lodash.debounce'. Left intact.` |
-| Version Mismatch | Target package is using an older, incompatible version of React. | `❌ Error: Package must be upgraded to React 18+ before running /wbToWBC.` |
-| CSS Extraction Failure | CSS is heavily obfuscated or minified. | `⚠️ Warning: Cannot parse minified CSS. Skipping token translation.` |
+| Specific file | `Command: /wbToWBC src/components/Button.vue` | Rewrites to use `@wbc-ui2/wb-core` base classes and design tokens. |
+| Directory path | `Command: /wbToWBC src/legacy/` | Mass-migrates the entire directory. |
+| Comma-separated | `Command: /wbToWBC src/Auth.js,src/Login.js` | Migrates both to use `useWbcAuth()` hook. |
+| Wildcard glob | `Command: /wbToWBC **/*.css` | CSS-only sweep: replaces hardcoded colors with `var(--wbc-*)` tokens. |
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 3. Flag matrix
+
+`/wbToWBC` declares no flags of its own beyond the universal `-h` / `--help`. The
+target is positional — a file, a component, or a directory — and the migration
+mode is inferred from what the target contains.
+
+Patterns with no WBC equivalent are left intact with a comment
+(`// TODO: No WBC equivalent for indexedDB. Manual migration required.`) rather
+than dropped, so a partial migration is always visible in the diff.
+
+---
+
+## 4. Pipelines (the agent-native scenarios)
+
+<script setup>
+const wbToWBCSimPipelines = [
+  {
+    "title": "Migrate a generic Vue dashboard to WBC",
+    "cmd": "/wbToWBC core2/packages/wb-dataviewer/src/legacy/GenericDashboard.vue -h -c",
+    "logs": [
+      {
+        "text": "[SYSTEM] Full migration: hooks + CSS.",
+        "type": "sys"
+      },
+      {
+        "text": "[AST] Parsed: 1 component, 4 composables, 12 CSS rules.",
+        "type": "gen"
+      },
+      {
+        "text": "[CSS TRANSLATION]",
+        "type": "gen"
+      },
+      {
+        "text": "#FF5722 \u2192 var(--wbc-accent)",
+        "type": "gen"
+      },
+      {
+        "text": "#333333 \u2192 var(--wbc-text-primary)",
+        "type": "gen"
+      },
+      {
+        "text": "16px \u2192 var(--wbc-spacing-md)",
+        "type": "gen"
+      },
+      {
+        "text": "border-radius: 8px \u2192 var(--wbc-radius-lg)",
+        "type": "gen"
+      },
+      {
+        "text": "12 rules translated.",
+        "type": "gen"
+      },
+      {
+        "text": "[HOOK MIGRATION]",
+        "type": "gen"
+      },
+      {
+        "text": "import { ref, onMounted } from 'vue'",
+        "type": "gen"
+      },
+      {
+        "text": "\u2192 import { useWbcState, useWbcLifecycle } from '@wbc-ui2/wb-core'",
+        "type": "gen"
+      },
+      {
+        "text": "const data = ref(null)",
+        "type": "gen"
+      },
+      {
+        "text": "\u2192 const data = useWbcState(null)",
+        "type": "gen"
+      },
+      {
+        "text": "onMounted(() => fetchData())",
+        "type": "gen"
+      },
+      {
+        "text": "\u2192 useWbcLifecycle('mount', () => fetchData())",
+        "type": "gen"
+      },
+      {
+        "text": "[IMPORTS]",
+        "type": "gen"
+      },
+      {
+        "text": "+ import { useWbcState, useWbcLifecycle } from '@wbc-ui2/wb-core'",
+        "type": "gen"
+      },
+      {
+        "text": "- import { ref, onMounted } from 'vue'",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] GenericDashboard.vue is now WBC-compliant.",
+        "type": "ok"
+      },
+      {
+        "text": "Business logic unchanged. 4 composables migrated, 12 CSS rules translated.",
+        "type": "gen"
+      }
+    ],
+    "note": "A developer copy-pasted a generic open-source dashboard. Convert it to WBC conventions:",
+    "noteType": "info"
+  },
+  {
+    "title": "CSS-only sweep across the monorepo",
+    "cmd": "/wbToWBC core2/packages/wb-dataviewer/src/**/*.css -c",
+    "logs": [
+      {
+        "text": "[SYSTEM] CSS-only migration across 8 files.",
+        "type": "sys"
+      },
+      {
+        "text": "[TRANSLATE]",
+        "type": "gen"
+      },
+      {
+        "text": "| File | Replacements | Before \u2192 After |",
+        "type": "sys"
+      },
+      {
+        "text": "|---|---|---|",
+        "type": "sys"
+      },
+      {
+        "text": "| DataGrid.css | 6 | #FF0000 \u2192 var(--wbc-error), #00FF00 \u2192 var(--wbc-success), ... |",
+        "type": "sys"
+      },
+      {
+        "text": "| ExportPanel.css | 3 | hardcoded spacing \u2192 var(--wbc-spacing-*) |",
+        "type": "sys"
+      },
+      {
+        "text": "| ThemeToggle.css | 2 | #1A1A1A \u2192 var(--wbc-bg-dark), #FAFAFA \u2192 var(--wbc-bg-light) |",
+        "type": "sys"
+      },
+      {
+        "text": "| ... | ... | ... |",
+        "type": "sys"
+      },
+      {
+        "text": "[SUMMARY] 24 replacements across 8 files. All colors and spacing now use WBC tokens.",
+        "type": "gen"
+      }
+    ],
+    "note": "Before a theming overhaul, convert all hardcoded colors to design tokens:",
+    "noteType": "info"
+  },
+  {
+    "title": "Strict audit of a legacy folder",
+    "cmd": "/wbToWBC core2/packages/wb-dataviewer/src/legacy/ -s -d",
+    "logs": [
+      {
+        "text": "[SYSTEM] Strict mode + dry-run.",
+        "type": "sys"
+      },
+      {
+        "text": "[AST] Scanning 6 files in legacy/...",
+        "type": "gen"
+      },
+      {
+        "text": "[STRICT] \u274c Migration cannot complete.",
+        "type": "gen"
+      },
+      {
+        "text": "customCanvas.js:L34 \u2014 raw DOM manipulation (Canvas API). No WBC wrapper exists.",
+        "type": "gen"
+      },
+      {
+        "text": "socketHandler.js:L12 \u2014 native WebSocket. WBC uses a different transport layer.",
+        "type": "gen"
+      },
+      {
+        "text": "[DRY-RUN] Would migrate 4/6 files. 2 files require manual intervention.",
+        "type": "warn"
+      },
+      {
+        "text": "[HALT] Strict mode: incomplete migration. Fix Canvas and WebSocket usage first.",
+        "type": "gen"
+      }
+    ],
+    "note": "Can the legacy folder be fully migrated without manual intervention?",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbToWBC" titleSuffix="Exhaustive Simulation" :pipelines="wbToWBCSimPipelines" />
+
+
+### 💠 Pipeline Migrate a generic Vue dashboard to WBC
+
+A developer copy-pasted a generic open-source dashboard. Convert it to WBC conventions:
+
+
+### 💠 Pipeline CSS-only sweep across the monorepo
+
+Before a theming overhaul, convert all hardcoded colors to design tokens:
+
+
+### 💠 Pipeline Strict audit of a legacy folder
+
+Can the legacy folder be fully migrated without manual intervention?
+
+---
+
+## 5. Edge cases & refusals
+
+| Trigger | What `/wbToWBC` does |
+|---|---|
+| Code is already WBC-compliant | Scans silently. `ℹ️ All patterns are already WBC-compliant. No changes needed.` |
+| Unrecognized third-party library | `⚠️ Cannot translate 'lodash.debounce'. Left intact. Consider: @wbc-ui2/wb-core/utils/debounce.` |
+| React code in a Vue monorepo | `⚠️ React hooks detected in a Vue ecosystem. /wbToWBC converts to WBC patterns, not between frameworks. Use /wbRefactor for framework migration.` |
+| Version mismatch (old Vue 2 syntax) | `❌ Component uses Vue 2 Options API. WBC requires Composition API (Vue 3+). Migrate to Vue 3 first.` |
+| CSS is minified/obfuscated | `⚠️ Cannot parse minified CSS. Run a CSS formatter first, then retry.` |
+
+The unifying principle: **`/wbToWBC` migrates the framework layer while preserving the business layer.** It's the bridge from "generic code that works" to "WBC-compliant code that works the same way but uses ecosystem patterns." The migration is always behavior-preserving — if the component rendered a table before, it renders the same table after, just with WBC hooks and design tokens instead of generic ones.

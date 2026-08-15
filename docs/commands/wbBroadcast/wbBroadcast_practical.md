@@ -1,58 +1,76 @@
-# wbBroadcast — Practical Walkthrough
+# /wbBroadcast — Practical
 
-> How to generate release announcements for various channels.
+## Three forms
 
----
-
-## 1. Generate Announcements
-
-```bash
-/wbBroadcast packages/my-lib
+```
+/wbBroadcast <package> # announce latest release
+/wbBroadcast core2/ # monorepo-wide announcement
+/wbBroadcast <target> --status=<lts|preview|obsolete>
 ```
 
-```text
-[AI] Reading release: my-lib v1.1.0 (2026-05-11)
-[AI]
-[AI] ## GitHub Release
-[AI] ### my-lib v1.1.0
-[AI] - feat: new validation engine
-[AI] - fix: dropdown alignment
-[AI]
-[AI] ## Social
-[AI] "my-lib v1.1.0 is out! New validation engine + bug fixes."
-[AI]
-[AI] Report: reports/2026/05/11/broadcasts/broadcast_my-lib_20260511.md
-```
+## When to run
 
----
+- Immediately after `/wbRelease` + `/wbPublish` on a user-visible release.
+- Immediately after `/wbDeploy` on a user-facing app change.
+- When declaring a lifecycle status change (PREVIEW → LTS, or LTS → OBSOLETE).
 
-## 2. Post-Release Flow
+## When *not* to run
 
-```bash
-/wbRelease packages/my-lib --minor    # 1. Bump version
-/wbPublish packages/my-lib            # 2. Publish to npm
-/wbBroadcast packages/my-lib          # 3. Generate announcements
-```
+- After an internal refactor nobody will notice.
+- After a patch release that doesn't change user-facing behavior.
+- After a failed release (do not announce what didn't ship).
+- Before the release has actually shipped (pre-announcement is a marketing decision the command won't make).
 
----
+## What the output contains
 
-## 3. Using the Templates
+- **LinkedIn post** — conversational, explains the "why."
+- **X (Twitter) post** — compressed, action-oriented.
+- **GitHub release notes** — structured Highlights / Changes / Breaking / Credits.
+- **Blog paragraph** — 3-paragraph narrative (what's new / why it matters / what to do).
+- **VERSION_STATUS.md update proposal** (optional) — if lifecycle status should change.
+- **"Did NOT generate"** — channels the command doesn't cover (email, video, Slack/Discord).
 
-Copy the generated templates to their respective channels:
-- GitHub Release → paste into GitHub "New Release" form
-- Social → post to Twitter/LinkedIn
-- Internal → send to team Slack/Discord
+## The human-in-the-loop requirement
 
----
+The command writes copy. You:
+1. Review every post. AI voice isn't your voice.
+2. Fact-check specifics (version numbers, feature names, behavior claims).
+3. Edit for tone.
+4. Post manually.
 
-## 4. Common Patterns
+If the command ever skips the "waiting for review" pause and auto-posts, that's a bug — AI auto-posting is the road to embarrassing mistakes.
 
-| Pattern | Command |
+## The VERSION_STATUS.md interaction
+
+`/wbBroadcast` reads VERSION_STATUS.md and can propose updates:
+- PREVIEW → LTS after 3+ months of stable minor releases, no breaking changes.
+- LTS → OBSOLETE when deprecating.
+- PREVIEW stays until the package is actually stable.
+
+These are proposals. Apply manually if you agree.
+
+## When /wbBroadcast refuses
+
+- Internal-only release. Refuses with "consumers don't care about this."
+- No release has shipped yet. Refuses with "pre-announce elsewhere."
+- Lifecycle status change requested but validation fails (package isn't actually stable). Refuses with specifics.
+
+## When /wbBroadcast is the wrong command
+
+- Internal status reports to your team → different format; use a custom doc.
+- Customer email → template in your email tool; AI copy here is wrong audience.
+- User feedback collection → not a broadcast; use a survey tool.
+
+<!-- FLAGS_SHORTCUTS_START -->
+## Flags & shortcuts
+
+Long-form and short-form are equivalent — `/wbBroadcast --execute` and `/wbBroadcast -e` produce the same behavior.
+
+| Long form | Shortcut |
 |---|---|
-| After release | `/wbBroadcast .` |
-| Specific version | `/wbBroadcast . --version=1.1.0` |
-| Internal only | `/wbBroadcast . --channel=internal` |
+| `--status` | `-s` |
+
+`-h`, `--h`, and `--help` are accepted on **every** `/wb*` command and print the manual instead of executing.
+<!-- FLAGS_SHORTCUTS_END -->
 
 ---
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

@@ -1,88 +1,356 @@
-# wb-flow Protocol: /wbRefactor Execution & Simulation Specification
+# /wbRefactor — Exhaustive Simulation ()
 
-This document defines the **exhaustive behavior matrix** for the `/wbRefactor` command. It serves as the definitive reference for architectural restructuring, component decoupling, and macroscopic logic optimization without altering user-facing behavior.
+`/wbRefactor` is the surgeon. Its job is **structural surgery on a specific file** — change the *shape* of the code (decomposition, rename, extraction, pattern application) without changing what it does. The boundary that defines the command: behavior under tests stays identical; structure under reading changes.
+
+Read this if you want to know why `/wbRefactor` has no flags, what counts as "behavior-preserving," and where refactor ends and `/wbClean` (cleanup) or `/wbWork` (feature change) begins.
 
 ---
 
-## 1. Role & Definition Matrix
-**Role:** The Codebase Optimizer & Architect
-**Target:** Transforms existing codebase structures to adhere to DRY principles and modern architectural standards.
-**Core Protocol:** Strict adherence to "No Logic Mutation". Functional output must remain identical to pre-refactor state, validated by existing tests.
+## 1. Role & target
 
-| Scenario | System Behavior |
+| Aspect | Behavior |
 |---|---|
-| Target is Monolith File | **[PROCEED]** Analyzes AST. Extracts independent functions into dedicated utility files. Generates export bindings. |
-| Target is UI Component | **[PROCEED]** Splits massive Vue/React components into smaller, reusable presentational components. |
-| Tests are Missing | **[HALT]** Protocol forbids executing a deep refactor on untested logic. Prompts user to run `/wbTest -g` first. |
+| **Role** | The Surgeon — structural transformation of one file or one tightly-coupled set of files. |
+| **Target** | A specific file path; optionally a comma-separated set of files that will be transformed *together* atomically. |
+| **Cell scope** | None directly. `/wbRefactor` does not mutate plan cells; the work it does should usually correspond to a plan row that `/wbWork` calls into. |
+| **Side effects allowed** | Editing the targeted file(s); running existing tests to confirm behavior preservation. |
+| **Side effects forbidden** | Adding new functionality; expanding scope to "while I'm here" cleanup; touching files outside the explicit target list. |
+
+The "no scope creep" rule is what separates `/wbRefactor` from `/wbClean`. A surgeon doesn't decide mid-operation to also fix the patient's posture. If the refactor surfaces an unrelated mess, the agent *names* it (logs it as a candidate plan row) but does not act on it.
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix
-`/wbRefactor` requires targeted scopes to prevent catastrophic, untrackable restructuring.
+## 2. Argument resolution matrix
 
-| Argument Type | Example | Parsing Logic | Simulated Output Profile |
-|---|---|---|---|
-| Specific File Path | `Command: /wbRefactor src/WBC.js` | Analyzes file complexity. Identifies logical blocks for extraction. | Splits `WBC.js` into 4 new modules and updates imports. |
-| Directory Path | `Command: /wbRefactor src/utils` | Consolidates redundant functions across multiple utility files. | Merges 12 small files into 3 categorized service files. |
-| Wildcard Glob | `Command: /wbRefactor src/**/*.vue` | Sweeps all Vue components for duplicated inline templates/styles. | Extracts common UI patterns into a shared `/components` folder. |
-| Natural Language | `Command: /wbRefactor "decouple the API calls"` | Fuzzily locates files importing `axios` or `fetch` directly in UI logic. | Extracts API calls into a dedicated `apiService.js`. |
-
----
-
-## 3. Flag Processing Matrix (Isolated Capabilities)
-
-| Flag | Shortcut | Purpose | Example | Simulated Output Impact |
-|---|---|---|---|---|
-| `--pattern="<str>"` | `-p` | Enforces a specific architectural pattern (e.g., `repository`, `mvc`, `hooks`). | `Command: /wbRefactor src/ -p="repository"` | `[PATTERN] Migrating direct API calls to the Repository Pattern.` |
-| `--dry-run` | `-d` | Simulates the refactor and outputs the proposed file structure without altering disk. | `Command: /wbRefactor src/WBC.js -d` | `[DRY-RUN] Would create: wbc_auth.js, wbc_state.js. 0 files changed.` |
-| `--wbPlan` | `-P` | Defers the massive refactoring effort into a structured, step-by-step active plan. | `Command: /wbRefactor src/ -P` | `[SYNC] Writing 6 refactoring steps into plan_wb-core_2026.md.` |
-| `--strict` | `-s` | Aborts if the refactor requires modifying external packages/consumers. | `Command: /wbRefactor src/ -s` | `[STRICT] Aborted. Refactoring 'auth' would break wbc-ui.com.` |
-
----
-
-## 4. Omni-Channel Execution Pipeline (Flag Chaining)
-
-### 💠 The "Architectural Blueprint" (`src/WBC.js -p="hooks" -P`)
-**Context:** The `WBC.js` file is too massive. The user wants to convert its internal logic into modular hooks, but wants to review the plan before any code is touched.
-**Command Executed:** `/wbRefactor src/WBC.js -p="hooks" -P`
-**Simulated Protocol Chain:**
-1. Parses `WBC.js` (1,171 lines).
-2. Identifies 4 distinct state domains capable of becoming custom hooks.
-3. Defers execution (`-P`). Writes the 4 extraction steps to the active plan.
-**Simulated Output:**
-```markdown
-> Command: /wbRefactor src/WBC.js -p="hooks" -P
-
-[SYSTEM] Analyzing WBC.js monolithic structure...
-[PATTERN] Identified 4 domains suitable for React/Vue Hooks.
-[SYNC] Generating structured DAG plan.
-[SUCCESS] Appended 4 tasks to plan_wb-core_20260504.md. Use /wbWork to execute.
-```
-
-### 💠 The "Massive DRY Sweep" (`src/**/*.js -d`)
-**Context:** User wants to see how much code could be consolidated across the entire `src` directory without risking actual changes.
-**Command Executed:** `/wbRefactor src/**/*.js -d`
-**Simulated Output:**
-```markdown
-> Command: /wbRefactor src/**/*.js -d
-
-[SYSTEM] Glob resolved to 45 files.
-[DRY-RUN] Analysis complete. 
-[REPORT] Found 6 duplicated date-parsing functions. Can consolidate to dateUtils.js.
-[REPORT] Found 3 identical JWT validation blocks.
-[SUCCESS] Dry-run complete. Run without -d to execute.
-```
-
----
-
-## 5. Operational Edge Cases & Protocol Faults
-
-| Fault Trigger | System Detection | Resolution / Output |
+| Form | Example | What `/wbRefactor` does |
 |---|---|---|
-| Missing Tests | System detects `auth.js` has no `auth.test.js`. | `❌ Error: Cannot refactor untested core logic. Run /wbTest -g first.` |
-| Circular Dependency | Extracted module accidentally imports from its parent. | `⚠️ Warning: Circular dependency detected during AST check. Reverting chunk.` |
-| Glob Explosion | `**/*.js` targets > 500 files. | `❌ Error: Scope too broad for a single refactor. Use directory limits.` |
+| Single file | `Command: /wbRefactor core2/packages/wb-core/src/WBC.js` | Surgical transformation of one file. Most common shape. |
+| Comma-separated | `Command: /wbRefactor src/WBC.js,src/WBCSlot.js` | Atomic transformation of two tightly-coupled files. Both succeed or both revert. |
+| Free-text intent | `Command: /wbRefactor "extract the parser from WBC.js"` | Refused. Refactor is target-required. Intent without a file target is a planning conversation, not a refactor. |
+| Directory | `Command: /wbRefactor core2/packages/wb-core/src/` | Refused. Refactor is file-level by design. |
+
+The directory refusal is intentional. A "refactor everything in this directory" command is really a *planning* operation that should produce multiple plan rows, each refactoring a specific file. `/wbRefactor` keeps its scope narrow on purpose.
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 3. Flag matrix
+
+`/wbRefactor` has **no flags**. The lack of flags is the design statement: every refactor is *behavior-preserving on a specific target*. There is no profile to choose, no severity to filter, no mode to toggle. The only question is "which file?" — and that's an argument, not a flag.
+
+| What you might want | What to use instead |
+|---|---|
+| Refactor *and* fix lint warnings | `/wbRefactor` first, `/wbClean` after. Two commits, two clean intentions. |
+| Refactor *and* add a feature | `/wbWork --id="<row>"` against a plan row that says so. Don't bundle. |
+| Refactor *that the tests don't cover* | Ask the question first. `/wbRefactor` against untested code is dangerous; the agent will warn but proceed if explicitly told to. |
+| Multi-file transformation | Comma-separated target. Atomic. |
+
+---
+
+## 4. Pipelines (the agent-native scenarios)
+
+<script setup>
+const wbRefactorSimPipelines = [
+  {
+    "title": "The deferred WBC.js decomposition (when the architecture conversation has happened)",
+    "cmd": "/wbRefactor core2/packages/wb-core/src/WBC.js",
+    "logs": [
+      {
+        "text": "[SYSTEM] Target: core2/packages/wb-core/src/WBC.js",
+        "type": "sys"
+      },
+      {
+        "text": "[SCAN] Reading file (412 lines, 8 exports)...",
+        "type": "gen"
+      },
+      {
+        "text": "[TEST] Running existing tests against this file...",
+        "type": "gen"
+      },
+      {
+        "text": "core2/packages/wb-core/tests/WBC.spec.js: 14 passed.",
+        "type": "gen"
+      },
+      {
+        "text": "[BASELINE] Test baseline captured. Refactor must preserve.",
+        "type": "gen"
+      },
+      {
+        "text": "[ANALYZE] Identifying surgical decomposition candidates:",
+        "type": "gen"
+      },
+      {
+        "text": "- Lines 14-89: parser logic (could become WBCParser.js)",
+        "type": "gen"
+      },
+      {
+        "text": "- Lines 91-178: orchestrator (stays in WBC.js)",
+        "type": "gen"
+      },
+      {
+        "text": "- Lines 180-302: render delegate (could become WBCRenderer.js)",
+        "type": "gen"
+      },
+      {
+        "text": "- Lines 304-412: state machine (could become WBCState.js)",
+        "type": "gen"
+      },
+      {
+        "text": "[REFACTOR PROPOSAL]",
+        "type": "gen"
+      },
+      {
+        "text": "Split into 4 files:",
+        "type": "gen"
+      },
+      {
+        "text": "- src/WBC.js: orchestrator (slim, ~90 lines)",
+        "type": "gen"
+      },
+      {
+        "text": "- src/WBCParser.js: parser (~75 lines)",
+        "type": "gen"
+      },
+      {
+        "text": "- src/WBCRenderer.js: render delegate (~120 lines)",
+        "type": "gen"
+      },
+      {
+        "text": "- src/WBCState.js: state machine (~110 lines)",
+        "type": "gen"
+      },
+      {
+        "text": "[CONFIRM] Proceed with this decomposition? [y/N] > y",
+        "type": "gen"
+      },
+      {
+        "text": "[EDIT] Writing 4 files...",
+        "type": "gen"
+      },
+      {
+        "text": "Updating imports in 6 consumer files (no behavior change)...",
+        "type": "gen"
+      },
+      {
+        "text": "[TEST] Re-running existing tests...",
+        "type": "gen"
+      },
+      {
+        "text": "core2/packages/wb-core/tests/WBC.spec.js: 14 passed.",
+        "type": "gen"
+      },
+      {
+        "text": "core2/packages/wb-core/tests/*.spec.js: 28 passed (other suites).",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Behavior preserved. Refactor complete.",
+        "type": "ok"
+      },
+      {
+        "text": "[NOTE] No new functionality added. No tests added or removed.",
+        "type": "gen"
+      },
+      {
+        "text": "Plan row 3's Done is for /wbWork to mark, not /wbRefactor.",
+        "type": "gen"
+      }
+    ],
+    "note": "The active plan in this workspace defers row 3 (WBC.js decomposition) pending architectural discussion. *After* that discussion happens and a clear shape emerges, `/wbRefactor` is the right tool to execute it:",
+    "noteType": "info"
+  },
+  {
+    "title": "The atomic two-file rename",
+    "cmd": "/wbRefactor src/utils/escape.js,src/renderString.js",
+    "logs": [
+      {
+        "text": "[SYSTEM] Atomic transformation across 2 files.",
+        "type": "sys"
+      },
+      {
+        "text": "[SCAN] Reading both files...",
+        "type": "gen"
+      },
+      {
+        "text": "[ANALYZE] escape.js exports `escapeHTML`. renderString.js imports it.",
+        "type": "gen"
+      },
+      {
+        "text": "Proposal: move escapeHTML's body to renderString.js as a",
+        "type": "gen"
+      },
+      {
+        "text": "private helper; delete escape.js if it has no other consumers.",
+        "type": "gen"
+      },
+      {
+        "text": "[CHECK] Other consumers of escape.js: 0.",
+        "type": "gen"
+      },
+      {
+        "text": "[BASELINE] Tests pass at this commit.",
+        "type": "gen"
+      },
+      {
+        "text": "[REFACTOR]",
+        "type": "gen"
+      },
+      {
+        "text": "- Move escapeHTML's body into renderString.js (now private).",
+        "type": "gen"
+      },
+      {
+        "text": "- Delete src/utils/escape.js.",
+        "type": "gen"
+      },
+      {
+        "text": "- Remove the import from renderString.js.",
+        "type": "gen"
+      },
+      {
+        "text": "[CONFIRM] Two-file atomic refactor (one delete, one edit)? [y/N] > y",
+        "type": "gen"
+      },
+      {
+        "text": "[EDIT] renderString.js updated.",
+        "type": "gen"
+      },
+      {
+        "text": "[DELETE] src/utils/escape.js removed.",
+        "type": "gen"
+      },
+      {
+        "text": "[TEST] All tests pass.",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Atomic refactor complete. Both succeeded.",
+        "type": "ok"
+      }
+    ],
+    "note": "A function moved from one file to another, and both files need to be edited together to preserve the import graph:",
+    "noteType": "info"
+  },
+  {
+    "title": "The \"refactor surfaces a separate problem\" path",
+    "cmd": "/wbRefactor core2/packages/wb-core/src/tierEnforcement.js",
+    "logs": [
+      {
+        "text": "[SYSTEM] Target: tierEnforcement.js",
+        "type": "sys"
+      },
+      {
+        "text": "[SCAN] Reading file (87 lines)...",
+        "type": "gen"
+      },
+      {
+        "text": "[REFACTOR PROPOSAL] Extract the 3-tier check into a strategy table.",
+        "type": "gen"
+      },
+      {
+        "text": "[NOTICE] During scan, observed:",
+        "type": "gen"
+      },
+      {
+        "text": "- tierEnforcement.js:42 \u2014 accepts `alg:\"none\"` JWT (security finding,",
+        "type": "gen"
+      },
+      {
+        "text": "out of scope for this refactor \u2014 this is a behavior change).",
+        "type": "gen"
+      },
+      {
+        "text": "- tierEnforcement.js:71 \u2014 unused import `legacyVerify` (cleanup",
+        "type": "gen"
+      },
+      {
+        "text": "candidate, out of scope for this refactor).",
+        "type": "gen"
+      },
+      {
+        "text": "[FOCUS] Continuing with the refactor only. The two notices above are",
+        "type": "gen"
+      },
+      {
+        "text": "logged but NOT addressed.",
+        "type": "gen"
+      },
+      {
+        "text": "[CONFIRM] Proceed with strategy-table refactor? [y/N] > y",
+        "type": "gen"
+      },
+      {
+        "text": "[EDIT] Refactor applied.",
+        "type": "gen"
+      },
+      {
+        "text": "[TEST] All tests pass.",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Refactor complete.",
+        "type": "ok"
+      },
+      {
+        "text": "[FOLLOW-UPS]",
+        "type": "gen"
+      },
+      {
+        "text": "Logged for the user (not auto-actioned):",
+        "type": "gen"
+      },
+      {
+        "text": "1. Security: alg:\"none\" acceptance at line 42.",
+        "type": "gen"
+      },
+      {
+        "text": "Suggest: /wbAudit core2/packages/wb-core/src/tierEnforcement.js --profile=\"security\"",
+        "type": "gen"
+      },
+      {
+        "text": "2. Cleanup: unused legacyVerify import at line 71.",
+        "type": "gen"
+      },
+      {
+        "text": "Suggest: /wbClean core2/packages/wb-core/src/tierEnforcement.js",
+        "type": "gen"
+      }
+    ],
+    "note": "Mid-refactor, the agent notices something unrelated:",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbRefactor" titleSuffix="Exhaustive Simulation" :pipelines="wbRefactorSimPipelines" />
+
+
+### 💠 Pipeline The deferred WBC.js decomposition (when the architecture conversation has happened)
+
+The active plan in this workspace defers row 3 (WBC.js decomposition) pending architectural discussion. *After* that discussion happens and a clear shape emerges, `/wbRefactor` is the right tool to execute it:
+
+
+### 💠 Pipeline The atomic two-file rename
+
+A function moved from one file to another, and both files need to be edited together to preserve the import graph:
+
+
+### 💠 Pipeline The "refactor surfaces a separate problem" path
+
+Mid-refactor, the agent notices something unrelated:
+
+---
+
+## 5. Edge cases & refusals
+
+| Trigger | What `/wbRefactor` does |
+|---|---|
+| No target | Halt. `❌ /wbRefactor needs a file or comma-separated file list.` |
+| Directory target | Halt. `❌ Refactor is file-level. Use /wbPlan to break a directory into rows.` |
+| Free-text intent | Halt. `❌ Refactor needs a target file, not just intent.` |
+| Target file has no test coverage | Warn explicitly. Asks user to confirm proceeding. Auto-rollback isn't possible without a baseline. |
+| Multi-file target where some files don't exist | Halt. Atomic refactor refuses partial targets. |
+| Tests fail after refactor | **Auto-revert all edits.** Reports which test failed. The atomic guarantee is the safety. |
+| User asks to add a feature mid-refactor | Refuse. Suggests `/wbWork --id="<row>"` against a plan row, not bundling into the refactor. |
+| Refactor surfaces unrelated issues | Logs them as follow-ups with suggested next commands. Does not act. |
+
+The pattern: **`/wbRefactor` is behavior-preserving by contract.** No flags, file-level only, atomic across multi-file targets, auto-reverts on test failure, refuses to expand scope. The only question it answers is "can the same behavior be expressed with a clearer structure?" Anything else is a different command.

@@ -1,66 +1,59 @@
-# wbClean — Practical Walkthrough
+# /wbClean — Practical
 
-> How to clean up stale reports, unused files, and project artifacts.
+## One form
 
----
-
-## 1. Basic Cleanup
-
-```bash
-/wbClean packages/my-lib
+```
+/wbClean <pkg-or-app>
 ```
 
-```text
-[AI] Scanning for stale artifacts...
-[AI]
-[AI] Found:
-[AI]   3 stale reports (>30 days old)
-[AI]   2 orphaned track files
-[AI]   1 empty report directory
-[AI]
-[AI] Remove? (dry-run — use --apply to execute)
+No flags. The command is narrow: scan, report, done.
+
+## When to run
+
+- End of day / end of a work session — catches what you left behind while still fresh.
+- Before `/wbAudit` in the afternoon polish phase — clean first, then audit the clean result.
+- Before `/wbRelease` — confirm no `console.log` or debug code leaking to npm.
+- After inheriting a package — baseline the debt.
+
+## When *not* to run
+
+- Before starting work — nothing to clean.
+- On a package you rarely touch — low signal, wastes a report slot in `reports/`.
+- As a substitute for `/wbAudit` — clean finds debris; audit finds design flaws. Different problems.
+
+## Reading the output
+
+Five report sections:
+
+1. **Forgotten dev artifacts** — `console.log`, `debugger`, `TODO: hack` comments. Almost always safe to delete. HIGH confidence.
+2. **Dead files** — 0 import references detected. MEDIUM confidence (could be dynamic).
+3. **Unused imports** — imported, never referenced. HIGH confidence.
+4. **Commented-out blocks** — still there from weeks ago. MEDIUM confidence — sometimes intentional.
+5. **TODOs** — informational. Not a delete candidate; just a visibility surface.
+
+Also mandatory: **"What this clean did NOT check"** section declaring coverage gaps (dynamic refs, build-time includes, historical context).
+
+## The deletion step
+
+`/wbClean` doesn't delete. To actually remove things, follow up with an explicit instruction in the same session:
+
+```
+"Delete all HIGH-confidence items from the last clean report."
 ```
 
----
+The two-step discipline (detect, then remove) prevents silent loss of code the AI misclassified.
 
-## 2. Clean Reports Only
+## The one mistake to avoid
 
-```bash
-/wbClean packages/my-lib --reports
-```
+**Auto-deleting everything the report flags.** `/wbClean` can be wrong about dead files (dynamic imports, reflective code, build-time string references). HIGH-confidence items are nearly always safe; MEDIUM items need a human glance. A 10-second sanity check per MEDIUM item is cheap.
 
-Removes only stale report files from `.wb/workflows/reports/`.
+## When /wbClean is the wrong command
 
----
+- Restructuring code without changing behavior → `/wbRefactor`.
+- Finding a specific bug → `/wbDebug`.
+- Verifying release-readiness → `/wbAudit`.
+- Checking tests pass → `/wbTest`.
 
-## 3. Clean Build Artifacts
-
-```bash
-/wbClean packages/my-lib --build
-```
-
-Removes `dist/`, `node_modules/.cache/`, and other build outputs.
+`/wbClean` answers one question: *"what debris should I delete?"*
 
 ---
-
-## 4. Force Clean
-
-```bash
-/wbClean packages/my-lib --apply    # skip dry-run
-```
-
----
-
-## 5. Common Patterns
-
-| Pattern | Command |
-|---|---|
-| Dry-run (default) | `/wbClean .` |
-| Reports only | `/wbClean . --reports` |
-| Build artifacts | `/wbClean . --build` |
-| Everything | `/wbClean . --all --apply` |
-| Before release | `/wbClean . --build` then `/wbRelease .` |
-
----
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

@@ -1,76 +1,78 @@
-# wbSecure — Practical Walkthrough
+# /wbSecure — Practical
 
-> How to run security scans and act on findings.
+## Two forms
 
----
-
-## 1. Basic Security Scan
-
-```bash
-/wbSecure packages/my-lib
+```
+/wbSecure <target> # full security scan
+/wbSecure <target> --focus="<area>" # narrowed (e.g., auth, xss, deps)
 ```
 
-```text
-[AI] Security scan: packages/my-lib
-[AI]
-[AI] Findings:
-[AI]   [CRITICAL] src/config.js:12 — API key hardcoded
-[AI]   [HIGH] lodash@4.17.15 — CVE-2021-23337
-[AI]   [MEDIUM] src/api.js:45 — No input sanitization
-[AI]
-[AI] Score: 4/10 (FAIL — do not release)
-```
+## When to run
 
----
+- **Before `/wbDeploy`** of any user-facing app. Mandatory if the app handles user input.
+- **Before `/wbPublish`** of a package that handles untrusted input.
+- **After dependency updates** — `npm update` can introduce vulnerable transitive deps.
+- **Periodically** (monthly) on production apps.
+- **After any security-adjacent code change** — auth, sessions, input handling, anything user-controlled.
 
-## 2. Dependency-Only Scan
+## When *not* to run
 
-```bash
-/wbSecure packages/my-lib --deps-only
-```
+- On a feature branch you'll throw away.
+- Mid-development before the surface is stable.
+- As a substitute for proper backend security (server-side validation, real pentests).
+- Without server-side equivalent — `/wbSecure` only checks client; real security is server.
 
-Scans only `node_modules` for known vulnerabilities.
+## Reading the output
 
----
+Three severity levels:
 
-## 3. Acting on Findings
+- **🔴 CRITICAL** — fix before any further deploy. Blocks `/wbDeploy`.
+- **🟡 WARNING** — fix soon. Doesn't block deploy but should be tracked.
+- **🟢 SAFE** — verified clean.
 
-| Severity | Action |
+CRITICAL findings include immediate action items (revoke this token NOW, sanitize this v-html before next deploy).
+
+## The integration with /wbDeploy
+
+`/wbDeploy` reads the latest `/wbSecure` report and refuses if CRITICAL findings exist. This is automatic. To override (rare, dangerous), you'd need to run `/wbDeploy --force-past-security`, which requires explicit user override.
+
+WARNING findings don't block. They show in the deploy preview as advisory.
+
+## What /wbSecure cannot detect
+
+- **Server-side vulnerabilities** — out of scope; client scan only.
+- **Logic bugs that allow privilege escalation** — these need domain understanding.
+- **Supply-chain attacks** — `npm audit` is the right tool.
+- **Runtime tampering** — DevTools can flip flags; client gating is convenience, not security.
+- **Zero-days not yet in CVE databases** — the scanner only knows public vulnerabilities.
+- **Authentication design flaws** — needs human security review.
+
+Every report names these limits in its "did NOT check" section.
+
+## When /wbSecure is the wrong command
+
+- Generic code quality → `/wbAudit`.
+- Tier-gate consistency → `/wbLicense`.
+- Dead code / leftovers → `/wbClean`.
+- Pure dep CVE check → `npm audit` directly.
+
+`/wbSecure` answers: *"can this be exploited?"* Specifically.
+
+## The mistake to avoid
+
+**Treating `/wbSecure` SAFE as "secure."** A SAFE result means: no obvious findings under the scanner's checklist. It does not mean: nothing is wrong. Real-world security requires human judgment, threat modeling, and ongoing pentests. `/wbSecure` is the *cheap* layer of security work, not the *complete* one.
+
+<!-- FLAGS_SHORTCUTS_START -->
+## Flags & shortcuts
+
+Long-form and short-form are equivalent — `/wbSecure --execute` and `/wbSecure -e` produce the same behavior.
+
+| Long form | Shortcut |
 |---|---|
-| CRITICAL | Fix immediately — do not commit |
-| HIGH | Fix before next release |
-| MEDIUM | Add to plan as P2 task |
-| LOW | Track in backlog |
+| `--focus` | `-f` |
+| `--force-past-security` | `-F` |
 
-```bash
-# Fix critical issues
-/wbWork . --focus="fix security findings"
-
-# Re-scan
-/wbSecure packages/my-lib
-```
+`-h`, `--h`, and `--help` are accepted on **every** `/wb*` command and print the manual instead of executing.
+<!-- FLAGS_SHORTCUTS_END -->
 
 ---
-
-## 4. Pre-Release Security Gate
-
-```bash
-/wbTest . --coverage         # tests pass?
-/wbSecure .                  # no critical findings?
-/wbRelease . --minor         # safe to release
-```
-
----
-
-## 5. Common Patterns
-
-| Pattern | Command |
-|---|---|
-| Full scan | `/wbSecure .` |
-| Dependencies only | `/wbSecure . --deps-only` |
-| Pre-release gate | `/wbSecure .` then `/wbRelease .` |
-| Single file | `/wbSecure src/auth.js` |
-
----
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

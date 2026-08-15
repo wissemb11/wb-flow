@@ -1,5 +1,7 @@
 # /wbRefactor: Execution Template
 
+> Conforms to output_conventions v1.12 · template v1.0
+
 
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
@@ -75,7 +77,7 @@ Note the *bracketing audits*. The first says "needs refactor." The second confir
 - Renaming a function used across the monorepo → the blast radius is too big; use `/wbPlan` to coordinate.
 - Converting legacy Vuetify to wbc-ui2 components → `/wbToWBC` (the specialized version of this).
 
-> For deeper reading: [`docs_claude/commands/wbRefactor/wbRefactor_practical_claude.md`](../../docs/docs_claude/commands/wbRefactor/wbRefactor_practical_claude.md) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+> For deeper reading: [`wbRefactor_practical.md`](https://flow.wbc-ui.com/commands/wbRefactor/wbRefactor_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
 ## Self-correct mode (dual-mode invocation)
 
 ```

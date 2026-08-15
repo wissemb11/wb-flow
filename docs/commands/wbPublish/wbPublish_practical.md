@@ -1,81 +1,54 @@
-# wbPublish — Practical Walkthrough
+# /wbPublish — Practical
 
-> Step-by-step guide to preparing and publishing an npm package.
+## Two forms
 
----
-
-## 1. Basic Publish
-
-```bash
-/wbPublish packages/my-lib
+```
+/wbPublish <pkg> # build + publish to npm
+/wbPublish <pkg> --dry-run # show what would publish, don't push
 ```
 
-```text
-[AI] Validating package.json...
-[AI]   ✓ name: @scope/my-lib
-[AI]   ✓ version: 1.1.0
-[AI]   ✓ files: ["dist/", "README.md"]
-[AI]   ✓ main: dist/index.js
-[AI]
-[AI] Dry-run contents (npm pack):
-[AI]   dist/index.js (2.1 kB)
-[AI]   dist/utils.js (1.3 kB)
-[AI]   README.md (0.8 kB)
-[AI]   package.json (0.4 kB)
-[AI]   Total: 4.6 kB
-[AI]
-[AI] Publish command (run manually):
-[AI]   npm publish --tag latest --access public
-```
+## When to run
 
----
+Only after `/wbRelease core2/` has run in the same cycle. If `/wbRelease` wasn't run, `/wbPublish` refuses.
 
-## 2. Beta Publish
+## The pre-check the AI does automatically
 
-```bash
-/wbPublish packages/my-lib   # version is 1.1.0-beta.0
-```
+1. Recent `/wbRelease` report exists.
+2. `package.json` version matches release report version.
+3. `workspace:*` protocols already unpicked.
+4. `dist/` vs `dist-dev/` aligned (wbc-ui2 footgun).
+5. Version not already on npm registry.
 
-Auto-detects the pre-release tag:
-```text
-[AI] Publish command:
-[AI]   npm publish --tag beta --access public
-```
+If any fail, you get a refusal with a specific fix.
 
----
+## After publish
 
-## 3. Post-Publish Verification
+**Always** run `/wbRelease core2/ --restore`. Skipping leaves your dev tree with pinned versions instead of `workspace:*`, which breaks local package linking. Your next `pnpm install` will fetch from npm instead of using the monorepo's live copies.
 
-```bash
-# Verify the package is on npm
-npm view @scope/my-lib version
+## When publish fails
 
-# Install in a test project
-npm install @scope/my-lib@latest
-```
+Auth failures, rate limits, registry outages. The AI's recovery output gives specific options. Do *not* run a fresh `/wbRelease` — version is already bumped. Fix the underlying issue and retry the `/wbPublish`, or abandon with `/wbRelease --restore` (but the version bump stays in git).
 
----
+## When /wbPublish is not the right command
 
-## 4. The Release → Publish Flow
+- App → `/wbDeploy`.
+- Re-publish same version → `npm publish` directly (but check registry first).
+- Pre-release tag (`@beta`, `@canary`) → `/wbRelease --prerelease=<tag>` first, then `/wbPublish`.
+- Quick test → don't publish. Use `pnpm link` or local tarball install.
 
-```bash
-/wbRelease packages/my-lib --minor    # 1. Bump version + changelog
-# git tag -a v1.1.0 -m "Release"     # 2. Tag (manual)
-# git push --tags                      # 3. Push (manual)
-/wbPublish packages/my-lib            # 4. Publish to npm
-```
+<!-- FLAGS_SHORTCUTS_START -->
+## Flags & shortcuts
 
----
+Long-form and short-form are equivalent — `/wbPublish --execute` and `/wbPublish -e` produce the same behavior.
 
-## 5. Common Patterns
-
-| Pattern | Command |
+| Long form | Shortcut |
 |---|---|
-| Stable release | `/wbPublish .` (tag: latest) |
-| Beta release | `/wbPublish .` (auto-detects beta tag) |
-| Dry-run only | `/wbPublish . --dry-run` |
-| GitHub Packages | `/wbPublish . --registry=github` |
+| `--all` | `-A` |
+| `--dry-run` | `-d` |
+| `--prerelease` | `-p` |
+| `--restore` | `-r` |
+
+`-h`, `--h`, and `--help` are accepted on **every** `/wb*` command and print the manual instead of executing.
+<!-- FLAGS_SHORTCUTS_END -->
 
 ---
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

@@ -1,53 +1,85 @@
-# wbStopTrack — Expert Architecture
+# /wbStopTrack — Expert Architecture
 
-> How `/wbStopTrack` finalizes session trackers, generates summaries, and prepares for session closure.
+> The session finalizer that transforms an open-ended tracker into a sealed, archivable record.
 
 ---
 
-## 1. System Role
+## 1. Architectural Position
 
-`/wbStopTrack` is a **session finalizer**. It seals the active tracker, generates a summary block, and archives the file to the reports tree.
+`/wbStopTrack` is the **terminal node** in the session lifecycle. It transitions a tracker from "active" to "archived" state — a one-way operation that cannot be reversed.
 
 | Property | Value |
 |---|---|
-| **Role** | 📋 Mechanical (finalization) |
+| **Role** | Session Finalizer |
+| **Classification** | Mechanical (summary generation is formulaic, not analytical) |
 | **Input** | Folder path |
-| **Output** | Sealed track file in `reports/YYYY/MM/DD/` |
-| **Mutates files** | Yes (seals + archives) |
+| **Output** | Sealed tracker + summary block |
+| **Side effects** | Archives file, clears active-tracker reference |
+| **Reversibility** | None — once sealed, the tracker cannot be reopened |
 
 ---
 
-## 2. Finalization Protocol
+## 2. Seal Protocol
 
-1. **Seal marker** — Appends `--- SESSION FINALIZED ---` with timestamp
-2. **Summary block** — Computes task count, model usage, cost estimate
-3. **File archive** — Moves tracker from `.wb/workflows/tracks/` to `reports/YYYY/MM/DD/`
-4. **Context purge** — Removes active-tracker flag from `.wb/workflows/context.md`
+The finalization follows four invariant steps:
 
----
-
-## 3. Summary Block Format
+### Step 1: Append Seal Marker
 
 ```markdown
 --- SESSION FINALIZED ---
-Date: 2026-05-12 18:30
-Tasks completed: 6/6
-Models used: Opus 4 complex
-Est. cost: ~$0.15
-Next recommended: /wbTrack . to start new session
+Sealed at: 2026-05-13 18:30:00
 ```
+
+The marker is a horizontal rule followed by the exact text `SESSION FINALIZED`. This serves as a machine-readable boundary — any tool scanning for active vs. archived trackers checks for this marker.
+
+### Step 2: Generate Summary Block
+
+The summary is calculated from the tracker's content:
+
+| Metric | Source |
+|---|---|
+| Duration | Difference between first and last timestamp in the file |
+| Commands executed | Count of `[TRACK]` entries |
+| Tasks completed | Count of completed checkbox items (`✅`) in linked plan files |
+| Log entries | Count of `[LOG]` entries |
+| Estimated cost | Sum of cost estimates from `[TRACK]` entries (if present) |
+
+### Step 3: Archive the File
+
+The sealed tracker is moved (not copied) to its canonical location:
+
+```
+.wb/workflows/reports/YYYY/MM/DD/track_<target>_<YYYYMMDD>.md
+```
+
+If a file already exists at that path (e.g., from a previous session on the same day), a numeric suffix is appended: `track_<target>_<YYYYMMDD>_2.md`.
+
+### Step 4: Clear Active Reference
+
+The `active_tracker` field in `.wb/workflows/context.md` is set to `null`, signaling that no session is in progress.
 
 ---
 
-## 4. Lifecycle Diagram
+## 3. State Transitions
 
 ```
-⬜ Session starts → /wbTrack creates tracker → /wbLog appends notes
-                                                      ↓
-                                         /wbStopTrack seals & archives
-                                                      ↓
-                                         Next session starts fresh with /wbTrack
+/wbTrack       →  Tracker: ACTIVE    →  Accepts /wbLog, /wbTrack appends
+/wbStopTrack   →  Tracker: SEALED    →  Rejects /wbLog, rejects /wbTrack appends
+/wbTrack       →  New Tracker: ACTIVE →  Fresh file, new session
 ```
+
+The lifecycle is strictly linear: open → active → sealed. There is no "paused" state and no way to reopen a sealed tracker.
+
+---
+
+## 4. Interaction with Other Commands
+
+| Command | Behavior After `/wbStopTrack` |
+|---|---|
+| `/wbLog` | ❌ Rejected — "Session is finalized" |
+| `/wbTrack` | ✅ Creates new tracker (new session) |
+| `/wbStandup` | ✅ Reads archived tracker as historical data |
+| `/wbStopTrack` (again) | ❌ Rejected — "No active session" |
 
 ---
 
@@ -55,10 +87,21 @@ Next recommended: /wbTrack . to start new session
 
 | Scenario | Behavior |
 |---|---|
-| No active tracker | ❌ Error: No active session to finalize |
-| Already finalized | ⚠️ Warning: Session was already closed. No action taken. |
-| Tracker has no entries | ✅ Still creates summary with 0 tasks |
+| No active tracker | ❌ Rejected — "No active session. Use `/wbTrack` first." |
+| Tracker is empty (no entries) | ✅ Sealed with summary showing 0 commands, 0 duration |
+| Multiple sealed files on same day | Appends numeric suffix: `_2.md`, `_3.md` |
+| `/wbStopTrack` during active `/wbWork` | ⚠️ Warning — "Active work detected. Seal anyway? This will not interrupt the work." |
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 6. Design Rationale
+
+**Why one-way sealing instead of a "pause/resume" model?**
+
+Because sessions are cognitive boundaries, not technical ones. Pausing implies you'll return to the exact same mental context — which never happens in practice. A fresh tracker on resume is more honest: it forces you to re-orient via `/wbContext` and `/wbStandup` rather than pretending continuity.
+
+**Why move instead of copy?**
+
+To enforce the single-source-of-truth principle. If both the active and archived copies existed, any tool scanning for "active sessions" could find a stale reference. Move eliminates the ambiguity.
+
+What `wb-flow-docs`'s playbook gets wrong about `/wbStopTrack`: treating session sealing as an optional cleanup step, when the Claude edition enforces one-way sealing as a cognitive-boundary mechanism. Pausing implies you return to the same mental context — which never happens. A fresh tracker on resume forces honest re-orientation via `/wbContext` and `/wbStandup`.

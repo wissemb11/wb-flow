@@ -9,7 +9,7 @@
 
 ### 1. `/wbPlan` template (`wbPlan/wbPlan_template.md`)
 
-**Before:** Single generic model per role (e.g., "Qwen3 Coder 480B", "Gemini 2.5 Flash")
+**Before:** Single generic model per role (e.g., "Qwen 3.7 Plus 480B", "Gemini 2.5 Flash")
 **After:** 2-3 ordered models per role from the user's actual inventory
 
 | Role | 🏆 1st Pick | 🥈 2nd Pick | 💰 3rd (Budget) |

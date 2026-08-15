@@ -1,87 +1,53 @@
-# wbContext — Practical Walkthrough
+# /wbContext — Practical
 
-> Step-by-step guide to generating, updating, and customizing your project's `context.md`.
+## Three invocation forms
 
----
-
-## 1. First-Time Generation
-
-```bash
-/wbContext packages/my-project
+```
+/wbContext <path> # standard — per-package
+/wbContext <path> --focus="<subsystem>" # + focused sidecar file
+/wbContext core2/ --scope=global # monorepo-wide survey
 ```
 
-```text
-[AI] Scanning packages/my-project/...
-[AI]   Found package.json: @scope/my-project v1.0.0
-[AI]   Framework: Vue 2.7 (detected from dependencies)
-[AI]   Files: 47 source files across 8 directories
-[AI]
-[AI] Writing .wb/workflows/context.md
-```
+## When to run each
 
----
-
-## 2. Reviewing the Output
-
-Open `.wb/workflows/context.md` and verify:
-
-| Section | Auto-generated? | Should You Edit? |
-|---|---|---|
-| `## Identity` | Yes (from package.json) | Rarely — correct if wrong |
-| `## Dependencies` | Yes (from package.json) | No — auto-updated |
-| `## Goals` | Partially (inferred) | **Yes** — add your actual goals |
-| `## Rules` | Partially (from configs) | **Yes** — add team conventions |
-| `## Conventions` | Yes (from code patterns) | Occasionally |
-
-**The most valuable edit:** Write your own `## Goals` section. This directly influences `/wbPlan` task prioritization.
-
----
-
-## 3. Updating After Changes
-
-```bash
-# After adding new dependencies or restructuring
-/wbContext packages/my-project
-```
-
-The command preserves your manual edits to `## Goals` and `## Rules` while updating auto-detected fields.
-
----
-
-## 4. Focused Context
-
-For a deep-dive into one aspect:
-
-```bash
-/wbContext packages/my-project --scope=focused --focus=dependencies
-```
-
-This produces an enriched dependency analysis section with version constraints, peer deps, and upgrade recommendations.
-
----
-
-## 5. Global Context
-
-For a monorepo-wide perspective:
-
-```bash
-/wbContext . --scope=global
-```
-
-This reads all `context.md` files across the monorepo and produces a cross-package dependency map.
-
----
-
-## 6. Common Patterns
-
-| Pattern | Command |
+| Situation | Form |
 |---|---|
-| First-time setup | `/wbContext .` |
-| After refactoring | `/wbContext .` (updates structure) |
-| Before planning | `/wbContext .` then `/wbPlan .` |
-| Dependency audit | `/wbContext . --scope=focused --focus=dependencies` |
-| Monorepo overview | `/wbContext . --scope=global` |
+| Start of a fresh AI session | `/wbContext <current-pkg>` |
+| After pulling changes from git (if applicable) | `/wbContext <touched-pkgs>` |
+| Before touching a complex subsystem | `/wbContext <pkg> --focus="<subsystem>"` |
+| Monthly sanity check across the monorepo | `/wbContext core2/ --scope=global` |
+| You rewrote a lot of a package | `/wbContext <pkg>` (re-run, not `/wbSetup`) |
+
+## What you'll see in the output
+
+1. **Baseline load** — age of stored context.md / dev.md. If > 30 days and the package is active, flag it.
+2. **Drift report** — what changed between stored understanding and current code.
+3. **Questions** — if drift requires a decision (e.g., "did you rename this on purpose?"), AI asks before updating.
+4. **Report ingestion** — recent audits / debug reports surfaced into working memory.
+
+## The one mistake to avoid
+
+**Not answering the drift questions.** If the AI asks "was the rename intentional?" and you ignore it, `context.md` stays out of date. Every future session starts with the same stale baseline until you answer. Answer once, save yourself later.
+
+## When /wbContext is *not* the right command
+
+- You want to create context for a brand-new package → `/wbSetup`, not `/wbContext`.
+- You want to know what everyone else has been doing → `/wbStandup`, not `/wbContext`.
+- You want to verify everything is release-ready → `/wbAudit`, not `/wbContext`.
+
+`/wbContext` answers one question only: *"Is my stored understanding of this package still correct?"* Use it for that. Don't overload it.
+
+<!-- FLAGS_SHORTCUTS_START -->
+## Flags & shortcuts
+
+Long-form and short-form are equivalent — `/wbContext --execute` and `/wbContext -e` produce the same behavior.
+
+| Long form | Shortcut |
+|---|---|
+| `--focus` | `-f` |
+| `--scope` | `-s` |
+
+`-h`, `--h`, and `--help` are accepted on **every** `/wb*` command and print the manual instead of executing.
+<!-- FLAGS_SHORTCUTS_END -->
 
 ---
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

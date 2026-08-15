@@ -1,5 +1,7 @@
 # /wbToWBC: Execution Template
 
+> Conforms to output_conventions v1.12 · template v1.0
+
 
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
@@ -65,7 +67,7 @@ Otherwise, ignore this section and proceed to the rest of the template.
 
 `/wbToWBC` answers exactly one question: *"can this legacy component be expressed as wbc-ui2?"* If the answer is no, the command says so.
 
-> For deeper reading: [`docs_claude/commands/wbToWBC/wbToWBC_practical_claude.md`](../../docs/docs_claude/commands/wbToWBC/wbToWBC_practical_claude.md) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+> For deeper reading: [`wbToWBC_practical.md`](https://flow.wbc-ui.com/commands/wbToWBC/wbToWBC_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
 <!-- HELP_GATE_END -->
 
 **ROLE:** The Migrator

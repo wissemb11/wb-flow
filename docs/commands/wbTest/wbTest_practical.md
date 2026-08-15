@@ -1,70 +1,63 @@
-# wbTest — Practical Walkthrough
+# /wbTest — Practical
 
-> How to generate, run, and interpret test results.
+## Two forms
 
----
-
-## 1. Run Existing Tests
-
-```bash
-/wbTest packages/my-lib
+```
+/wbTest <pkg> # run existing tests, report results
+/wbTest <pkg> --profile # same + timing/memory profile
 ```
 
-```text
-[AI] Detected: Vitest
-[AI] Running tests...
-[AI]
-[AI]   ✓ utils.test.js (4 tests, 12ms)
-[AI]   ✓ store.test.js (3 tests, 8ms)
-[AI]   ✗ api.test.js (1 failed, 2 passed)
-[AI]
-[AI] Results: 9/10 passed (90%)
-[AI] Failed: api.test.js:25 — expected 200, got 404
-```
+## When to run
 
----
+- Before `/wbRelease` — must pass.
+- Before `/wbDeploy` — must pass.
+- After `/wbRefactor` — verify nothing broke.
+- After `/wbDebug` produces a fix — confirm the fix landed.
+- When `reports/` shows recent test failures you haven't addressed.
 
-## 2. Generate Tests
+## When *not* to run
 
-```bash
-/wbTest packages/my-lib --generate
-```
+- To check code quality → `/wbAudit`.
+- To verify plan execution → `/wbReview`.
+- To add missing coverage → `/wbPlan --task="add tests for X"` followed by execution.
+- Before starting work on a feature → tests won't tell you what to build.
 
-Creates test files for source modules that lack them.
+## Reading the output
 
-```text
-[AI] Generated:
-[AI]   tests/utils.test.js (8 test cases)
-[AI]   tests/store.test.js (5 test cases)
-```
+Three bands:
+- **All pass, no coverage gaps** — you're good. Proceed.
+- **Some fail** — triage first. Is it test-wrong or code-wrong? Don't reflexively "fix the test."
+- **Fails to run at all** — config bug, not code bug. Fix the test setup.
 
----
+## The test vs. code question
 
-## 3. Coverage Report
+When a test fails, ask in this order:
+1. Was the test correct? (Does the expected behavior match what was actually agreed?)
+2. Is the code wrong against that expected behavior?
+3. Is this a symptom of an open architectural decision that blocks cleanly passing the test?
 
-```bash
-/wbTest packages/my-lib --coverage
-```
+If (3), mark the test as `xit()` with a comment referencing the open decision. Don't delete.
 
-```text
-[AI] Coverage: 78% (Good)
-[AI]   src/utils.js: 95%
-[AI]   src/store.js: 82%
-[AI]   src/api.js: 45% ← needs work
-```
+## The most common mistake
 
----
+**Fixing the test to match the code.** If the code produces `<div class="wbcode-placeholder">` but the test expects `<code>`, the default instinct is "update the test." That's often wrong. The test was written to match an earlier agreed-on behavior. If code drifted, the test is the witness, not the culprit. Investigate the code change first.
 
-## 4. Common Patterns
+## When /wbTest refuses
 
-| Pattern | Command |
+- Test config is broken (no plugin, no runner) — refuses, tells you to fix config.
+- No tests exist — reports "0 tests found, coverage is 0%". Not a failure, just a note. Doesn't auto-generate tests.
+
+<!-- FLAGS_SHORTCUTS_START -->
+## Flags & shortcuts
+
+Long-form and short-form are equivalent — `/wbTest --execute` and `/wbTest -e` produce the same behavior.
+
+| Long form | Shortcut |
 |---|---|
-| Run all tests | `/wbTest .` |
-| Generate missing tests | `/wbTest . --generate` |
-| Coverage check | `/wbTest . --coverage` |
-| Pre-release | `/wbTest . --coverage` then `/wbRelease .` |
-| Single file | `/wbTest src/utils.js` |
+| `--profile` | `-p` |
+| `--task` | `-t` |
+
+`-h`, `--h`, and `--help` are accepted on **every** `/wb*` command and print the manual instead of executing.
+<!-- FLAGS_SHORTCUTS_END -->
 
 ---
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

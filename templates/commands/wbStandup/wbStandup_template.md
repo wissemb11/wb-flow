@@ -1,5 +1,7 @@
 # /wbStandup: Execution Template
 
+> Conforms to output_conventions v1.12 · template v1.0
+
 
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
@@ -17,9 +19,24 @@ Otherwise, ignore this section and proceed to the rest of the template.
 ## Two forms
 
 ```
-/wbStandup core2/              # monorepo-wide — morning default
+/wbStandup <monorepo-root>/              # monorepo-wide — morning default
 /wbStandup <package>/          # package-scoped — afternoon re-orient
+/wbStandup <monorepo-root>/ --archive    # …and leave exactly ONE live file per category, per scope
 ```
+
+## Why the standup is never itself archived
+
+Every other daily-history command (`/wbPlan`, `/wbAudit`, `/wbIdea`, `/wbVision`, …) keeps one live
+file and retires the rest — see `_shared/output_conventions.md` §13. **`/wbStandup` and `/wbTrack`
+are exempt**, and the reason is not an oversight worth "fixing":
+
+A standup's entire content is *"here is what was open yesterday, here is today."* A track is the
+session narrative. Both derive their value from **the series** — the eighth consecutive standup
+listing the same blocker is the signal. Keep only the newest and you have thrown away the thing that
+made it worth reading, while keeping the one entry that says least.
+
+So the standup series stays whole. Instead `/wbStandup --archive` takes the **inverse** role: it is
+the one command that sweeps *everything else* (§13.5).
 
 ## When to run
 
@@ -49,7 +66,7 @@ Four sections, ranked by what should grab your attention:
 
 Standup is *breadth*. Context is *depth*. Sequence:
 
-1. `/wbStandup core2/` — tells you which package needs attention.
+1. `/wbStandup <monorepo-root>/` — tells you which package needs attention.
 2. `/wbContext <that-package>` — loads the AI's detailed knowledge of that package.
 3. Execute.
 
@@ -62,7 +79,7 @@ Skipping the first → you work on the wrong package. Skipping the second → th
 - "What should I build next?" → `/wbVision`, not standup (standup reconciles existing work).
 - "Did the AI finish its plan?" → `/wbReview <plan>`.
 
-> For deeper reading: [`docs_claude/commands/wbStandup/wbStandup_practical_claude.md`](../../docs/docs_claude/commands/wbStandup/wbStandup_practical_claude.md) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+> For deeper reading: [`wbStandup_practical.md`](https://flow.wbc-ui.com/commands/wbStandup/wbStandup_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
 
 <!-- FLAGS_TABLE_START -->
 ## Flags & shortcuts
@@ -73,6 +90,10 @@ Both forms are equivalent — pass either:
 |---|---|
 | `--act` | `-a` |
 | `--wbPlan` | `-P` |
+| `--archive` | `-A` | **Universal, and here it means the fleet-wide sweep** (`_shared/output_conventions.md` §13.5). Consolidate into every scope's newest file per category, then retire all the superseded folders across every scope below the target. Defaults to `--archive=all` — the whole point of running it here rather than per-command. The standup's own `standups/` folder and every `tracks/` folder are never swept. Always previews first, and asks before applying. |
+| `--dry-run` | `-n` | With `--archive`: print the move list for every scope, move nothing. |
+| `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
+| `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
 
 `-h` / `--help` / `--h` (any command) prints this help block instead of executing.
 ## Self-correct mode (dual-mode invocation)
@@ -84,6 +105,7 @@ Both forms are equivalent — pass either:
 
 When the first arg is an existing output file from a prior `/wbStandup` run (detected by its first H1 — see this template's **Detection** section), the command runs in **verify-and-repair** mode: gap-fills missing fields, normalizes links, ticks done/valid checkboxes whose reports exist, never rewrites authored content. See [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §3.
 
+
 <!-- FLAGS_TABLE_END -->
 <!-- HELP_GATE_END -->
 
@@ -94,6 +116,8 @@ Before processing `$ARGUMENTS`, normalize these short-form flags to their long e
 
 - `-a` → `--act`
 - `-P` → `--wbPlan`
+- `-A` → `--archive`   *(universal — here: the fleet-wide sweep, §13.5)*
+- `-n` → `--dry-run`   *(universal — preview a sweep)*
 
 The rest of this template documents only the long forms; the substitution above is the only place short forms are mentioned.
 <!-- FLAG_NORMALIZE_END -->
@@ -193,6 +217,77 @@ Use a table format:
 
 End the standup file with:
 
+**Before "What's Next?", append the 🌊 Next Executable Sequence** — the wave × role matrix defined in `_shared/output_conventions.md` §10 (canonical: rows = parallel-safe waves, columns = the four `Requires` roles, each cell a full invocable command + `→ *Model · ~$cost*`, mandatory collision check, required Wave notes). Source rows: the consolidated agenda — every unfinished item you just gathered, waved by what blocks what. Emit it only when there are **2 or more** actionable items; for a single one, print `Next: <command> → *Model*` instead. Also print the matrix in the chat response. On a self-correct pass, insert it if absent and recompute it in place if present (§10.5).
+
 ## 🧭 What's Next?
 
 Run `/wbNext <target_folder>` to get a current, ranked, dynamic list of next actions. The standup is a *snapshot* of where things stand; `/wbNext` is the *forward-looking* recommendation.
+
+---
+
+## ━━━ PHASE 5: THE FLEET-WIDE ARCHIVE SWEEP (`--archive` only) ━━━
+
+**Skip this phase entirely unless `--archive` was passed.** Nothing below is implied by `--act`,
+`--wbPlan`, or a bare invocation. Contract: [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §13.5.
+
+You have just built, in PHASE 1–3, the complete inventory of what is still open across every scope.
+That inventory is exactly what makes the sweep safe — you already know which items must survive it.
+
+### 5.1 · Consolidate first, every scope, every category
+
+For each scope discovered in PHASE 1, and each non-exempt category (`plans`, `audits`, `ideas`,
+`visions`, `reviews`, `contexts`, `nexts`, `tests`, …):
+
+1. Identify the **newest** file — the keeper. If a category has no file dated today, the newest one
+   *is* the keeper; do not create an empty file just to have one.
+2. Carry every still-open item from that category's older files into the keeper (§13.2 — the
+   per-category "still open" table lives there). De-duplicate on item text, not ID.
+3. Cross-check against your PHASE 1 scan: **every open item you listed in the agenda must now appear
+   in exactly one live file.** An item in the agenda with no live home means consolidation missed it
+   — stop and fix that before going near step 5.2. This cross-check is the whole reason the sweep
+   belongs in the standup rather than in a standalone command.
+
+### 5.2 · Preview the sweep, then ask
+
+```bash
+wb-flow archive <target> --recursive --all --dry-run
+```
+
+Print the move list **in the chat**, grouped by scope, with each keeper named. Then **stop and ask
+for confirmation.**
+
+> ⚠️ **This is the one gate.** A per-command `--archive` moves a handful of folders in one scope; this
+> moves every superseded folder in every scope below the target, which in a monorepo is easily a
+> hundred. It is reversible one folder at a time, which is no comfort at that volume. Ask, show the
+> count, and wait — the same rule the wave runner applies before spawning agents.
+
+Do not proceed if any scope's dry-run row reads `⚠️ no current file in this category` — that means
+5.1 did not land for that scope.
+
+### 5.3 · Apply and report
+
+```bash
+wb-flow archive <target> --recursive --all
+```
+
+Then add a section to the standup file, immediately before `## 🔗 Action Types`:
+
+```markdown
+## 🗄️ Archive Sweep
+
+> Ran `wb-flow archive <target> --recursive --all` at <HH:MM>. Every open item below was carried
+> into its scope's live file first (PHASE 5.1). Reversible per row: `wb-flow archive --restore=<path>`.
+
+| Scope | Category | Folders archived | Kept (live file) |
+|---|---|---|---|
+| [wb-latex/](../../../../../../../packages/wb-latex/) | `plans` | 6 | [plan_wb-latex_20260809.md](…) |
+| [wb-core/](../../../../../../../packages/wb-core/) | `audits` | 3 | [audit_wb-core_20260808.md](…) |
+
+**Full log:** [archive_log.md](../../../../../archives/archive_log.md)
+```
+
+Links per §1.1 (basename labels) and §1.2 (canonical hrefs — scope root is **7** up from a report
+file, not 5; see the correction note in §1.2).
+
+**The standup file is the index of the sweep**, and that is the right home for it: the standup is
+already the document whose job is to say where everything stands.

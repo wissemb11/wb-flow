@@ -1,54 +1,90 @@
-# wbStopTrack — Practical Walkthrough
+# /wbStopTrack — Practical Guide
 
-> How to use `/wbStopTrack` to end your session cleanly.
-
-
-## Summary
-
-Always stop tracking before switching contexts. Use `--next` to chain sessions without gaps. Review your tracking log weekly.
+> Three scenarios for clean session closure.
 
 ---
 
 ## 1. End-of-Day Close
 
+The most common use case. You've finished your work and want to create a clean boundary.
+
 ```bash
 /wbStopTrack .
 ```
 
-```text
+**What it produces:**
+
+```markdown
 --- SESSION FINALIZED ---
-Date: 2026-05-12 18:30
-Tasks completed: 6/6
-Models used: Opus 4 complex
-Est. cost: ~$0.15
+Sealed at: 2026-05-13 18:30:00
+
+## Session Summary
+- Duration: 6h 15m
+- Commands executed: 14
+- Tasks completed: 4 of 5
+- Log entries: 3
 ```
+
+**Next morning:** When you run `/wbTrack .`, it creates a fresh tracker for the new day. Yesterday's sealed file sits in `reports/2026/05/13/` as a complete, self-contained record.
 
 ---
 
-## 2. Multi-Project Close
+## 2. Context Switch Between Projects
+
+You've been working on `wb-core` all morning and need to switch to `wb-press` for the afternoon.
 
 ```bash
-/wbStopTrack packages/wb-core     # close wb-core session
-/wbStopTrack apps/wb-flow          # close wb-flow session
+# Close the wb-core session
+/wbStopTrack packages/wb-core
+
+# Start fresh on wb-press
+/wbTrack packages/wb-press
 ```
+
+**Why this matters:** Without the stop, both projects' activity would merge into one tracker, making it impossible to calculate per-project time or cost.
 
 ---
 
-## 3. Before Model Switch
+## 3. Pre-Release Session Boundary
+
+Before running `/wbRelease`, seal the development session to create a clean audit trail.
 
 ```bash
-/wbTrack . --save                  # 1. Save state
-/wbStopTrack .                     # 2. Finalize for the day
+# Seal development work
+/wbStopTrack .
+
+# Start release activities in a new session
+/wbTrack .
+/wbRelease packages/wb-core
 ```
+
+**Why this matters:** The release tracker will contain only release-related commands, making it a clean record for the changelog.
 
 ---
 
-## 4. Next Morning
+## The Rhythm
 
-```bash
-/wbTrack .                         # starts a fresh session
+A typical day looks like this:
+
 ```
+Morning:   /wbStandup core2/        → What's open?
+           /wbTrack .               → Start recording
+           
+Work:      /wbContext, /wbPlan, /wbWork, /wbLog ...
+
+Evening:   /wbGit                   → Commit the work
+           /wbStopTrack .           → Seal the day
+```
+
+`/wbStopTrack` is always the last command. It's the signal that today is done and tomorrow starts clean.
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## What If You Forget?
+
+The system doesn't break. But:
+- Tomorrow's commands append to today's tracker
+- The standup report can't separate today's work from yesterday's
+- Cost estimates span multiple sessions without boundaries
+
+Making `/wbStopTrack` habitual is a discipline, not a technical requirement.

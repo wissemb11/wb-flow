@@ -65,7 +65,7 @@ This applies uniformly to all 30 `/wb*` commands — no per-command exceptions.
 
 ## 4. Model Assignments
 - **Reasoning/Strategy**: Claude Opus 4.7, Gemini 3.1 Pro, DeepSeek R1 (Reasoning).
-- **Coding/Refactor**: Claude Sonnet 4.7, Qwen3 Coder, GPT-4o.
+- **Coding/Refactor**: Claude Sonnet 4.7, Qwen 3.7 Plus, GPT-4o.
 - **Validation**: Pick a different model than the worker.
 
 ---

@@ -1,53 +1,80 @@
-# Opening a New Session
+---
+title: Opening a New Session
+description: Protocol and triggers for starting a fresh AI chat session with the right setup.
+---
 
-## When to Open a New Session
-You open a new session in a fresh AI chat window after you have successfully [closed the previous one](2_closing_the_session.md). 
+# Opening a New Session — 
 
-This could be:
-- The start of a brand new day.
-- Right after hitting a [Golden Save Point](1_the_golden_save_point.md) and deciding to tackle a major new feature (e.g., spending the morning cleaning bugs, and the afternoon building `wb-sync`).
-
-## How to Open a New Session (SOP)
-
-1. **Open a Fresh Chat Thread** in your AI client.
-2. **Initialize Tracking**:
-   Run `/wbTrack <target>`
-   *Why?* The AI needs to start logging its actions. 
-
-### ⚠️ The "Same Day" Edge Case
-**What happens if I open a new session on the exact same day I just closed one? Will the AI overwrite my files?**
-
-**NO.** The agentic workflow is strictly non-destructive. If you run `/wbTrack core2/` or `/wbPlan core2/` multiple times in a single day, the AI will use **Cumulative Behavior**:
-- The file names stay exactly the same (e.g., `track_core2_20260503.md`). They do NOT get `-v2` suffixes.
-- Instead of overwriting, the AI will **APPEND** to the existing file.
-- It will inject a clear separator, usually formatted as `---` followed by a timestamp header like `## 🔁 Run @ 14:30` or `# Track Session 2`.
-
-This guarantees that all your activities for `2026-05-03` remain consolidated in a single file without destroying the morning's history.
-
-## Starting the Work
-Once tracking is initialized, you can immediately begin:
-- Run `/wbPlan <target> "Build the new X feature"` to scaffold the architecture.
-- Run `/wbWork <target>` to execute.
-
-
-## Why This Matters
-
-A well-opened session starts with full context: the project state, the previous session's outcomes, and the current goal. Without this, the AI agent wastes the first several turns catching up on what happened before.
-
-## Related Concepts
-
-- **[The Golden Save Point](1_the_golden_save_point.md)** — The ideal state before closing the previous session
-- **[Closing the Session](2_closing_the_session.md)** — How to close formally
-- **[Session Lifecycle Hub](README.md)** — Full lifecycle overview
-- **[Daily Use](../daily_use/README.md)** — Daily operational procedures
-
-
-## Common Pitfalls
-
-- **Skipping the Golden Save Point:** Opening a new session without closing the previous one properly causes context bleed
-- **Missing context:** Always run `/wbContext` at the start of a new session to load full project state
-- **Uncommitted changes:** Make sure all changes are committed before closing a session
+> Starting a fresh chat is structurally different from continuing one. The cheap part is opening the window. The valuable part is the protocol that runs once you do.
 
 ---
-← [Session Lifecycle Hub](README.md) · [Home](../README.md)
 
+## When to open one
+
+The trigger is **any of these**, in priority order:
+
+1. You just [closed the previous session](2_closing_the_session) — even if "just" means 30 seconds ago. The whole point of the close was to start fresh.
+2. You hit a [Golden Save Point](1_the_golden_save_point) and decided to start a major new feature.
+3. New day. (Trivially.)
+4. The current session is over ~150 messages and the AI is visibly drifting — repeating itself, mis-remembering recent code, hallucinating function names. This is the *forced* trigger; the others are *planned*.
+
+## The SOP (3 steps)
+
+### 1. Open a fresh chat thread
+
+In the agent Desktop / the agent Code / claude.ai — whichever client you use — start a new thread. Don't reuse the previous one's title or seed prompt; it carries no actual state, but it tempts you to mentally continue rather than restart.
+
+### 2. Decide whether to track
+
+```
+/wbTrack <target>/
+```
+
+`/wbTrack` toggles session-wide logging — every subsequent `/wb*` invocation appends a `§N` section to a shared session walkthrough. Useful when:
+
+- You're learning the workflow and want a transcript to re-read.
+- You're going to ship something user-visible and want a clean changelog source.
+- You're going to run 5+ commands and want them aggregated.
+
+Skip it for one-off sessions ("close one bug, commit, leave"). The tracker file becomes overhead-with-no-payoff if the session is short.
+
+### 3. Run the orientation pair
+
+If it's a **new day** or **new package**:
+
+```
+/wbStandup core2/
+/wbContext <package>
+```
+
+`/wbStandup` is breadth (what's in flight across the monorepo). `/wbContext` is depth (the package you're about to touch). Run breadth first — you might learn that the package you *thought* you'd work on isn't the one with the highest priority.
+
+If it's a **same-day continuation** at a Golden Save Point: skip `/wbStandup` (you wrote one when closing the last session — read that file instead) and only run `/wbContext` if the package changed.
+
+## The same-day edge case
+
+> *"I closed at 11am, opened a new session at 11:30am. Will `/wbTrack` overwrite my morning's tracker?"*
+
+**No.** The tracker, standup, plan, and audit files are all keyed by `<scope>_<YYYYMMDD>` — calendar date, not session. If a file already exists for today, the protocol is **append, not overwrite**:
+
+- `track_core2_20260503.md` already exists from this morning → second run **appends** a `## 🔁 Run @ HH:MM` section after a `---` separator. Same file. No `_v2` suffix.
+- `standup_core2_20260503.md` already exists → second run **appends** a new section. No new file.
+- `plan_core2_20260503.md` already exists → `/wbPlan` will explicitly ask whether to extend or create a sibling.
+
+This is the "Cumulative Append" protocol, and it's deliberate: the calendar-day is the unit of persistence. If you end up running 4 sessions in one day on `core2/`, the morning's logs stay intact and the day's narrative reads top-to-bottom.
+
+The exception: if you change scope (`core2/` in the morning, `wb-press/` in the afternoon), you get separate files because the scope token differs (`track_core2_…` vs `track_wb-press_…`). That's also correct — those *are* separate threads of work.
+
+## What this looks like as a loop
+
+```
+[close session] → [walk away or open new chat] → /wbTrack (?) → /wbStandup + /wbContext → work → [close session]
+ ↑ ↓
+ └──────────────────────────────────────────────────────────────────────────────────┘
+```
+
+The arrows are the only continuity that matters. Everything inside the box is ephemeral. Everything outside the box (the `reports/`, `tracks/`, `context.md`, `dev.md` artifacts) is what persists.
+
+---
+
+**Next:** [`4_publishing_a_release`](4_publishing_a_release) — when one of those well-bracketed sessions exists to ship a package, the publishing pipeline is the arc that runs inside it.

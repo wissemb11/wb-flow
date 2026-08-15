@@ -1,121 +1,124 @@
 # /wbIdea — Examples
 
-> `/wbIdea` is the system's structured incubator. These annotated transcripts demonstrate its application across three distinct scenarios: native ideation, automated intake from `/wbVision`, and the complete lifecycle from conception to execution planning. 
-> *Context: We are operating within `packages/auth-service`.*
+> `/wbIdea` captures speculative ideas with scores. This file shows three scenarios: registering ideas natively, ideas from `/wbVision`, and the full promote-to-plan lifecycle.
 
 ---
 
-## Scenario 1: Native Ideation
+## Example 1 — `/wbIdea packages/wb-dataviewer`
 
 ```text
-$ /wbIdea packages/auth-service
+$ /wbIdea packages/wb-dataviewer
 
-[AI] Analyzing context.md for auth-service...
-[AI] Reviewing recent audit reports...
-[AI]   - Note: Recent rate-limiting issues highlighted in last review.
+[AI] Loading context.md...
+[AI] Loading recent reports/...
+[AI] - Last audit: clean, 2 P3 cosmetic findings
+[AI] - Active plan: 3/5 tasks done
 [AI]
-[AI] Generating scored ideas...
-[AI] Writing reports/2026/05/08/ideas/idea_auth-service_20260508.md:
+[AI] Writing reports/2026/05/08/ideas/idea_wb-dataviewer_20260508.md:
 ```
 
 ```markdown
-# Idea Backlog: auth-service — 2026-05-08
+# Idea Backlog: wb-dataviewer — 2026-05-08
 
-## 💡 Ideas — AI-generated for auth-service *(AI via wb-flow — 09:15)*
-> **Model:** AI
+## 💡 Ideas — AI-generated for wb-dataviewer *(the AI agent via Antigravity — 14:30)*
+> **Model:** the AI agent
 > **Date:** 2026-05-08
 
 | # | Score | 🔗 | Idea | P | Est. Time (mins) | Suggested By | ☐ Done | ☐ Valid | → Task |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | 9 | 📄 | Implement Redis-based distributed rate limiting | P1 | 180 | AI via /wbIdea | ⬜ | ⬜ | — |
-| 2 | 5 | 📄 | Add WebAuthn / Passkey support | P2 | 360 | AI via /wbIdea | ⬜ | ⬜ | — |
-| 3 | 7 | 📄 | Standardize JWT error payload formats | P2 | 60 | AI via /wbIdea | ⬜ | ⬜ | — |
-| 4 | 3 | 📄 | Create an admin dashboard for active sessions | P3 | 240 | AI via /wbIdea | ⬜ | ⬜ | — |
+| 1 | 8 | 📄 | Add column-level search with multi-color highlighting | P1 | 45 | the AI agent via /wbIdea | ⬜ | ⬜ | — |
+| 2 | 6 | 📄 | Support row grouping by any column value | P2 | 120 | the AI agent via /wbIdea | ⬜ | ⬜ | — |
+| 3 | 4 | 📄 | Add CSV/XLSX export button to toolbar | P2 | 30 | the AI agent via /wbIdea | ⬜ | ⬜ | — |
+| 4 | 9 | 📄 | Implement virtual scrolling for 10k+ row datasets | P1 | 240 | the AI agent via /wbIdea | ⬜ | ⬜ | — |
 ```
 
-**Strategic Observations:**
-- The AI correctly identified the rate-limiting weakness from context and scored Idea #1 exceptionally high (9) due to its immediate impact and urgency.
-- Idea #2 (Passkeys) is high-value but complex, resulting in a moderate score (5). It's a great feature, but not an immediate priority.
+**What's worth noticing:**
+- Scores range from 4 to 9. The model didn't inflate everything to 8+.
+- Idea #4 (virtual scrolling) scores highest because it's high-impact + high-urgency for large datasets.
+- Idea #3 (CSV export) scores 4 — nice-to-have but low urgency.
 
 ---
 
-## Scenario 2: Automated Intake via `/wbVision`
+## Example 2 — Ideas auto-registered from `/wbVision`
 
 ```text
-$ /wbVision packages/payment-gateway
+$ /wbVision packages/wb-core
 
-[AI] Generating strategic vision document...
-[AI] Vision complete.
-[AI] Auto-registering 3 concepts into the Ideas Pipeline...
-[AI] Updated idea_payment-gateway_20260508.md
+[AI] Writing vision file...
+[AI] Auto-registering 3 ideas in idea_wb-core_20260508.md...
 ```
 
-The resulting `idea_*.md` file immediately reflects the brainstormed concepts:
+The idea file now has a `/wbVision`-sourced entry:
 
 ```markdown
-## 💡 Ideas — /wbVision proposals *(AI via wb-flow — 11:30)*
-> **Source:** [vision_payment-gateway_20260508.md](../visions/vision_payment-gateway_20260508.md)
-> **Origin Command:** `/wbVision packages/payment-gateway/`
+## 💡 Ideas — /wbVision proposals *(the AI agent via Cline — 10:15)*
+> **Source:** `vision_wb-core_20260508.md`
+> **Origin Command:** `/wbVision packages/wb-core/`
 > **Ideas registered:** 3
 
 | # | Score | 🔗 | Idea | P | Est. Time (mins) | Suggested By | ☐ Done | ☐ Valid | → Task |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | 8 | 📄 | Seamless retry mechanism for transient gateway timeouts | P1 | 120 | AI via /wbVision | ⬜ | ⬜ | — |
-| 2 | 6 | 📄 | Multi-currency dynamic conversion at checkout | P2 | 300 | AI via /wbVision | ⬜ | ⬜ | — |
-| 3 | 4 | 📄 | Webhook delivery dashboard for merchants | P3 | 180 | AI via /wbVision | ⬜ | ⬜ | — |
+| 1 | 7 | 📄 | Server-driven view config (admin pushes layout without rebuild) | P2 | 120 | the AI agent via /wbVision | ⬜ | ⬜ | — |
+| 2 | 9 | 📄 | Diff view (compare two dataset snapshots row-by-row) | P1 | 480 | the AI agent via /wbVision | ⬜ | ⬜ | — |
+| 3 | 3 | 📄 | Dark mode theme tokens | P3 | 30 | the AI agent via /wbVision | ⬜ | ⬜ | — |
 ```
 
-**Strategic Observations:**
-- Brainstorming is no longer ethereal. Every concept from `/wbVision` is instantly quantified and staged for validation, ensuring no strategic value is lost.
+**What's worth noticing:**
+- Each idea links back to the vision file.
+- Scores reflect the vision's own Effort/Value assessment (diff view = high value, scored 9).
 
 ---
 
-## Scenario 3: The Complete Lifecycle (Explore → Validate → Promote)
+## Example 3 — Full lifecycle: Explore → Validate → Promote
 
-*Continuing with Idea #1 from the `payment-gateway`.*
-
-### Phase A: Exploration
+### Step 1: Explore idea #4
 
 ```text
-$ /wbWork idea_payment-gateway_20260508.md --id=1
+$ /wbWork idea_wb-dataviewer_20260508.md --id=4
 
-[AI] Analyzing Idea #1: "Seamless retry mechanism for transient gateway timeouts"
-[AI] Conducting feasibility study...
-[AI] Generating implementation sketch...
-[AI] Writing ideas_reports/idea_1/idea_1_report_payment-gateway_20260508.md
-[AI] Flagging ☐ Done as ✅
+[AI] Reading idea #4: "Implement virtual scrolling for 10k+ row datasets"
+[AI] Exploring...
+[AI] Writing ideas_reports/idea_4/idea_4_report_wb-dataviewer_20260508.md
+[AI] Updated ☐ Done to ✅
 ```
 
-### Phase B: Strategic Validation
+### Step 2: Validate idea #4
 
 ```text
-$ /wbValid idea_payment-gateway_20260508.md --id=1
+$ /wbValid idea_wb-dataviewer_20260508.md --id=4
 
-[AI] Reviewing exploration report for Idea #1...
-[AI] Calculating Verdict...
-[AI] Verdict Reached: 🎯 Promote (8/10)
-[AI] Rationale: "Timeouts are currently causing a 2% drop in conversions. The proposed exponential backoff strategy is low-risk and high-reward."
-[AI] Updating idea file... ☐ Valid set to: 🎯 Promoted 8/10
-[AI] Initiating Promotion Protocol...
-[AI]   → Ingesting into plan_payment-gateway_20260508.md as Task #4
-[AI]   → Linking → Task column: [→ Plan #4](../plans/plan_payment-gateway_20260508.md)
+[AI] Reading exploration report...
+[AI] Verdict: 🎯 Promote (9/10)
+[AI] "Virtual scrolling is critical for the 10k+ dataset use case.
+[AI] Feasibility is high — existing row rendering can be wrapped.
+[AI] Recommend P1 priority in plan."
+[AI] Appended validation to idea_4_report.
+[AI] Updated ☐ Valid to: 🎯 Promoted 9/10
+[AI] Executing Promotion Protocol...
+[AI] → Added as Task #6 in plan_wb-dataviewer_20260508.md
+[AI] → Updated → Task column: `→ Plan #6`
 ```
 
-### The Transformed Idea File:
+### The idea file now shows:
 
 ```markdown
-| [1](ideas_reports/idea_1/idea_1_report_payment-gateway_20260508.md) | 8 | 📄 | Seamless retry mechanism for transient gateway timeouts | P1 | 120 | AI via /wbVision | ✅<br>AI | 🎯 Promoted 8/10<br>AI | [→ Plan #4](../plans/plan_payment-gateway_20260508.md) |
+| `4` | 9 | 📄 | Virtual scrolling for 10k+ rows | P1 | 240 | the AI agent via /wbIdea | ✅<br>the AI agent | 🎯 Promoted 9/10<br>the agent 4.6 | `→ Plan #6` |
 ```
 
-### The Active Plan File (Auto-Ingested):
+### The plan file now shows (auto-ingested):
 
 ```markdown
-| 4 | 💡 [/wbIdea #1](../ideas/idea_payment-gateway_20260508.md) | Seamless retry mechanism for transient gateway timeouts | /wbTest packages/payment-gateway --scope=task-4 | P1 | 120 | AI · ~$0.15 | AI | ⬜ | ⬜ |
+| 6 | 💡 `/wbIdea #4` | Virtual scrolling for 10k+ rows | /wbTest packages/wb-dataviewer --scope=task-6 | P1 | 240 | the AI agent · ~$0.20 | the AI agent | ⬜ | ⬜ |
 ```
-
-**Strategic Observations:**
-- The process is deterministic and highly disciplined. Ideas are not blindly executed; they are rigorously explored, validated, and *then* promoted into the execution pipeline, completely automating the transition from strategy to tactics.
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## The pattern
+
+1. **Register** → ideas appear with scores in `idea_*.md`.
+2. **Explore** → `/wbWork idea_*.md --id=N` writes a feasibility report.
+3. **Validate** → `/wbValid idea_*.md --id=N` assigns a verdict (promote/recommend/defer/reject).
+4. **Promote** → `🎯 Promoted` ideas auto-ingested by `/wbPlan` as task rows.
+5. **Execute** → normal `/wbWork plan_*.md --id=N` on the promoted task.
+
+---

@@ -1,87 +1,136 @@
-# wb-flow Protocol: /wbAudit Live Workspace Demo
+# /wbAudit — Live Demo ()
 
-This document is the **Real-Time Execution Log** of the `/wbAudit` command. It applies the exact structural matrix from the Exhaustive Simulation to the *current, live state* of the `wb-labs` workspace as of 2026-05-04.
+What `/wbAudit` would actually surface on `wb-labs` today (2026-05-04). Targets, citations, and severity levels in this matrix are real for the workspace as it stands.
 
 ---
 
-## 1. Role & Definition Matrix (Live Application)
-**Target:** `wb-labs/frontEnd/wbc-ui/core2/packages/wb-core`
-**Live State Evaluated:** 
-*   Active Directory: `packages/wb-core`
-*   Key Files Present: `src/tierEnforcement.js`, `src/WBC.js`, `src/utils/renderString.js`
+<CommandLiveDemoAnimation command="wbAudit" />
 
-| Scenario | Live System Behavior (wb-labs) |
+## 1. Live target
+
+| Field | Live value |
 |---|---|
-| Target is Git Root | **[HALT]** Executing from `wb-labs` root without scope will trigger the glob explosion block. |
-| Target is Sub-Package | **[ACTIVE]** Executing inside `wb-core`. AST parsers engaged. |
-| Target is Specific File | **[ACTIVE]** Ready to deep scan `WBC.js` logic. |
+| Most-audited package recently | `core2/packages/wbc-ui2-cdn/` (parked tech debt) |
+| Most-recently-edited tree | `frontEnd/wbc-ui/core2/apps/wb-flow/flow.wbc-ui.com/` (this docs sync) |
+| Active plan | `reports/20260504/plans/plan_wb-core_20260504.md` |
+| Memory-flagged audit candidates | `core2/packages/*/package.json` (dist-folder mismatch); `core2/packages/wb-dataviewer/` (apiResponse_ pattern documented but no invalidation API) |
+
+The audit-worthy zones in this workspace are concentrated in `core2/`, not in `frontEnd/wbc-ui/core2/packages/wb-flow/templates/`. Documentation drift is `/wbReview` territory; structural code debt is `/wbAudit`'s.
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix (Live Application)
-| Argument Type | Input Executed | Live Parsed State (wb-labs) | Live Output Generation |
-|---|---|---|---|
-| Specific File Path | `Command: /wbAudit src/tierEnforcement.js` | Locks onto `tierEnforcement.js`. | `[PROCEED] Deep scanning tierEnforcement for vulnerabilities.` |
-| Directory Path | `Command: /wbAudit src/utils` | Scans all utilities. | `[PROCEED] Auditing 4 files in src/utils.` |
-| Comma-Separated | `Command: /wbAudit src/WBC.js,src/tierEnforcement.js` | Extracts both core files. | `[PROCEED] Linking context between WBC.js and tierEnforcement.js.` |
-| Wildcard Glob | `Command: /wbAudit src/**/*.js` | Extracts 14 files in `wb-core/src`. | `[PROCEED] Massive sweep initiated across 14 js files.` |
-| Natural Language | `Command: /wbAudit "find the monoliths"` | Fuzzily matches size heuristics. | `[PROCEED] Resolved to WBC.js (1,171 LOC).` |
+## 2. What each target form would resolve to today
+
+| Target | Live resolution |
+|---|---|
+| `core2/packages/wbc-ui2-cdn/` | 14 files. Will surface the dist-folder mismatch + at least one cache-loader concern (per `wbc-ui2-tech-debt.md` memory). |
+| `core2/packages/wb-core/` | ~22 files. Tightest surface in core2. |
+| `core2/packages/wb-dataviewer/` | ~18 files. Will surface the `apiResponse_` no-invalidation note. |
+| `"core2/packages/*/package.json"` | 9 files (per package). Tight scope; perfect for the dist-mismatch profile. |
+| `"frontEnd/wbc-ui/core2/apps/wb-flow/flow.wbc-ui.com/"` | Refused — `/wbAudit` is for code, not docs. Suggestion to use `/wbReview` instead. |
+| `"the auth path"` | 3+ candidates (wb-core/tierEnforcement.js, wbc-ui2-cdn login flow, hypothetical wbc-ui.com). Halts with disambiguation. |
 
 ---
 
-## 3. Flag Processing Matrix (Isolated Live Runs)
+## 3. Per-flag behavior, applied live
 
-| Flag | Live Executed Command | Live Output Impact |
-|---|---|---|
-| `--profile="<prof>"`| `Command: /wbAudit src/ -p="performance"` | `[PERF] Detected render blocking logic in renderString.js regex.` |
-| `--depth="<level>"` | `Command: /wbAudit src/ -d="shallow"` | `[DEPTH] Completed shallow scan of wb-core in 1.2s. 0 criticals.` |
-| `--act` | `Command: /wbAudit src/WBC.js -a` | `[ACT] Generating plan_decomposition_WBC.md automatically.` |
-| `--wbPlan` | `Command: /wbAudit src/tierEnforcement.js -P` | `[SYNC] Appending security fix to existing plan_wb-core_20260504.md.` |
+| Flag combination | Live result |
+|---|---|
+| `core2/packages/wb-core/ --profile="security"` | ~3-5 findings expected. tierEnforcement.js + token-handling code. |
+| `core2/packages/wb-core/ --profile="performance"` | ~1-2 findings. wb-core is small; perf surface is shallow. |
+| `core2/packages/wbc-ui2-cdn/ --profile="correctness"` | 1 P1 guaranteed (dist mismatch) + likely 2-3 more from build-config drift. |
+| `core2/packages/ --scope="cross-package"` | Refused — too broad. Halt with "run per-package audits and stack findings." |
+| `core2/packages/wb-dataviewer/ -p="correctness" --act` | Audit + ranked action file. Action file would suggest: document apiResponse_ key scope; consider invalidation API. |
+| `core2/packages/wbc-ui2-cdn/ -p="correctness" --wbPlan` | Refused for now — memory note `project_pkg_dist_mismatch.md` says this is *parked*, not unresolved. Auditing would just re-surface the parked decision. |
 
----
-
-## 4. Omni-Channel Execution Pipeline (Live Chaining)
-
-### 💠 The "Massive Security Sweep" (`src/**/*.js -p="security" -a`)
-**Live Context:** Running this *right now* to secure `wb-core` before shipping.
-**Command Executed:** `/wbAudit src/**/*.js -p="security" -a`
-**Live Output:**
-```text
-> Command: /wbAudit src/**/*.js -p="security" -a
-
-[SYSTEM] Glob resolved to 14 javascript files in wb-core.
-[PROFILE] Engaging strict Security matrix.
-[AUDIT] Scanning...
-[ALERT] Found P1 Vulnerability in tierEnforcement.js: Client-side validation bypass risk.
-[ACT] Auto-generating remediation plan...
-[SUCCESS] Created plan_security_wb-core_20260504.md.
-```
-
-### 💠 The "Surgical Perf Check" (`src/WBC.js,src/utils/renderString.js -p="performance"`)
-**Live Context:** Profiling specifically the massive monolith and the text renderer.
-**Command Executed:** `/wbAudit src/WBC.js,src/utils/renderString.js -p="performance"`
-**Live Output:**
-```text
-> Command: /wbAudit src/WBC.js,src/utils/renderString.js -p="performance"
-
-[SYSTEM] Queued 2 specific target files.
-[PROFILE] Engaging Performance matrix.
-[AUDIT] WBC.js: O(n) iteration over large dom nodes.
-[AUDIT] renderString.js: Heavy regex backtracking detected.
-[SUCCESS] Audit complete. No auto-plan triggered.
-```
+That last cell is the interesting one. The agent reads memory before adding plan rows. If the memory note records "this is parked, both fixes have downsides," the audit emits the finding but **declines to add a plan row** — because the row would be ignored or cancelled within a day. Memory-aware refusal.
 
 ---
 
-## 5. Operational Edge Cases (Live Workspace Check)
+## 4. Pipelines on this exact workspace
 
-| Fault Trigger | Live System State | Live Resolution |
-|---|---|---|
-| Glob Explosion | **[PASS]** `wb-core/src/**/*.js` only yields 14 files. | Scan proceeds safely. |
-| Profile Conflict | **[PASS]** 'performance' and 'security' are valid profiles. | Profile loaded. |
-| Auto-Plan Collision| **[TRIGGERED]** If using `-a`, but `plan_wb-core_20260504.md` is active. | `[SYNC] Reverting to Smart Merge to inject tasks into existing plan.` |
-| Dead Links | **[PASS]** Comma-separated files exist. | Execution proceeds. |
+<script setup>
+const auditPipelines = [
+  {
+    title: "Pipeline A — Informational Audit",
+    cmd: '/wbAudit core2/packages/wbc-ui2-cdn/ --profile="correctness"',
+    file: "audit_wbc-ui2-cdn_correctness_20260504.md",
+    logs: [
+      { text: "[SYSTEM] Target: core2/packages/wbc-ui2-cdn/", type: "sys" },
+      { text: "[PROFILE] correctness", type: "sys" },
+      { text: "[MEMORY] Note found: project_pkg_dist_mismatch.md (parked tech debt). Will cite but not auto-promote to plan rows.", type: "ctx" },
+      { text: "[SCAN] 14 files inspected.", type: "gen" },
+      { text: "## Finding 1 — main field points at non-existent dist/", type: "error" },
+      { text: "**Severity:** P1\n**File:** core2/packages/wbc-ui2-cdn/package.json:6\n**Symbol:** \"main\"\n**Citation:** \"main\": \"./dist/index.js\"\n**Evidence:**\n- core2/packages/wbc-ui2-cdn/vite.config.js:18 sets build.outDir=\"dist-dev\"\n- ls core2/packages/wbc-ui2-cdn/dist/ → does not exist\n- ls core2/packages/wbc-ui2-cdn/dist-dev/index.js → exists, 47KB", type: "sys" },
+      { text: "**Memory cross-reference:** project_pkg_dist_mismatch.md records this as a known mismatch parked because both candidate fixes have unresolved trade-offs. Do not auto-fix.", type: "ctx" },
+      { text: "## Finding 2 — cache-loader still referenced post-restructure", type: "warn" },
+      { text: "**Severity:** P2\n**File:** core2/packages/wbc-ui2-cdn/vite.config.js:31", type: "sys" },
+      { text: "[OK] 3 findings. 0 promoted to plan (memory-aware skip).", type: "ok" },
+      { text: "[OK] Report saved: reports/20260504/audits/audit_wbc-ui2-cdn_correctness_20260504.md", type: "ok" }
+    ],
+    note: "The 'memory-aware skip' is what makes this agent-native. The audit finds the problems but defers mutating the plan because the memory record says these are parked.",
+    noteType: "info"
+  },
+  {
+    title: "Pipeline B — Audit + Action File (--act)",
+    cmd: '/wbAudit core2/packages/wb-core/ --profile="security" --act',
+    file: "action_wb-core_security_20260504.md",
+    logs: [
+      { text: "[SYSTEM] Target: core2/packages/wb-core/", type: "sys" },
+      { text: "[PROFILE] security", type: "sys" },
+      { text: "[SCAN] 22 files. 2 findings (1 P0, 1 P1).", type: "warn" },
+      { text: "[CHAIN] --act: producing ranked action file.", type: "gen" },
+      { text: "## Findings summary\nP0 — tierEnforcement.js:42 — JWT verify accepts `alg:\"none\"`.\nP1 — fetcher.js:87 — token persisted to localStorage.", type: "error" },
+      { text: "[OK] Action file is a *draft* of plan rows. Promote with: /wbAudit core2/packages/wb-core/ --profile=\"security\" --wbPlan", type: "ok" }
+    ],
+    tableHeaders: ["Rank", "Finding", "Severity", "Effort", "Recommended next"],
+    table: [
+      { cells: ["1", "Add alg denylist", "P0", "S (10 lines)", "Promote to plan row immediately."], _cssClass: "error" },
+      { cells: ["2", "localStorage → httpOnly cookie", "P1", "M (cross-cutting refactor)", "Discuss before promoting; affects all consumers."], _cssClass: "deferred" }
+    ],
+    note: "The two-stage funnel (audit → action file → plan rows) exists because not every finding deserves a plan row. The action file is the negotiation layer.",
+    noteType: "warning"
+  },
+  {
+    title: "Pipeline C — Refusal (Wrong Scope)",
+    cmd: "/wbAudit frontEnd/wbc-ui/core2/apps/wb-flow/flow.wbc-ui.com/",
+    logs: [
+      { text: "[SYSTEM] Target: frontEnd/wbc-ui/core2/apps/wb-flow/flow.wbc-ui.com/", type: "sys" },
+      { text: "[REFUSE] /wbAudit is for code, not documentation.\n Documentation drift, voice consistency, structural parity → use /wbReview --plan instead.", type: "error" },
+      { text: "[SUGGEST] Try: /wbReview frontEnd/wbc-ui/core2/apps/wb-flow/flow.wbc-ui.com/ --plan", type: "ok" }
+    ],
+    note: "This refusal exists because audit profiles (security, performance) are categorically wrong for prose. The refusal is more honest than the attempt.",
+    noteType: "warning"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbAudit" :pipelines="auditPipelines" />
+
+### 💠 Pipeline A — Audit the wbc-ui2-cdn dist-folder mismatch (informational only)
+
+By running `/wbAudit` without mutating flags, the agent inspects the code but checks `.wb/memory` first. If memory flags tech debt as "parked," it surfaces the finding but **skips adding it to the plan**, preventing noisy rows that get instantly cancelled.
+
+### 💠 Pipeline B — Audit + action file before deciding to plan
+
+Using `--act` creates a safer workflow: it produces a ranked Markdown action file (a draft of plan rows). You review this file and decide which findings deserve immediate promotion via `--wbPlan`.
+
+### 💠 Pipeline C — Why `/wbAudit` won't audit the docs
+
+`/wbAudit` profiles (`security`, `performance`, `correctness`) are built for ASTs and code execution, not prose. Attempting to run it on documentation automatically halts with a suggestion to use `/wbReview --plan` instead.
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 5. What would refuse today
+
+| Trigger | Live response |
+|---|---|
+| `/wbAudit` with no target | Halt. Selector-required. |
+| `/wbAudit core2/` (whole monorepo) | Halt. >200 files; refuse and ask for narrower scope. |
+| `/wbAudit "the auth path"` | Halt with disambiguation: 3+ matches across packages. |
+| `/wbAudit core2/packages/wb-core/ --profile="security" --profile="performance"` | Halt — conflicting profiles. (The agent rejects rather than picks one.) |
+| `/wbAudit core2/packages/wbc-ui2-cdn/ --wbPlan` | Memory-aware partial refusal — runs the audit, prints findings, **does not** add plan rows because memory records the work as parked. |
+| Audit of `frontEnd/wbc-ui/core2/packages/wb-flow/templates/docs/` | Refused. Wrong tool; suggests `/wbReview`. |
+| Audit triggers on `dist-dev/` build output | Skipped silently. Auto-gen files are excluded. |
+
+The pattern: **`/wbAudit` is opinionated, evidence-based, and memory-aware.** It refuses to spread thin, refuses to invent unsourced findings, refuses to mutate the plan when memory says doing so wastes effort. The right output is a citable report that respects what the team has already decided to leave alone.

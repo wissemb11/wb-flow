@@ -1,5 +1,7 @@
 # /wbDebug: Execution Template
 
+> Conforms to output_conventions v1.12 · template v1.0
+
 
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
@@ -78,15 +80,20 @@ Surface the decision. Don't silently fix.
 
 `/wbDebug` answers one question: *"why is this broken?"*
 
-> For deeper reading: [`docs_claude/commands/wbDebug/wbDebug_practical_claude.md`](../../docs/docs_claude/commands/wbDebug/wbDebug_practical_claude.md) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+> For deeper reading: [`wbDebug_practical.md`](https://flow.wbc-ui.com/commands/wbDebug/wbDebug_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
 ## Self-correct mode (dual-mode invocation)
 
 ```
 /wbDebug <scope_folder>           # normal mode — produce a fresh output file
-/wbDebug <previous_output_file>   # self-correct mode — verify & repair the file in place
+/wbDebug <previous_output_file>   # consolidate mode — absorb every still-open item from older debugs/ files, then repair in place
+/wbDebug <previous_output_file> --archive   # …and then retire the debugs/ folders it just superseded
 ```
 
 When the first arg is an existing output file from a prior `/wbDebug` run (detected by its first H1 — see this template's **Detection** section), the command runs in **verify-and-repair** mode: gap-fills missing fields, normalizes links, ticks done/valid checkboxes whose reports exist, never rewrites authored content. See [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §3.
+
+**Consolidation (§13.2) runs first, before any repair.** Sweep this scope's whole `reports/` tree for other `debug_<scope>_*.md` files and absorb every item still open into THIS file — de-duplicated on the item's text (never its ID, which restarts per file), each carrying a relative `Origin` link back to the oldest file that raised it. Sources are read, never modified.
+
+**Archiving is opt-in and never implied.** With `--archive`, and only once consolidation has completed, retire the superseded folders by shelling out to the CLI — `wb-flow archive <this file> --dry-run` first, read the move list, then apply. Without the flag, merely offer it in `What's Next?`. Archiving before consolidating does not delete an open item; it makes it invisible, which is worse. Full contract: [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §13.
 
 <!-- HELP_GATE_END -->
 

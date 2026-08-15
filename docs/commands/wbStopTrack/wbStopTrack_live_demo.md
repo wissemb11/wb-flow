@@ -1,52 +1,83 @@
-# wb-flow Protocol: /wbStopTrack Live Workspace Demo
+# /wbStopTrack — Live Demo
 
-This document is the **Real-Time Execution Log** of the `/wbStopTrack` command applied to the current workspace.
+> A real-time walkthrough of session finalization applied to the current workspace.
 
+---
 
-## 3. Real-World Scenario
+<CommandLiveDemoAnimation command="wbStopTrack" />
 
-You've been working on user authentication for 3 hours and need to switch to a code review. Stop the current session before starting the new task.
+## Session Context
 
-### Example Session
+| Property | Value |
+|---|---|
+| **Working directory** | `frontEnd/wbc-ui/core2/apps/wb-flow/flow.wbc-ui.com/` |
+| **Active tracker** | `reports/2026/05/13/track_flow.wbc-ui.com_20260513.md` |
+| **Session duration** | ~7 hours |
+| **Commands run** | `/wbStandup`, `/wbContext`, `/wbAudit` ×2, `/wbWork` ×6, `/wbValid` |
+| **Log entries** | 4 (sanitization decisions, V1/V2 sync, architecture calls) |
 
-```bash
-/wbStopTrack --note "Auth flow implemented, testing remaining"
-# Output: Session saved: 3h 12m — Auth implementation
-#                         Note: Auth flow implemented, testing remaining
+---
+
+<script setup>
+const stopTrackPipelines = [
+  {
+    title: "Closing the Documentation Session",
+    cmd: '/wbLog . "All documentation layers rewritten with original content. wbLog and wbStopTrack families complete. Build verified." && /wbStopTrack .',
+    file: "track_flow.wbc-ui.com_20260513.md",
+    logs: [
+      { text: "✅ Session sealed.", type: "ok" },
+      { text: "--- SESSION FINALIZED ---", type: "sys" },
+      { text: "Sealed at: 2026-05-13 04:15:00", type: "ctx" },
+      { text: "## Session Summary", type: "sys" },
+      { text: "- Duration: 7h 15m\n- Commands executed: 11\n- Tasks completed: 5 of 5", type: "sys" },
+      { text: "  - ✅ Remove Demo Apps from navbar\n  - ✅ Strip _claude/_gemini suffixes (216 files)\n  - ✅ Sanitize AI interaction content (218 files)\n  - ✅ Sync V1→V2 missing content (80+ files)\n  - ✅ Rewrite new command families (wbLog, wbStopTrack)", type: "ok" },
+      { text: "- Log entries: 5\n- Estimated token usage: ~120K tokens\n- Files modified: 312", type: "gen" },
+      { text: "Archived to: .wb/workflows/reports/2026/05/13/track_flow.wbc-ui.com_20260513.md", type: "ctx" }
+    ],
+    note: "We've completed the full documentation sync — file renames, content sanitization, V1/V2 reconciliation, sidebar updates. Time to seal the session.",
+    noteType: "info"
+  }
+];
+</script>
+
+## Demo: Closing the Documentation Finalization Session
+
+<LiveDemoAnimation command="wbStopTrack" :pipelines="stopTrackPipelines" />
+
+---
+
+## What the Archived Tracker Contains
+
+The sealed file is a complete, chronological narrative of the entire session:
+
+```markdown
+## Session: 2026-05-13
+
+[TRACK] 09:00 — Session opened. Goal: finalize flow.wbc-ui.com documentation.
+[TRACK] 09:15 — /wbAudit completed. Score: 10/10.
+[TRACK] 09:30 — /wbWork: Removed Demo Apps from navbar.
+[LOG]   10:00 — Batch sanitization script stripped 218 files of AI branding.
+[TRACK] 10:15 — /wbWork: Completed suffix rename (216 files).
+[LOG]   11:00 — V1/V2 diff revealed 80+ missing files. Synced all.
+[TRACK] 11:30 — /wbWork: Sidebar updated with 33 command families.
+[LOG]   14:00 — Rewrote wbLog family (6 files) with original content.
+[LOG]   15:00 — Rewrote wbStopTrack family (6 files) with original content.
+[TRACK] 16:00 — /wbValid: Build verified — all pages compile.
+
+--- SESSION FINALIZED ---
+Sealed at: 2026-05-13 04:15:00
+
+## Session Summary
+- Duration: 7h 15m
+- Commands executed: 11
+- Log entries: 5
 ```
 
-Then start the review:
-```bash
-/wbTrack "Code review PR #142"
-# Output: Tracking started: Code review PR #142
-```
-
-
-## 4. Analysis
-
-The live demo shows that `wbStopTrack` cleanly closes a session with all metadata captured. The `--note` flag is especially useful for preserving context when switching tasks mid-stream.
-
 ---
 
-## 1. Role & Definition Matrix (Live Application)
+## Key Observations
 
-**Target:** `wb-flow-docs/`
-**Live State Evaluated:**
-*   Active Directory: `frontEnd/wbc-ui/core2/apps/wb-flow/wb-flow-docs/`
-
-| Scenario | Live System Behavior |
-|---|---|
-| Active tracker exists | **[ACTIVE]** Tracker for 2026-05-12 is active. |
-| Already finalized today | **[N/A]** Session still open. |
-
----
-
-## 2. Live Command Application
-
-| Command | Expected Output |
-|---|---|
-| `/wbStopTrack .` | Tracker sealed, summary generated, context purged. |
-
----
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+1. **Clean boundary** — Tomorrow's session starts fresh, with no bleed-over from today
+2. **Complete record** — Every command and every decision is preserved in chronological order
+3. **Actionable summary** — The summary block gives a quick overview without reading the full log
+4. **Immutable archive** — The sealed file will never be modified again, making it a reliable reference

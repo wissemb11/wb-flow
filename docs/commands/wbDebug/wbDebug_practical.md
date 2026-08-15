@@ -1,66 +1,67 @@
-# wbDebug — Practical Walkthrough
+# /wbDebug — Practical
 
-> How to diagnose errors and get fix suggestions.
+## Two forms
 
----
-
-## 1. Debug an Error
-
-```bash
-/wbDebug "TypeError: Cannot read property 'name' of undefined at src/utils.js:42"
+```
+/wbDebug "<error message>" # start from the symptom
+/wbDebug <file-path> # investigate a specific file
 ```
 
-```text
-[AI] Root cause: `data.user` is undefined
-[AI]   → API returns null when user not found
-[AI]
-[AI] Fix: Add optional chaining
-[AI]   const name = data?.user?.name ?? 'Unknown'
-[AI]
-[AI] Also check: src/api.js:30 — add 404 handling
+Both produce a hypothesis first, fix second. If you get a fix without a hypothesis, the command was run wrong.
+
+## When to run
+
+- First response to any error you don't immediately recognize.
+- When tests fail in ways that aren't obviously test-wrong or code-wrong.
+- When behavior is "off" but no error is thrown.
+- When inheriting bug reports you haven't investigated yet.
+
+## When *not* to run
+
+- Typo or syntax error you can see at a glance. Just fix it.
+- Bug you already know the cause of. Describe the fix directly.
+- "Is this code good?" — that's `/wbAudit`, not debug.
+
+## Reading the output
+
+Every run produces:
+
+1. **Hypothesis** — the AI's best guess, specific.
+2. **Evidence to check** — steps you can run to verify.
+3. **Pause** — waiting for your feedback.
+4. **Fix proposal or refusal** — only after hypothesis is confirmed.
+
+## The pause is non-negotiable
+
+If the AI proposes a fix without waiting for you to verify, push back:
+
+```
+"You skipped the pause. First tell me why you think this is the cause.
+Then I'll check. Then we fix."
 ```
 
----
+The pause exists because:
+- Wrong hypothesis + fix = new bug introduced, original still there.
+- Right hypothesis + fix = clean debugging.
+- Unverified hypothesis = gamble.
 
-## 2. Debug a File
+## When the hypothesis is wrong
 
-```bash
-/wbDebug src/utils.js:42
-```
+Tell the AI directly: "hypothesis is wrong because X." The AI should explicitly acknowledge and reform. If it defends the original hypothesis, re-prompt harder: *"I just told you the hypothesis is wrong. Accept that and reform based on my new information."*
 
-Reads the file context around line 42 and analyzes potential issues.
+## The interaction with open decisions
 
----
+If `context.md` has an open architectural decision, and the bug symptom maps to that decision, the AI should **refuse to fix**. Example: `extractSubObject` array handling is open; a bug that comes from this is not a bug — it's a design question.
 
-## 3. Debug from Log
+Surface the decision. Don't silently fix.
 
-```bash
-/wbDebug logs/error.log
-```
+## When /wbDebug is the wrong command
 
-Parses the log file, extracts error patterns, and provides a summary of all unique issues.
+- Code quality review → `/wbAudit`.
+- Plan verification → `/wbReview`.
+- Finding dead code → `/wbClean`.
+- Rewriting working code → `/wbRefactor`.
 
----
-
-## 4. After Diagnosis
-
-```bash
-/wbDebug "error message"          # 1. Diagnose
-/wbWork . --focus="fix error"     # 2. Apply fix
-/wbTest .                         # 3. Verify fix
-```
+`/wbDebug` answers one question: *"why is this broken?"*
 
 ---
-
-## 5. Common Patterns
-
-| Pattern | Command |
-|---|---|
-| Quick diagnosis | `/wbDebug "error text"` |
-| File + line | `/wbDebug src/utils.js:42` |
-| Log analysis | `/wbDebug logs/error.log` |
-| Build error | `/wbDebug "build failed: ..."` |
-
----
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

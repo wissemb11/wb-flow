@@ -1,51 +1,56 @@
-# /wbPlan — Expert Guide
+# /wbPlan — Expert
 
-## Architecture
+## What `/wbPlan` architecturally is
 
-`wbPlan` uses a three-stage planning pipeline: **Scope decomposition** (splitting a goal into atomic tasks), **Dependency resolution** (ordering tasks by prerequisites), and **Resource leveling** (adjusting for team size and parallelization).
+A **task-graph externalizer**. It takes a natural-language goal and emits a durable, checkbox-tracked, markdown-typed table of subtasks to `reports/YYYY/MM/DD/plans/`. The durability + checkbox-state is what makes it more than a decomposer — it turns the plan file into a persistent state machine that can be read and mutated by multiple AI sessions across days.
 
-The output is a structured task table with columns for ID, description, priority (P0-P2), estimated effort (hours/days), dependencies, and status. Tasks are ordered by critical path — the longest chain of dependent tasks determines the minimum timeline.
+Two separable concerns:
+- **Decomposition quality** (how well the AI breaks down the goal).
+- **State durability** (how reliably the plan survives across sessions).
 
-## Key Design Decisions
+Most "AI planning" tools nail the first and ignore the second. `/wbPlan`'s real contribution is the second.
 
-- **Priority by impact:** P0 = blocking other work, P1 = important but not blocking, P2 = nice-to-have
-- **Estimates are ranges:** Each task gets a best-case and worst-case estimate, summed to give a confidence interval
-- **Risk flags:** Based on ambiguity in the goal statement, complexity of the affected code, and number of integration points
+## The dual-agent split, honestly
 
-## When NOT to Use
+The the documentation calls this "Dual-Agent Asynchronous Orchestration" and claims planning + coding "cannot" occur in the same inference cycle without "context collapse." The claim is directionally correct, overstated in magnitude:
 
-- For simple one-step tasks (use `wbWork` directly)
-- When the goal is already well-defined and broken down in your issue tracker
-- For exploratory work where the steps are not yet known
+- **Real:** an LLM producing a plan while also producing code tends to cut plan quality. Attention is divided; architectural intent degrades as syntactic detail intensifies.
+- **Overstated:** "cannot" is too strong. A sufficiently capable model *can* do both, just less well. For trivial tasks, integrated plan+code is fine. The separation is a quality optimization, not a hard architectural requirement.
+- **Genuinely useful:** the separation makes the plan *reviewable* by a human or second AI before code is written. That's the real gain — not LLM attention mechanics, but human/second-AI insertion points.
 
-## Edge Cases
+## The "Atomic Commitment" claim
 
-- **Vague goals:** Returns a clarification request instead of guessing
-- **Impossible deadlines:** Flags the constraint and suggests scope reduction
-- **Empty project:** Can still plan but with a warning that estimates are less reliable without project history
+the agent's expert doc argues every task must represent "a single, testable state change." The principle is right; the naming is grandiose.
 
+Practically: a task named "add dark mode" is a planning failure because it can't be validated. A task named "extract hardcoded colors to CSS variables" *can* be validated — you either extracted them or you didn't. The decomposition target is not atomicity in the distributed-systems sense; it's **testability**. If the task produces no discrete thing a validator can point at, the task is too big.
 
-## Advanced Usage
+## Three design decisions worth naming
 
-### Planning with Constraints
+### 1. The plan is a file, not a session artifact
+Plans live in `reports/YYYY/MM/DD/plans/` and outlast the session that created them. This sounds mundane. It's the entire reason `/wbPlan` is different from "ask ChatGPT to break down my task." The file-on-disk + checkbox state + dated folder = resumability across arbitrarily long time gaps.
 
-Use `--deadline` to let the planner flag scope risks. If the estimated timeline exceeds the deadline, the planner will suggest scope reductions or parallelization strategies.
+### 2. Checkboxes as concurrency control (weakly)
+When two AI sessions run in parallel on the same plan, they read the checkboxes to know which tasks are claimed. This is *optimistic* concurrency — nothing prevents a race. But in the solo-developer monorepo case, it's sufficient. Two sessions won't typically be running the same plan simultaneously.
 
-### Iterative Refinement
+### 3. Validator as a column, not a separate command
+The plan bakes validation into its schema. Every task has a `Validator` column. This forces you to *name* who (which model, which session) will verify each task before you start executing. It converts "I should review this" from good intentions into scheduled work.
 
-Use `--existing-plan` to update an existing plan as conditions change. The planner will compare the original plan against current project state and suggest adjustments.
+## Where the command leaks
 
+1. **The model-assignment column is aspirational.** `/wbPlan` writes "Model: Qwen3-Coder" in the table. Nothing enforces that a Qwen3-Coder session actually executes the task. If you run it in the agent, the assignment is fiction.
 
-## Related
+2. **Stale plans accumulate.** A plan from 2 weeks ago with 3 unchecked tasks still sits in `reports/`. `/wbStandup` should surface it; it sometimes doesn't. No expiration.
 
-- [wbPlan ELI5](wbPlan_eli5.md) — Beginner-friendly overview
-- [wbPlan Practical](wbPlan_practical.md) — Step-by-step walkthrough
-- [Commands Overview](../README.md) — Full command catalog
+3. **Cross-plan dependencies are invisible.** If plan A depends on plan B's completion, there's no link. You're expected to know. In practice you forget.
 
+4. **The `🔨 in progress` marker has no TTL.** A crashed session leaves `🔨` permanently. Next session can't distinguish "paused" from "abandoned" without asking you.
 
-> **Configuration tip:** Customize planning parameters in `.wb/plan-config.json` for team-specific estimation models.
+5. **Validator rubber-stamping is undetectable.** If the validator model lazily approves every task, the Valid column becomes noise. No downstream check catches this — the plan "passes" but the code is broken.
+
+What `wb-flow-docs`'s playbook gets wrong about `/wbPlan`: framing it as roadmap generation, when the Claude edition is a task table with cost annotations, worker/validator model assignments, and recursive sub-plan support. The budget estimate (kt x model rate) is a practical constraint the sibling edition omits entirely.
+
+## One-paragraph verdict
+
+A task-graph externalizer whose real innovation is the durable-state design, not the decomposition quality. Correct in using markdown + checkboxes for cheap persistence; correct in forcing the Validator column; correct in writing plans as separate files per date. Weakest in cross-plan dependency tracking, stale-plan cleanup, and validator accountability. The gemini "Atomic Commitment" and "Dual-Agent" framings name real patterns but overstate them; the actual value is the plan-as-file, checkbox-as-state, validator-as-column triad. Works for solo monorepo; would need locking and TTL for concurrent use.
 
 ---
-
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

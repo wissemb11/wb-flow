@@ -1,3 +1,7 @@
+---
+title: Technical Specifications
+description: Low-level technical specifications defining the hard rules that WB-Labs agentic framework command implementations follow.
+---
 # Technical Specifications —
 
 Low-level technical specifications for the internal logic of the WB-Labs agentic framework. These documents define the "hard rules" that the command implementations follow.
@@ -6,8 +10,7 @@ Low-level technical specifications for the internal logic of the WB-Labs agentic
 
 | File | Coverage |
 |---|---|
-| [command_composition_spec_v1_part1.md](command_composition_spec_v1_part1.md) | Part 1: Input routing, output piping, and self-application rules |
-| [command_composition_spec_v1_part2.md](command_composition_spec_v1_part2.md) | Part 2: Deterministic CLI-to-AI handoff and state machine behavior |
+| [command_composition_spec_v1.md](command_composition_spec_v1.md) | Input routing, output piping, and self-application rules |
 
 ## Purpose
 

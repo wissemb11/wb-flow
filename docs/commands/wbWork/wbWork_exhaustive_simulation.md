@@ -1,3 +1,8 @@
+---
+title: "wb-flow Protocol: /wbWork Execution & Simulation"
+description: "This document defines the **exhaustive behavior matrix** for the `/wbWork` command. It serves as the definitive reference for deep task execution logic, wildcar"
+---
+
 # wb-flow Protocol: /wbWork Execution & Simulation Specification
 
 This document defines the **exhaustive behavior matrix** for the `/wbWork` command. It serves as the definitive reference for deep task execution logic, wildcard ID selection, code generation constraints, and test-driven validation protocols.
@@ -40,64 +45,75 @@ The `/wbWork` command supports complex criteria targeting to allow precise or ma
 
 ---
 
+<script setup>
+const workSimPipelines = [
+  {
+    title: "The 'Massive Sweep' (-i=\"*\" -d)",
+    cmd: '/wbWork -i="*" -d',
+    logs: [
+      { text: "[SYSTEM] Wildcard detected. 3 tasks queued.", type: "sys" },
+      { text: "[WORK] Implementing Task 1: JWT Handshake.", type: "gen" },
+      { text: "[CODE] Updating tierEnforcement.js...", type: "sys" },
+      { text: "[PLAN] Marking Task 1 as ✅ Done.", type: "ok" },
+      { text: "[WORK] Implementing Task 2...", type: "gen" }
+    ],
+    note: "User wants the agent to complete every single unblocked task in the plan immediately, without stopping to ask questions.",
+    noteType: "warning"
+  },
+  {
+    title: "The 'Surgical Array' (-i=\"1,4\" -o)",
+    cmd: '/wbWork -i="1,4" -o',
+    logs: [
+      { text: "[SYSTEM] Queued Tasks 1 and 4.", type: "sys" },
+      { text: "[PROMPT] For Task 1 (Auth), do you prefer a redirect or a modal on failure?", type: "ctx" }
+    ],
+    note: "User wants to execute two specific, independent tasks but wants to be prompted for design choices on each.",
+    noteType: "info"
+  },
+  {
+    title: "The 'Auto-Triage / Inline Task'",
+    cmd: '/wbWork packages/wb-core "Implement OAuth Login Flow"',
+    logs: [
+      { text: "[TRIAGE] Issue is Complex (P0). Context window risk high.", type: "warn" },
+      { text: "[PLAN] Added Parent Task #4 to today's plan.", type: "sys" },
+      { text: "[DECOMPOSE] Spawning sub-tasks #4.1, #4.2, #4.3.", type: "sys" },
+      { text: "[WORK] Implementing Task 4.1: OAuth State Machine.", type: "gen" },
+      { text: "[CODE] Updating authStore.js...", type: "sys" },
+      { text: "[PLAN] Marking Task 4.1 as ✅ Done.", type: "ok" },
+      { text: "[WORK] Implementing Task 4.2: OAuth Endpoints...", type: "gen" },
+      { text: "...", type: "sys" },
+      { text: "[SYSTEM] Complex inline task fully resolved.", type: "ok" }
+    ],
+    note: "User bypasses the plan file and passes a raw issue description directly to the command. The system must assess complexity and dynamically route.",
+    noteType: "info"
+  }
+];
+
+const wavePipelines = [
+  {
+    title: "Executing a Wave Cell (--wave=A:W)",
+    cmd: '/wbWork plan.md --wave="A:W" -M="claude:opus 5"',
+    logs: [
+      { text: "[SYSTEM] Reading plan.md for Wave A, Worker cell...", type: "sys" },
+      { text: "[TRIAGE] Delegating to claude:opus 5 (overriding default roster).", type: "warn" },
+      { text: "[WORK] Implementing Task B23: Wave A Worker dispatch.", type: "gen" },
+      { text: "[OK] Task complete. ⏱️ 15 min elapsed.", type: "ok" },
+      { text: "[PLAN] Updating 🌊 Next Executable Sequence matrix...", type: "sys" }
+    ],
+    tableHeaders: ["Wave", "🧠 Planner", "🔨 Worker", "✅ Validator", "📋 Mechanical"],
+    table: [
+      { cells: ["Wave A", "✅ Done", "✅ Done (claude:opus 5)", "⬜ Pending", "⬜ Pending"] },
+      { cells: ["Wave B", "⬜ Pending", "⬜ Pending", "⬜ Pending", "⬜ Pending"] }
+    ],
+    note: "The --wave flag lets you surgically execute a single cell in the plan's Next Executable Sequence matrix, delegating on the fly with -M.",
+    noteType: "info"
+  }
+];
+</script>
+
 ## 4. Omni-Channel Execution Pipeline (Flag Chaining)
 
-### 💠 The "Massive Sweep" (`-i="*" -d`)
-**Context:** User wants the agent to complete every single unblocked task in the plan immediately, without stopping to ask questions.
-**Command Executed:** `/wbWork -i="*" -d`
-**Simulated Protocol Chain:**
-1. System reads active plan. Finds Tasks 1, 2, 3.
-2. Evaluates DAG. (Task 3 depends on 1 and 2).
-3. Executes Task 1 -> Writes Code -> Marks `✅ Done`.
-4. Executes Task 2 -> Writes Code -> Marks `✅ Done`.
-5. Executes Task 3 -> Writes Code -> Marks `✅ Done`.
-**Simulated Output:**
-```markdown
-> Command: /wbWork -i="*" -d
-
-[SYSTEM] Wildcard detected. 3 tasks queued.
-[WORK] Implementing Task 1: JWT Handshake.
-[CODE] Updating tierEnforcement.js...
-[PLAN] Marking Task 1 as ✅ Done.
-[WORK] Implementing Task 2...
-```
-
-### 💠 The "Surgical Array" (`-i="1,4" -o`)
-**Context:** User wants to execute two specific, independent tasks but wants to be prompted for design choices on each.
-**Command Executed:** `/wbWork -i="1,4" -o`
-**Simulated Output:**
-```markdown
-> Command: /wbWork -i="1,4" -o
-
-[SYSTEM] Queued Tasks 1 and 4.
-[PROMPT] For Task 1 (Auth), do you prefer a redirect or a modal on failure?
-```
-
-### 💠 The "Auto-Triage / Inline Task" (`<scope> "<issue>"`)
-**Context:** User bypasses the plan file and passes a raw issue description directly to the command. The system must assess complexity and dynamically route.
-**Command Executed:** `/wbWork packages/wb-core "Implement OAuth Login Flow"`
-**Simulated Protocol Chain:**
-1. System reads the natural language argument.
-2. Evaluates complexity. Determines it is a P0/P1 task (requires multiple files: API, UI, State).
-3. Injects Parent Task #4 into today's `plan_*.md`.
-4. Spawns dynamic decomposition (`/wbPlan` logic). Creates Sub-tasks #4.1 (State), #4.2 (API), #4.3 (UI).
-5. Executes #4.1 -> Writes Code -> Marks `✅ Done`.
-6. Executes #4.2 -> Writes Code -> Marks `✅ Done`.
-7. Executes #4.3 -> Writes Code -> Marks `✅ Done`.
-**Simulated Output:**
-```markdown
-> Command: /wbWork packages/wb-core "Implement OAuth Login Flow"
-
-[TRIAGE] Issue is Complex (P0). Context window risk high.
-[PLAN] Added Parent Task #4 to today's plan.
-[DECOMPOSE] Spawning sub-tasks #4.1, #4.2, #4.3.
-[WORK] Implementing Task 4.1: OAuth State Machine.
-[CODE] Updating authStore.js...
-[PLAN] Marking Task 4.1 as ✅ Done.
-[WORK] Implementing Task 4.2: OAuth Endpoints...
-...
-[SYSTEM] Complex inline task fully resolved.
-```
+<LiveDemoAnimation command="wbWork" titleSuffix="Exhaustive Simulation" :pipelines="workSimPipelines" />
 
 ---
 
@@ -112,4 +128,40 @@ The `/wbWork` command supports complex criteria targeting to allow precise or ma
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+
+
+### ⏱️ Matrix Task Duration Estimations
+In the `## 🌊 Next Executable Sequence` matrix table, each task dispatch cell appends the estimated task duration extracted from the task table's `Est. (min)` column, formatted as `*(⏱️ <min> min)*`:
+
+```markdown
+`/wbWork plan.md --id=B23`<br>→ *DeepSeek V4 Pro* *(⏱️ 15 min)*
+```
+
+
+### 💡 Pre-Flight Explanation Blueprint Gate (`--as`)
+- **Standard Mode (default, without `--as`)**: Matrix cells contain **ONLY** the direct execution command:
+  ```markdown
+  `/wbWork plan.md --id=B23`<br>→ *DeepSeek V4 Pro* *(⏱️ 15 min)*
+  ```
+- **Explanation Mode (with `--as="<style>"`)**: Matrix cells prepend `/wbExplain`:
+  ```markdown
+  `/wbExplain plan.md --id=B23 --as="expert,steps"`<br>`/wbWork plan.md --id=B23`<br>→ *DeepSeek V4 Pro* *(⏱️ 15 min)*
+  ```
+
+## 🎛️ Universal model flags *(2026-08-01)*
+
+| Flag | Alias | Effect |
+|---|---|---|
+| `--planner=` | `-p` | 🧠 Planner chain — **persists** via `/wbModel` |
+| `--validator=` | `-v` | ✅ Validator chain — persists |
+| `--worker=` | `-w` | 🔨 Worker chain — persists. ⚠️ `-w` is **not** `--wave` |
+| `--mechanical=` | `-m` | 📋 Mechanical chain — persists |
+| `--model=` | `-M` | **Delegate this run.** Highest priority: outranks role routing, the roster and the executor≠validator rule |
+| `--wave=<L>:<R>` | `-W` | Run **one cell** — `:P` Planner · `:V` Validator · `:W` Worker · `:M` Mechanical |
+
+<LiveDemoAnimation command="wbWork" titleSuffix="Wave Execution" :pipelines="wavePipelines" />
+
+Role flags are shorthand for running `/wbModel` first. An unknown role letter in `--wave` exits non-zero rather than silently running the whole row. **Precedence:** `-M` → role flag → plan-header roster → `model_recommendations.md` → defaults.
+
+After the 🌊 matrix, a **copy/paste block** of bare runnable commands is printed — no table markup, no `<br>`, no duration annotations.

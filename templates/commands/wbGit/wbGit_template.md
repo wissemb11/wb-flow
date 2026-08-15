@@ -1,5 +1,7 @@
 # /wbGit: Execution Template
 
+> Conforms to output_conventions v1.12 · template v1.0
+
 
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
@@ -66,7 +68,7 @@ Watcher key was reading apiResponse_ and writing it back...
 
 Why every commit needs it: 6 months from now, `git blame` shows you which model drafted the message, which plan it advanced, and any salient notes (like "user authorized mixed-change override"). Without the header, you lose all that context.
 
-Full header schema lives in [wbGit_template_claude](../wbGit_template_claude.md). The `notes` field is the most useful day-to-day — fill it with anything future-you should know, otherwise write `—`.
+Full header schema lives in the example above. The `notes` field is the most useful day-to-day — fill it with anything future-you should know, otherwise write `—`.
 
 ## What `/wbGit` will refuse to do
 
@@ -99,7 +101,7 @@ If you genuinely want a mixed commit (rare — usually after a long forgotten br
 
 `/wbGit` is for the daily commit/push rhythm. Anything more involved is yours.
 
-> For deeper reading: [`docs_claude/commands/wbGit/wbGit_practical_claude.md`](../../docs/docs_claude/commands/wbGit/wbGit_practical_claude.md) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+> For deeper reading: [`wbGit_practical.md`](https://flow.wbc-ui.com/commands/wbGit/wbGit_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
 
 <!-- FLAGS_TABLE_START -->
 ## Flags & shortcuts
@@ -115,8 +117,11 @@ Both forms are equivalent — pass either:
 | `--from-plan` | `-P` |
 | `--diff-file` | `-d` |
 | `--scan-recent` | `-r` |
+| `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
+| `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
 
 `-h` / `--help` / `--h` (any command) prints this help block instead of executing.
+
 <!-- FLAGS_TABLE_END -->
 <!-- HELP_GATE_END -->
 

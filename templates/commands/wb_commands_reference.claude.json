@@ -225,7 +225,7 @@
             "description": "Full package context."
           },
           {
-            "command": "/wbContext core2/ --scope=global",
+            "command": "/wbContext <monorepo-root>/ --scope=global",
             "description": "Monorepo-wide context (rare)."
           }
         ],
@@ -393,7 +393,7 @@
             "description": "Full audit of wb-core."
           },
           {
-            "command": "/wbAudit frontEnd/wbc-ui/core2",
+            "command": "/wbAudit <monorepo-root>",
             "description": "Monorepo-wide audit (broader perspective)."
           }
         ],
@@ -626,11 +626,11 @@
         "syntax": "/wbRelease <target_monorepo_path> <NEW_VERSION>",
         "example": [
           {
-            "command": "/wbRelease frontEnd/wbc-ui/core2 v1.0.0-r02",
+            "command": "/wbRelease <monorepo-root> v1.0.0-r02",
             "description": "Prepare v1.0.0-r02 across the monorepo."
           },
           {
-            "command": "/wbRelease frontEnd/wbc-ui/core2 --restore",
+            "command": "/wbRelease <monorepo-root> --restore",
             "description": "Restore workspace:* protocols after publish."
           }
         ],
@@ -704,7 +704,7 @@
         "syntax": "/wbPublish <target_monorepo_path>",
         "example": [
           {
-            "command": "/wbPublish frontEnd/wbc-ui/core2",
+            "command": "/wbPublish <monorepo-root>",
             "description": "Build + publish to NPM."
           }
         ],
@@ -1136,7 +1136,7 @@
         "syntax": "/wbStandup <target_folder>",
         "example": [
           {
-            "command": "/wbStandup core2/",
+            "command": "/wbStandup <monorepo-root>/",
             "description": "Monorepo-wide daily standup."
           }
         ],
@@ -1706,6 +1706,89 @@
       "template": "wbMonetize/wbMonetize_template.md"
     }
   },
+  "wbModel": {
+    "description": "Dynamically updates or displays the active model selections (Planner, Validator, Worker, Mechanical) in model_recommendations.md.",
+    "role": "The Model Orchestration Manager — configures which AI models fill each role.",
+    "phase": "Anytime (configuration)",
+    "belt": "Brown — strategic but regular",
+    "recommendedModel": "sonnet_35",
+    "args": {
+      "withFlags": {
+        "syntax": "/wbModel --planner=\"<models>\" --validator=\"<models>\" --worker=\"<models>\" --mechanical=\"<models>\"",
+        "example": [
+          {
+            "command": "/wbModel --planner=\"claude-opus-5,gemini-3.5-pro,kimi-k3\"",
+            "description": "Sets the 3 priority models for the Planner role."
+          },
+          {
+            "command": "/wbModel --worker=\"fable,opencode Go:kimi k3\" --mechanical=\"opencode Go:dsv4 pro\"",
+            "description": "Updates Worker and Mechanical priority models."
+          }
+        ],
+        "input": {
+          "path": "templates/commands/model_recommendations.md",
+          "type": "file",
+          "content": "Model recommendations table"
+        },
+        "outputs": [
+          {
+            "path": "stdout",
+            "type": "markdown",
+            "content": "Updated User Models (Active Contractual Reference) table"
+          }
+        ]
+      }
+    },
+    "flags": [
+      {
+        "long": "--planner",
+        "short": "-p"
+      },
+      {
+        "long": "--validator",
+        "short": "-v"
+      },
+      {
+        "long": "--worker",
+        "short": "-w"
+      },
+      {
+        "long": "--mechanical",
+        "short": "-m"
+      },
+      {
+        "long": "--show",
+        "short": "-s"
+      },
+      {
+        "long": "--reset",
+        "short": "-R"
+      }
+    ],
+    "chains_with": {
+      "feeds_into": [
+        "wbPlan (plan header reads the roster)",
+        "wbWork (wave dispatch uses the roster)"
+      ],
+      "fed_by": [
+        "wbSetup (initial model recommendations)",
+        "wbAudit (may recommend model changes)"
+      ]
+    },
+    "prerequisites": [
+      "model_recommendations.md must exist at templates/commands/model_recommendations.md"
+    ],
+    "refuses_when": [
+      "both --show and --reset are passed together (mutually exclusive)"
+    ],
+    "notSuitableFor": [
+      "Running tasks (use /wbWork)",
+      "Planning tasks (use /wbPlan)"
+    ],
+    "references": {
+      "template": "wbModel/wbModel_template.md"
+    }
+  },
   "wbActOn": {
     "description": "Turns any diagnostic markdown (audit, plan, review, standup) into a ranked execution order with per-action recommended model.",
     "role": "The Triage Officer — converts diagnosis → prescription.",
@@ -1804,7 +1887,7 @@
       "sequence": [
         {
           "step": 1,
-          "command": "/wbStandup core2/",
+          "command": "/wbStandup <monorepo-root>/",
           "purpose": "What's in flight monorepo-wide?",
           "feeds_into": "step 2 (recommends a package)"
         },
@@ -1874,7 +1957,7 @@
         },
         {
           "step": 4,
-          "command": "/wbRelease core2/",
+          "command": "/wbRelease <monorepo-root>/",
           "scope": "monorepo-wide due to workspace:*"
         },
         {
@@ -1884,7 +1967,7 @@
         },
         {
           "step": 6,
-          "command": "/wbRelease core2/ --restore",
+          "command": "/wbRelease <monorepo-root>/ --restore",
           "purpose": "Put workspace:* protocols back"
         },
         {

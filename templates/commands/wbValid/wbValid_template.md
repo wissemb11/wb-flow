@@ -1,5 +1,7 @@
 # /wbValid: Execution Template
 
+> Conforms to output_conventions v1.12 · template v1.0
+
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
 
@@ -36,10 +38,13 @@
 ## Flags & shortcuts
 
 | `--id`, `--p`, `--done`, etc. | `-i`, etc. | Universal Column Filtering. Targets tasks based on any column in the plan table (supports `=, >, <, !=, *, &&, ||`). |
+| `--no-plan-update` | — | Validate and append to the task report, but **do not touch the plan file** (no Valid cell, no matrix recompute). Set automatically for every agent spawned by `/wbWork --wave`. |
 | `--open` | `-o` | Sets `☐ Valid` state to `⬜` (Open). Overrides validation execution. |
 | `--def` | `-d` | Sets `☐ Valid` state to `⏸️ Deferred`. Overrides validation execution. |
 | `--can` | `-c` | Sets `☐ Valid` state to `🚫 Cancelled`. Overrides validation execution. |
 | `--help` | `-h` | Prints this help block. |
+| `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
+| `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
 ## Self-correct mode (dual-mode invocation)
 
 ```
@@ -48,6 +53,7 @@
 ```
 
 When the first arg is an existing output file from a prior `/wbValid` run (detected by its first H1 — see this template's **Detection** section), the command runs in **verify-and-repair** mode: gap-fills missing fields, normalizes links, ticks done/valid checkboxes whose reports exist, never rewrites authored content. See [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §3.
+
 
 <!-- FLAGS_TABLE_END -->
 <!-- HELP_GATE_END -->
@@ -89,11 +95,21 @@ Read the target file's first H1 header to determine the operating mode:
    - Append a `## 🔍 Validation (QA)` section to the bottom of the Worker's task report.
    - You MUST include a **Score / 10** evaluating the Worker's quality, efficiency, and adherence to constraints.
    - State clearly if it is a PASS ✅ or FAIL ❌.
-4. **Update Plan:** 
+4. **Update Plan:** — **SKIP steps 4 and 5 entirely if `--no-plan-update` was passed.** Append your validation to the worker's task report as usual, then print the id + verdict + score and stop; a `--wave` orchestrator owns the plan file and will transcribe your verdict itself. Writing to it would race the other agents in your wave.
+
    - **Cumulative Validation Rule:** The `☐ Valid` column accumulates validations (unlike the `☐ Done` column). 
    - If PASS and the column is `⬜` (empty), update it to `✅ 10/10<br><ModelName>`.
    - If PASS and the column already has a validation (e.g., `✅ 10/10<br>DeepSeek`), **APPEND** your validation below it: `...<hr>✅ <Score>/10<br><ModelName>`.
    - If FAIL, revert the `☐ Done` column back to `⬜` so the worker can try again.
+   - **Self-check before writing:** if the `☐ Done` column names **you** as the executor, you are validating your own work. Say so explicitly in the report and score conservatively — or better, hand it to a different model (§10.2 rule 10 exists precisely to prevent this). **Unless the row's `Requires` tag is 🧠 Planner** — those are exempt: a Planner row produces a decision rather than a diff, so validating your own is allowed and expected. Still name yourself as both executor and validator in the report; an exemption is not a reason to hide the fact.
+5. **Re-sync ALL THREE derived blocks** in the plan file — mandatory, same pass, in this order, per `_shared/output_conventions.md` §10.4:
+   **(0)** the `> **Status:**` callout · **(1)** `## 🌊 Next Executable Sequence` · **(2)** `## ▶️ How to run this plan` (`wb-flow next <plan.md> --embed`) · **(3)** `## 🧭 What's Next?` (progress line + next actions).
+   Validation is the state change that *removes* work from the schedule — and it is the one that flips a plan to `✅ CLOSED` — so a stale block after a `/wbValid` run is the most misleading kind. A row that is now Done **and** Valid must disappear from the matrix entirely. **Finish by running the §10.4 sync oracle.**
+   Rebuild the matrix whole (never hand-edit one cell):
+   - **On PASS:** the row is now Done **and** Valid → it disappears from the matrix entirely (§10.2 rule 8), and its paired validation cell goes with it. Any task whose only blocker was this id moves up a wave. If nothing is left, replace the matrix with `**All tasks complete — nothing to schedule.**`
+   - **On FAIL:** you just reverted `☐ Done` to `⬜` → the row **re-enters** the waves as a 🔨 Worker (or its original `Requires` role) dispatch, and its paired validation moves back to the following wave. Note the failure reason in Wave notes so the next executor doesn't repeat it, and recommend a **different worker** than the one who failed.
+   - Re-run the collision check on every parallel row you emit.
+   - If the plan file has no `🌊 Next Executable Sequence` section, add one (§10.5).
 
 ## ━━━ §IDEAS: INSTRUCTIONS (IDEAS MODE) ━━━
 

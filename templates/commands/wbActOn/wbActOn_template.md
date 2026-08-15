@@ -1,5 +1,7 @@
 # /wbActOn: Execution Template
 
+> Conforms to output_conventions v1.12 · template v1.0
+
 
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
@@ -27,12 +29,12 @@ The mode is **detected from the input type**:
 | Input | Mode | Output path |
 |---|---|---|
 | File under `.wb/workflows/reports/` | **Mirror** | `<target>/.wb/workflows/reports/<date>/actions/action_<name>_<date>.md` (Entry #N) |
-| File anywhere else | **Side-car** | Anchored at monorepo root: `frontEnd/wbc-ui/core2/.wb/workflows/reports/<date>/actions/action_<name>_<date>.md` (Entry #N) |
+| File anywhere else | **Side-car** | Anchored at monorepo root: `<monorepo-root>/.wb/workflows/reports/<date>/actions/action_<name>_<date>.md` (Entry #N) |
 | Folder | **Pick-then-process** | Lists `*.md` under `<folder>/.wb/workflows/reports/`, asks which |
 
 **With `--wbPlan`:** also appends a plan entry to `plans/plan_<target>_<date>.md` — one file per day per scope (no extra suffixes), with N sections (one per 🔵 finding), worker/validator model pairs per task. If the plan file already exists, append as Entry #N.
 
-**Outputs never go to `docs/ai_reference/`** — that folder is canon-only. The reference walkthrough at `start_here/from_audit_to_action_wb-core_walkthrough.md` is a hand-curated example, not a runtime output location.
+**Outputs never go to `docs/ai_reference/`** — that folder is canon-only. Reference walkthroughs are hand-curated examples, not runtime output locations.
 
 **Multi-model:** the same source can be processed by N different models — each appends a new Entry #N to the same file, tagged `*(ModelName — HH:MM)*`. Diff entries to compare opinions.
 
@@ -60,13 +62,13 @@ Skip it after: `/wbDebug`, `/wbDeploy`, `/wbGit`, `/wbClean`, `/wbRefactor`, `/w
 
 | Color | Decision | Output includes | Default recommended model |
 |---|---|---|---|
-| 🟢 | One-sentence work (simple) | Exact one-shot prompt to paste back | Sonnet 4 / Qwen3 Coder |
-| 🟢 | One-sentence work (subtle logic) | Same | Claude Opus 4 |
-| 🔴 | Console error | `/wbDebug "<exact error>"` | Claude Opus 4 |
-| 🟡 | File-level mess (sweep) | `/wbClean <pkg>` | Qwen3 Coder / Gemini Flash |
-| 🟡 | File-level mess (refactor) | `/wbRefactor <file>` with target prompt | Claude Opus 4 |
-| 🟣 | Strategic / business | One-shot prompt to draft the strategy memo | Claude Opus 4 / Gemini 3.1 Pro |
-| 🔵 | Multi-step coordinated (decomposition) | `/wbPlan` invocation with goal / constraints / out-of-scope | Claude Opus 4 |
+| 🟢 | One-sentence work (simple) | Exact one-shot prompt to paste back | DeepSeek V4 Pro / Qwen 3.7 Plus |
+| 🟢 | One-sentence work (subtle logic) | Same | Claude (auto) |
+| 🔴 | Console error | `/wbDebug "<exact error>"` | Claude (auto) |
+| 🟡 | File-level mess (sweep) | `/wbClean <pkg>` | Qwen 3.7 Plus / Gemini 3.1 Pro |
+| 🟡 | File-level mess (refactor) | `/wbRefactor <file>` with target prompt | Claude (auto) |
+| 🟣 | Strategic / business | One-shot prompt to draft the strategy memo | Claude (auto) / Gemini 3.1 Pro |
+| 🔵 | Multi-step coordinated (decomposition) | `/wbPlan` invocation with goal / constraints / out-of-scope | Claude (auto) |
 | 🔵 | Multi-step coordinated (per-task execution) | Per-task entries in the plan file | varies — assigned per task |
 
 The recommended model is **advisory** — the user can override. But always state one explicitly; never leave it as "you decide."
@@ -118,12 +120,9 @@ Other `/wb*` commands don't take these flags because they either *do* the work d
 
 ## Reference example
 
-The canonical, working output is:
-[from_audit_to_action_wb-core_walkthrough.md](../../../start_here/from_audit_to_action_wb-core_walkthrough.md)
+Run `/wbAudit <scope> --act` to produce a canonical action file. Every `/wbActOn` run matches the structure, density, and tone of that output exactly.
 
-Built from `/wbAudit packages/wb-core/` on 2026-04-26. Every future `/wbActOn` run matches its structure, density, and tone exactly.
-
-> For deeper reading: [`docs_claude/commands/wbActOn/wbActOn_practical_claude.md`](../../docs/docs_claude/commands/wbActOn/wbActOn_practical_claude.md) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+> For deeper reading: [`wbActOn_practical.md`](https://flow.wbc-ui.com/commands/wbActOn/wbActOn_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
 
 <!-- FLAGS_TABLE_START -->
 ## Flags & shortcuts
@@ -134,16 +133,25 @@ Both forms are equivalent — pass either:
 |---|---|
 | `--act` | `-a` |
 | `--wbPlan` | `-P` |
+| `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
+| `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
+| `--archive` | `-A` | **Universal** (`_shared/output_conventions.md` §13). Consolidate first, then retire every superseded `<DD>/actions/` folder into `.wb/workflows/archives/` at the same depth. `--archive=all` sweeps every category; `--dry-run` previews. Shell out to `wb-flow archive` — never `mv` by hand. Never implied by another flag. |
 
 `-h` / `--help` / `--h` (any command) prints this help block instead of executing.
 ## Self-correct mode (dual-mode invocation)
 
 ```
 /wbActOn <scope_folder>           # normal mode — produce a fresh output file
-/wbActOn <previous_output_file>   # self-correct mode — verify & repair the file in place
+/wbActOn <previous_output_file>   # consolidate mode — absorb every still-open item from older actions/ files, then repair in place
+/wbActOn <previous_output_file> --archive   # …and then retire the actions/ folders it just superseded
 ```
 
 When the first arg is an existing output file from a prior `/wbActOn` run (detected by its first H1 — see this template's **Detection** section), the command runs in **verify-and-repair** mode: gap-fills missing fields, normalizes links, ticks done/valid checkboxes whose reports exist, never rewrites authored content. See [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §3.
+
+**Consolidation (§13.2) runs first, before any repair.** Sweep this scope's whole `reports/` tree for other `action_<scope>_*.md` files and absorb every item still open into THIS file — de-duplicated on the item's text (never its ID, which restarts per file), each carrying a relative `Origin` link back to the oldest file that raised it. Sources are read, never modified.
+
+**Archiving is opt-in and never implied.** With `--archive`, and only once consolidation has completed, retire the superseded folders by shelling out to the CLI — `wb-flow archive <this file> --dry-run` first, read the move list, then apply. Without the flag, merely offer it in `What's Next?`. Archiving before consolidating does not delete an open item; it makes it invisible, which is worse. Full contract: [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §13.
+
 
 <!-- FLAGS_TABLE_END -->
 <!-- HELP_GATE_END -->
@@ -155,6 +163,8 @@ Before processing `$ARGUMENTS`, normalize these short-form flags to their long e
 
 - `-a` → `--act`
 - `-P` → `--wbPlan`
+- `-A` → `--archive`   *(universal — consolidate-then-sweep, §13)*
+- `-n` → `--dry-run`   *(universal — preview a sweep)*
 
 The rest of this template documents only the long forms; the substitution above is the only place short forms are mentioned.
 <!-- FLAG_NORMALIZE_END -->
@@ -264,13 +274,13 @@ For every finding, walk the decision tree above. For each callout:
 
 | Task type | Recommended model | Why |
 |---|---|---|
-| 🟢 One-shot inline (deterministic, narrow) | **Sonnet 4** or **Qwen3 Coder** | Fast, cheap, enough capability |
-| 🟢 One-shot inline (touches subtle logic) | **Claude Opus 4** | Pays off for correctness on tricky one-liners |
-| 🔴 /wbDebug | **Claude Opus 4** | Root-cause analysis benefits from reasoning |
-| 🟡 /wbClean (sweep) | **Qwen3 Coder** or **Gemini Flash** | Repetitive, high-throughput |
-| 🟡 /wbRefactor (file-level) | **Claude Opus 4** | Cross-file judgment, behavior preservation |
-| 🟣 Strategic memo | **Claude Opus 4** or **Gemini 3.1 Pro** | Long-form synthesis |
-| 🔵 /wbPlan (task decomposition) | **Claude Opus 4** | Coordination + dependency reasoning |
+| 🟢 One-shot inline (deterministic, narrow) | **DeepSeek V4 Pro** or **Qwen 3.7 Plus** | Fast, cheap, enough capability |
+| 🟢 One-shot inline (touches subtle logic) | **Claude (auto)** | Pays off for correctness on tricky one-liners |
+| 🔴 /wbDebug | **Claude (auto)** | Root-cause analysis benefits from reasoning |
+| 🟡 /wbClean (sweep) | **Qwen 3.7 Plus** or **Gemini 3.1 Pro** | Repetitive, high-throughput |
+| 🟡 /wbRefactor (file-level) | **Claude (auto)** | Cross-file judgment, behavior preservation |
+| 🟣 Strategic memo | **Claude (auto)** or **Gemini 3.1 Pro** | Long-form synthesis |
+| 🔵 /wbPlan (task decomposition) | **Claude (auto)** | Coordination + dependency reasoning |
 | 🔵 /wbPlan (per-task execution) | varies — assign per task in the plan | See §"--wbPlan flag" below |
 
 The recommendation is advisory; the user can override. But always state one explicitly — never leave it as "you decide."
@@ -333,7 +343,7 @@ The `docs/ai_reference/` folder is **reference-only** — never write outputs th
 **Filename rules:**
 - `<short_name>` = source basename minus type prefix and timestamp (e.g., `wb-core`, not `audit_wb-core_202604260500`)
 - `<target_scope>` for plan files = the folder scope only (e.g., `wb-core`), no issue/source qualifiers
-- `<target>` = the original source's package/app folder; for non-`/wb*` sources outside any target, use the monorepo root: `frontEnd/wbc-ui/core2/.wb/workflows/reports/`
+- `<target>` = the original source's package/app folder; for non-`/wb*` sources outside any target, use the monorepo root: `<monorepo-root>/.wb/workflows/reports/`
 - Model identity is in the **Entry #N header**, not the filename
 
 **Example outputs** for `/wbActOn audit_wb-core_20260429.md --wbPlan` run by Claude Opus 4.7:
@@ -394,11 +404,11 @@ When you are the **second (or Nth) model** appending to an existing action or pl
 
 | Decision | Count | Examples | Recommended model mix |
 |---|---|---|---|
-| 🟢 Inline | N | <2-3 examples> | <e.g., 5× Sonnet 4, 3× Opus 4> |
-| 🔴 /wbDebug | N | ... | <e.g., 1× Opus 4> |
-| 🟡 /wbClean + /wbRefactor | N | ... | <e.g., 2× Opus 4 (refactor) + 1× Qwen3 (clean)> |
-| 🟣 Strategic | N | ... | <e.g., 9× Opus 4> |
-| 🔵 /wbPlan | N | ... | <e.g., 3× Opus 4 (planner) + per-task mix> |
+| 🟢 Inline | N | <2-3 examples> | <e.g., 5× DeepSeek V4 Pro, 3× Claude (auto)> |
+| 🔴 /wbDebug | N | ... | <e.g., 1× Claude (auto)> |
+| 🟡 /wbClean + /wbRefactor | N | ... | <e.g., 2× Claude (auto) (refactor) + 1× Qwen 3.7 Plus (clean)> |
+| 🟣 Strategic | N | ... | <e.g., 9× Claude (auto)> |
+| 🔵 /wbPlan | N | ... | <e.g., 3× Claude (auto) (planner) + per-task mix> |
 
 > **Reading the tally:** State whether the source's surface is bigger than the actual work. (Often it is.)
 
@@ -471,10 +481,7 @@ The plan file mirrors your existing `smartprompt_plan_*` task-table convention (
 
 ## ━━━ REFERENCE EXAMPLE ━━━
 
-The canonical, working example is:
-**[from_audit_to_action_wb-core_walkthrough.md](../../0_start_here/from_audit_to_action_wb-core_walkthrough.md)** (kept under `docs/ai_reference/0_start_here/` as a **reference document**, not a runtime output — runtime outputs go under `<target>/.wb/workflows/reports/`)
-
-Built from `/wbAudit packages/wb-core/` output on 2026-04-26 by Claude Opus 4.7. Match its **structure, tone, and density of action callouts** exactly. Notable patterns to replicate:
+The canonical, working example is produced by running `/wbAudit <scope> --act` — the action file it generates is the reference. Match its **structure, tone, and density of action callouts** exactly. Notable patterns to replicate:
 - Per-section blockquote callouts (every prose section gets one)
 - `<Model> action` column appended to every table — column header uses the active triage model's name
 - Every callout (table row or blockquote) includes a **`Recommended model: <name>`** line
@@ -514,6 +521,8 @@ Built from `/wbAudit packages/wb-core/` output on 2026-04-26 by Claude Opus 4.7.
 - If a **folder** is given → list the most recent `*.md` files under `<folder>/.wb/workflows/reports/` and ask which to act on. If only one candidate exists, proceed without asking.
 
 **End every action file with:**
+
+**Before "What's Next?", append the 🌊 Next Executable Sequence** — the wave × role matrix defined in `_shared/output_conventions.md` §10 (canonical: rows = parallel-safe waves, columns = the four `Requires` roles, each cell a full invocable command + `→ *Model · ~$cost*`, mandatory collision check, required Wave notes). Source rows: the ranked execution thread you just produced — its rank order sets the wave order, and its `Requires` column sets the columns. Emit it only when there are **2 or more** actionable items; for a single one, print `Next: <command> → *Model*` instead. Also print the matrix in the chat response. On a self-correct pass, insert it if absent and recompute it in place if present (§10.5).
 
 ## 🧭 What's Next?
 

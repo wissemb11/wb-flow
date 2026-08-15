@@ -1,5 +1,7 @@
 # wbIdea Template v1.1 — The Ideas Pipeline
 
+> Conforms to output_conventions v1.12 · template v1.1
+
 
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
@@ -71,7 +73,7 @@ Skim these before deciding. If the ideas are vague, the file is weak; re-run wit
 
 `/wbIdea` answers one question: *"Is this worth doing eventually?"* Not "what are the steps?" (that's `/wbPlan`) and not "what could we build?" (that's `/wbVision`).
 
-> For deeper reading: [`docs_claude/commands/wbIdea/wbIdea_practical_claude.md`](../../docs/docs_claude/commands/wbIdea/wbIdea_practical_claude.md) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+> For deeper reading: [`wbIdea_practical.md`](https://flow.wbc-ui.com/commands/wbIdea/wbIdea_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
 
 <!-- FLAGS_TABLE_START -->
 ## Flags & shortcuts
@@ -87,16 +89,25 @@ Both forms are equivalent — pass either:
 | `--promote` | `-p` | Promote idea(s) to today's plan file |
 | `--reject` | `-x` | Mark idea(s) as 🚫 Rejected |
 | `--defer` | `-d` | Mark idea(s) as ⏸️ Deferred |
+| `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
+| `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
+| `--archive` | `-A` | **Universal** (`_shared/output_conventions.md` §13). Consolidate first, then retire every superseded `<DD>/ideas/` folder into `.wb/workflows/archives/` at the same depth. `--archive=all` sweeps every category; `--dry-run` previews. Shell out to `wb-flow archive` — never `mv` by hand. Never implied by another flag. |
 
 `-h` / `--help` / `--h` (any command) prints this help block instead of executing.
 ## Self-correct mode (dual-mode invocation)
 
 ```
 /wbIdea <scope_folder>           # normal mode — produce a fresh output file
-/wbIdea <previous_output_file>   # self-correct mode — verify & repair the file in place
+/wbIdea <previous_output_file>   # consolidate mode — absorb every still-open item from older ideas/ files, then repair in place
+/wbIdea <previous_output_file> --archive   # …and then retire the ideas/ folders it just superseded
 ```
 
 When the first arg is an existing output file from a prior `/wbIdea` run (detected by its first H1 — see this template's **Detection** section), the command runs in **verify-and-repair** mode: gap-fills missing fields, normalizes links, ticks done/valid checkboxes whose reports exist, never rewrites authored content. See [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §3.
+
+**Consolidation (§13.2) runs first, before any repair.** Sweep this scope's whole `reports/` tree for other `idea_<scope>_*.md` files and absorb every item still open into THIS file — de-duplicated on the item's text (never its ID, which restarts per file), each carrying a relative `Origin` link back to the oldest file that raised it. Sources are read, never modified.
+
+**Archiving is opt-in and never implied.** With `--archive`, and only once consolidation has completed, retire the superseded folders by shelling out to the CLI — `wb-flow archive <this file> --dry-run` first, read the move list, then apply. Without the flag, merely offer it in `What's Next?`. Archiving before consolidating does not delete an open item; it makes it invisible, which is worse. Full contract: [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §13.
+
 
 <!-- FLAGS_TABLE_END -->
 <!-- HELP_GATE_END -->
@@ -113,6 +124,8 @@ Before processing `$ARGUMENTS`, normalize these short-form flags to their long e
 - `-p` → `--promote`
 - `-x` → `--reject`
 - `-d` → `--defer`
+- `-A` → `--archive`   *(universal — consolidate-then-sweep, §13)*
+- `-n` → `--dry-run`   *(universal — preview a sweep)*
 
 The rest of this template documents only the long forms; the substitution above is the only place short forms are mentioned.
 <!-- FLAG_NORMALIZE_END -->
@@ -137,6 +150,22 @@ The rest of this template documents only the long forms; the substitution above 
 1. If `idea_<folder>_<YYYYMMDD>.md` already exists → APPEND your ideas as a new Entry #N section (tagged `*(ModelName — HH:MM)*`).
 2. If it does not exist → CREATE it.
 3. If multiple `idea_*<YYYYMMDD>*.md` files exist for the same day (e.g., from a prior bug) → MERGE them into one `idea_<folder>_<YYYYMMDD>.md`, combining all idea tables.
+
+### Consolidate & Archive (`/wbIdea <idea_file.md>` · `--archive`)
+
+```
+/wbIdea <idea_file.md>              # consolidate: repair + absorb every live older idea
+/wbIdea <idea_file.md> --archive    # …then retire the emptied ideas/ folders
+```
+
+Full contract: [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §13. Idea-specific:
+
+1. **Absorb first.** Walk this scope's `reports/` tree for other `idea_<scope>_*.md`. An idea is **still live** unless it is `🎯 Promoted`, `🚫 Rejected` or `✅ Shipped` — those three are decided and stay where they are. De-duplicate on the idea's **premise text**, not its ID or score, and keep the **highest** score any model has given it plus an `Origin` link to the oldest file it appeared in.
+2. **Re-score on absorption, don't re-invent.** An idea that has sat unpromoted for two weeks has real evidence about its urgency; adjust the score and say why in one clause. Silently copying a stale 9/10 forward is how an idea backlog stops meaning anything.
+3. **A promoted idea's plan task is not an idea.** If absorption finds an idea marked `🎯 Promoted`, verify its plan task still exists; if the plan was archived without the task being carried forward, that is a dropped promotion — flag it in `What's Next?` rather than re-adding the idea.
+4. **Then, with `--archive` only:** `wb-flow archive <idea_file.md> --dry-run`, read the move list, then apply.
+
+**Without `--archive`,** offer it: `📋 Mechanical — N superseded idea folders hold no live ideas. → /wbIdea <this file> --archive`.
 
 ---
 
@@ -270,11 +299,13 @@ When an idea is promoted (via `--promote` flag or via `/wbValid idea_*.md --id=N
 When ideas originate from another command's output (e.g. an audit, a vision), the entry header MUST include a relative markdown link to that source file. Example:
 
 > ## 💡 Ideas — /wbVision findings *(Gemini 3.1 Pro — 14:30)*
-> - **Source:** [vision_wb-core_20260508.md](../visions/vision_wb-core_20260508.md) Entry #1
+> - **Source:** `vision_<scope>_<YYYYMMDD>.md` Entry #1
 > - **Origin Command:** `/wbVision packages/wb-core/`
 > - **Ideas registered:** 3
 
 ━━━ "WHAT NEXT" ━━━
+
+**Before "What's Next?", append the 🌊 Next Executable Sequence** — the wave × role matrix defined in `_shared/output_conventions.md` §10 (canonical: rows = parallel-safe waves, columns = the four `Requires` roles, each cell a full invocable command + `→ *Model · ~$cost*`, mandatory collision check, required Wave notes). Source rows: ideas marked `🎯 Promoted` (never the pending or rejected ones). Emit it only when there are **2 or more** promoted ideas; for a single one, print `Next: <command> → *Model*` instead. Also print the matrix in the chat response. On a self-correct pass, insert it if absent and recompute it in place if present (§10.5).
 
 In **Fresh-Idea Mode**, end the idea file with:
 
@@ -302,28 +333,28 @@ Format required:
 ### 📚 Base Reference Files
 | Type | File | Description |
 |---|---|---|
-| Foundational | [context.md](../../../../../context.md) | Permanent Identity and Architecture (Source of Truth) |
+| Foundational | [context.md](../../../../../../../context.md) | Permanent Identity and Architecture (Source of Truth) |
 | Snapshot | [context_<scope>_<date>.md](../contexts/context_<scope>_<date>.md) | Daily snapshot used for current session context |
-| Foundational | [dev.md](../../../../../dev.md) | Permanent Development Commands and Status |
+| Foundational | [dev.md](../../../../../../../dev.md) | Permanent Development Commands and Status |
 
 ### Local Files
 
 | Category | File (day N) | File (day N-1) | Source Command |
 |---|---|---|---|
-| Identity | [context.md](../../../../../context.md) | — | Foundational Identity & Architecture |
-| Identity | [dev.md](../../../../../dev.md) | — | Foundational Dev Commands & Status |
+| Identity | [context.md](../../../../../../../context.md) | — | Foundational Identity & Architecture |
+| Identity | [dev.md](../../../../../../../dev.md) | — | Foundational Dev Commands & Status |
 | Reports | [audit_<scope>_<date>.md](../audits/audit_<scope>_<date>.md) | [audit_<scope>_<prev-date>.md](../../<prev-DD>/audits/audit_<scope>_<prev-date>.md) | `/wbAudit` |
 | Reports | [plan_<scope>_<date>.md](../plans/plan_<scope>_<date>.md) | [plan_<scope>_<prev-date>.md](../../<prev-DD>/plans/plan_<scope>_<prev-date>.md) | `/wbPlan` |
 | Reports | **idea_<scope>_<date>.md** *(this file)* | [idea_<scope>_<prev-date>.md](../../<prev-DD>/ideas/idea_<scope>_<prev-date>.md) | `/wbIdea` |
 | Reports | [next_<scope>_<date>.md](../nexts/next_<scope>_<date>.md) | [next_<scope>_<prev-date>.md](../../<prev-DD>/nexts/next_<scope>_<prev-date>.md) | `/wbNext` |
 
-### Global Files (`core2/` monorepo root)
+### Global Files (`<monorepo-root>/` monorepo root)
 
 | Category | File (day N) | File (day N-1) | Source Command |
 |---|---|---|---|
-| Reports | [audit_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_core2_<date>.md) | [audit_core2_<prev-date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<prev-DD>/audits/audit_core2_<prev-date>.md) | `/wbAudit core2/` |
-| Reports | [plan_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_core2_<date>.md) | [plan_core2_<prev-date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<prev-DD>/plans/plan_core2_<prev-date>.md) | `/wbPlan core2/` |
-| Tracks | [track_core2_<date>.md](../../../../../../../../../../.wb/workflows/tracks/<YYYY>/<MM>/<DD>/track_core2_<date>.md) | [track_core2_<prev-date>.md](../../../../../../../../../../.wb/workflows/tracks/<YYYY>/<MM>/<prev-DD>/track_core2_<prev-date>.md) | `/wbTrack core2/` |
+| Reports | [audit_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_core2_<date>.md) | [audit_core2_<prev-date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<prev-DD>/audits/audit_core2_<prev-date>.md) | `/wbAudit <monorepo-root>/` |
+| Reports | [plan_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_core2_<date>.md) | [plan_core2_<prev-date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<prev-DD>/plans/plan_core2_<prev-date>.md) | `/wbPlan <monorepo-root>/` |
+| Tracks | [track_core2_<date>.md](../../../../../../../../../../.wb/workflows/tracks/<YYYY>/<MM>/<DD>/track_core2_<date>.md) | [track_core2_<prev-date>.md](../../../../../../../../../../.wb/workflows/tracks/<YYYY>/<MM>/<prev-DD>/track_core2_<prev-date>.md) | `/wbTrack <monorepo-root>/` |
 
 <details>
   <summary>📂 Sub-Package: [Active Package Name]</summary>

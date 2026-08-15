@@ -1,73 +1,48 @@
-# wbClean — Expert Architecture
+# /wbClean — Expert
 
-## System Role
-Scans for dead code, unused files, and obsolete dependencies across the entire source tree.
+## What `/wbClean` architecturally is
 
-## Detection Strategies
+A **debris-detection reporter** that performs static analysis on a package to surface cleanup candidates: forgotten dev artifacts, dead files, unused imports, commented-out blocks, stale TODOs. Outputs a structured report with per-finding confidence levels. Does not mutate code.
 
-### Static Analysis (Language-Agnostic)
-- **Unreferenced exports:** Scans all `.js`, `.ts`, `.vue`, `.py` files for exported symbols that no other file imports. Uses regex-based cross-reference matching — maps all `import`/`require`/`from` statements, then flags orphans.
-- **Dead files:** Files not reachable from any entry point (`main.js`, `index.ts`, `app.vue`, `setup.py`). Builds a dependency graph from root entry points using import resolution. Any `.md` or source file not in the graph is flagged.
-- **Orphaned assets:** Images, fonts, JSON blobs in `src/assets/` or `public/` not referenced by any source file.
+The architectural contribution is the **detection/action separation** — the command deliberately refuses to delete things itself. This is the inverse of linter auto-fix tooling, and it matters because "unused" is heuristic in ways that auto-deletion cannot recover from.
 
-### Dependency Analysis
-- **package.json:** Compares `dependencies`/`devDependencies` against actual `import`/`require` usage across the tree. Flags unused packages (`lodash` installed but never imported).
-- **Unused configs:** Files like `.eslintrc.js`, `tsconfig.json`, `babel.config.js` that reference plugins no longer in `node_modules/`.
+## Why detect-without-delete
 
-### Heuristic Scoring
-Each finding gets a confidence score:
+Three classes of false positive make auto-delete dangerous:
 
-| Score | Meaning | Action |
-|---|---|---|
-| 90-100% | Symbol confirmed unreachable (no imports, no re-exports) | Safe to delete |
-| 50-89% | Symbol imported but never used in any function body | Manual review |
-| 10-49% | Weak signal (similar name, different module) | Needs human judgment |
+1. **Dynamic references.** `const mod = await import(someComputedPath)` — static analysis can't prove `someComputedPath` points to a "dead" file.
+2. **Build-time / config references.** A file referenced only from `vite.config.js` externals lists or from a string concatenation in a build script looks dead to source-level scanning.
+3. **Intentional future-state.** Code commented out because you'll re-enable it in two weeks looks the same as code commented out three years ago and forgotten.
 
-## Execution Flow
+An auto-delete tool either ships those false positives (silent data loss) or narrows the filter so aggressively that it misses most real debris. `/wbClean` picks the third option: surface candidates with confidence levels, let the human decide.
 
-```
-/wbClean
-  ├─ 1. Parse entry points from package.json "main"/"bin"
-  ├─ 2. Walk import graph (BFS, max depth = 50)
-  ├─ 3. Collect all referenced files + symbols
-  ├─ 4. Diff against filesystem → dead files
-  ├─ 5. Diff symbols per file → dead exports
-  ├─ 6. Check package.json deps vs actual imports
-  └─ 7. Output report with confidence scores
-```
+## Three design decisions worth naming
 
-The command does **not** delete anything. It produces a ranked report. Deletion is always manual or via `/wbWork --task=clean`.
+### 1. Confidence levels as first-class signal
+HIGH vs. MEDIUM isn't decoration — it drives triage. HIGH candidates (unused imports, `console.log`) are machine-verifiable; MEDIUM candidates (dead files, commented blocks) depend on context the command can't see. Reporting both with the same weight would make the user either trust everything or trust nothing.
 
-## Edge Cases & Failure Modes
+### 2. Five-category taxonomy
+Not "cleanup issues" — five named categories (dev artifacts, dead files, unused imports, commented-out, TODOs). Each has a different semantics and a different recommended action. Collapsing them into one bucket loses that distinction.
 
-| Scenario | Behavior |
-|---|---|
-| Dynamic imports (`import(pathVar)`) | Flagged as "uncertain" — reports the pattern, doesn't auto-classify |
-| Re-export chains (`export * from`) | Followed through 3 levels max to avoid infinite cycles |
-| Monorepo workspace dependencies | Treated as external (not flagged even if unused locally) |
-| Binary/data files (`.wasm`, `.blob`) | Checked by filename reference only — no content parse |
-| Minified/compiled output (`dist/`) | Excluded from scan entirely |
+### 3. The "did NOT check" section
+Same mandatory discipline as `/wbAudit`. Prevents users from treating the report as complete. Examples of explicit gaps: dynamic imports, reflection-based references, build-time string manipulation, intentional-but-old comments.
 
-## Output Format
+## Where the command leaks
 
-```
-wbClean Report — 2026-05-12
-  Files scanned: 342
-  Entry points:  3 (src/main.js, src/index.ts, bin/cli.js)
+1. **False negatives on subtle references.** Any code that constructs an import path at runtime (`import('./renderers/' + type + '.js')`) will cause the target files to be flagged as dead. `/wbClean` has no way to resolve the concatenation.
 
-  ┌──────────────────────────────────────────────────────┐
-  │ 🔴 DEAD FILES (2)                                     │
-  ├──────────────────────────────────────────────────────┤
-  │ src/legacy/utils.js     — 0 imports from any entry    │
-  │ src/mocks/test-data.json — unreferenced                │
-  ├──────────────────────────────────────────────────────┤
-  │ 🟡 UNUSED DEPENDENCIES (3)                            │
-  ├──────────────────────────────────────────────────────┤
-  │ lodash (^4.17.21)       — no import found             │
-  │ moment (^2.29.4)        — replaced by date-fns        │
-  └──────────────────────────────────────────────────────┘
+2. **No git-age signal.** A file that was deleted, re-added, and is now unused looks the same as a file that's been unused for two years. Git history would be a useful signal — it isn't used.
 
-  Estimated cleanup: ~2.4 MB freed
-```
+3. **Unused exports vs. unused files.** A file might have 5 exports, 4 of which are unused and 1 of which is heavily used. The file is not dead, but 80% of its content is. `/wbClean` reports "unused imports" but not "unused exports" — it misses the second half.
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+4. **No cycle detection.** Two files that only import each other and are imported by nothing else are collectively dead, but each points to the other, so neither looks dead in isolation. Not detected.
+
+5. **TODO staleness is not measured.** A 3-year-old TODO has the same priority as a TODO from yesterday. `git blame` would fix this; not wired up.
+
+What `wb-flow-docs`'s playbook gets wrong about `/wbClean`: framing it as a general-purpose cleanup command, when the actual strength is targeted dead-code detection via usage analysis, not blanket file deletion. The 'dry-run first' discipline is structural, not optional.
+
+## One-paragraph verdict
+
+A debris-detection reporter whose architectural contribution is refusing to auto-delete — a correct inversion given that heuristic "unused" detection is fundamentally imprecise in dynamic languages. The five-category taxonomy + confidence-level discipline + mandatory "did NOT check" section are all right design choices. Weakest in dynamic-path analysis, git-age signal, unused-exports-within-files, cycle detection, and TODO staleness. Correct for solo pre-release cleanup; would need cycle analysis and git integration to become a serious monorepo hygiene tool. The detect-don't-delete posture is the design choice that separates this from lint-autofix culture, and it should not be reversed.
+
+---

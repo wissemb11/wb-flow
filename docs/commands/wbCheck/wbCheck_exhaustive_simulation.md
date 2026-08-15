@@ -1,92 +1,255 @@
-# wb-flow Protocol: /wbCheck Execution & Simulation Specification
+# /wbCheck — Exhaustive Simulation ()
 
-This document defines the **exhaustive behavior matrix** for the `/wbCheck` command. It serves as the definitive reference for how the agent performs rigorous static analysis, type checking, dead-link resolution in documentation, and grammar compliance.
+`/wbCheck` is the static analyzer. It validates code health (types, signatures) and documentation integrity (broken links, spelling, schema adherence) without executing anything. The hard distinction: `/wbAudit` finds **logic and security flaws** (dynamic analysis), `/wbValid` runs **CI tests** (dynamic execution), `/wbCheck` verifies **syntactic and referential contracts** (purely static). No code runs. No tests execute.
+
+Read this if you want to know which analysis engine fires per file type, what `--fix` can and cannot auto-correct, and why link checking is a first-class feature for a monorepo with 50+ markdown files.
 
 ---
 
-## 1. Role & Definition Matrix
-**Role:** The Static Analyzer & Compliance Checker
-**Target:** Validates code health (TypeScript/JSDoc types) and documentation integrity (broken links, markdown linting, spell check).
-**Core Protocol:** Strict "Zero Tolerance" reporting. Unlike `/wbAudit` (which finds logic/security flaws) or `/wbValid` (which runs dynamic CI tests), `/wbCheck` is entirely static. It verifies that the codebase conforms to strict syntactic and referential contracts.
+## 1. Role & target
 
-| Scenario | System Behavior |
+| Aspect | Behavior |
 |---|---|
-| Target is Source Code | **[PROCEED]** Analyzes JSDoc/TypeScript interfaces. Flags `any` types, missing returns, and signature mismatches. |
-| Target is Markdown Docs | **[PROCEED]** Scans all relative and absolute links. Pings URLs to ensure 200 OK. Lints for structural errors. |
-| Target is JSON/Config | **[PROCEED]** Validates schema adherence (e.g., ensuring `tsconfig.json` matches strict mode constraints). |
+| **Role** | The Static Analyzer & Compliance Checker. |
+| **Target** | Source code (type checking), markdown (link checking, grammar), JSON/config (schema validation). |
+| **Cell scope** | None. `/wbCheck` is purely diagnostic. |
+| **Side effects allowed** | With `--fix`: auto-correcting trivial errors (typos, basic type casts). |
+| **Side effects forbidden** | Modifying execution logic, running tests, altering plan state. |
+
+The "purely static" constraint means `/wbCheck` can run on any commit, any branch, any state — it doesn't need a running environment, installed dependencies, or a valid build. Compare to `/wbValid` which needs the test suite to execute, or `/wbAudit` which reads runtime behavior.
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix
-`/wbCheck` uses strict file extensions to determine which static analysis engine to engage.
+## 2. Argument resolution
 
-| Argument Type | Example | Parsing Logic | Simulated Output Profile |
-|---|---|---|---|
-| Specific File Path | `Command: /wbCheck docs/readme.md` | Locks onto file. Runs Markdown Link Checker. | Outputs list of 404 broken links and spelling errors. |
-| Directory Path | `Command: /wbCheck src/` | Scans directory. Runs Type Checker. | Generates a report of all type inconsistencies in `src/`. |
-| Comma-Separated | `Command: /wbCheck src/app.js,docs/app.md` | Correlates files. | Checks if the documentation matches the actual exported types in the code. |
-| Wildcard Glob | `Command: /wbCheck **/*.md` | Massive sweep. | Audits the entire monorepo documentation ecosystem for broken links. |
+The analysis engine is auto-selected by file extension:
 
----
-
-## 3. Flag Processing Matrix (Isolated Capabilities)
-
-| Flag | Shortcut | Purpose | Example | Simulated Output Impact |
-|---|---|---|---|---|
-| `--types` | `-t` | Forces execution of the strict TypeScript/JSDoc type checker. | `Command: /wbCheck src/ -t` | `[TYPES] Found 4 instances of implicit 'any'.` |
-| `--links` | `-l` | Forces execution of the Markdown Link Checker. | `Command: /wbCheck docs/ -l` | `[LINKS] Scanned 140 links. 3 returned 404 Not Found.` |
-| `--grammar` | `-g` | Runs a spelling and grammar compliance check on markdown files. | `Command: /wbCheck docs/ -g` | `[GRAMMAR] Found 2 misspelled words: 'teh', 'implementatoin'.` |
-| `--fix` | `-f` | Auto-corrects trivial errors (e.g., spelling, basic type casting). | `Command: /wbCheck docs/ -g -f` | `[FIX] Auto-corrected 2 typos. Saved files.` |
-
----
-
-## 4. Omni-Channel Execution Pipeline (Flag Chaining)
-
-### 💠 The "Massive Documentation Integrity Sweep" (`**/*.md -l -g -f`)
-**Context:** The technical writer just finished a massive overhaul of the `frontEnd/wbc-ui/core2/packages/wb-flow/templates` directory and wants to ensure there are no dead links or typos before pushing to the `main` branch.
-**Command Executed:** `/wbCheck **/*.md -l -g -f`
-**Simulated Protocol Chain:**
-1. Resolves glob to 50+ markdown files.
-2. Extracts 400+ internal and external URLs.
-3. Pings all URLs in parallel (`-l`).
-4. Runs grammar engine (`-g`).
-5. Auto-fixes the spelling errors (`-f`).
-**Simulated Output:**
-```markdown
-> Command: /wbCheck **/*.md -l -g -f
-
-[SYSTEM] Initiating Documentation Integrity Sweep...
-[LINKS] Pinging 412 URLs...
-[LINKS] 🚨 ERROR: `[WBC.js](../../../../../frontEnd/wbc-ui/core2/packages/wb-core/src/WBC.js)` is broken (File moved to src/core/WBC.js).
-[GRAMMAR] Scanning 20,000 words... Found 4 typos.
-[FIX] Auto-corrected typos.
-[REPORT] Run `/wbCheck -l` again after fixing the broken WBC.js link manually.
-```
-
-### 💠 The "Strict Type Gate" (`src/**/*.js -t`)
-**Context:** The team is migrating from vanilla JS to JSDoc-typed JS. They want a report of all remaining loose types.
-**Command Executed:** `/wbCheck src/**/*.js -t`
-**Simulated Output:**
-```markdown
-> Command: /wbCheck src/**/*.js -t
-
-[SYSTEM] Engaging Static Type Analyzer...
-[TYPES] Scanning AST for missing JSDoc contracts.
-[REPORT] `src/utils/math.js:L12` - Parameter `x` implicitly has an 'any' type.
-[REPORT] `src/auth.js:L45` - Function `login()` lacks a @returns annotation.
-[SUCCESS] Static analysis complete. 2 violations found.
-```
-
----
-
-## 5. Operational Edge Cases & Protocol Faults
-
-| Fault Trigger | System Detection | Resolution / Output |
+| Form | Example | Engine fired |
 |---|---|---|
-| Timeout on Link Check | External server (e.g., GitHub) is rate-limiting the URL ping. | `⚠️ Warning: 5 links timed out (HTTP 429). Cannot verify integrity.` |
-| Auto-Fix Collision | Type inference is ambiguous; `-f` cannot guess the type. | `⚠️ Warning: Cannot auto-fix implicit 'any'. Manual casting required.` |
-| Logic File Grammar | User runs `-g` on a `.js` file. | `❌ Error: Grammar checking is only supported for Markdown or TXT files.` |
+| `.js`/`.ts` file | `Command: /wbCheck src/WBC.js` | Type checker — JSDoc/TypeScript type validation. |
+| `.md` file | `Command: /wbCheck docs/readme.md` | Link checker + grammar engine. |
+| `.json` file | `Command: /wbCheck tsconfig.json` | Schema validator. |
+| Directory | `Command: /wbCheck src/` | Type checker on all `.js`/`.ts` files. |
+| Glob | `Command: /wbCheck **/*.md` | Link checker across the entire doc tree. |
+
+The engine selection is deterministic — no guessing. A `.js` file always gets type checking; a `.md` file always gets link checking. To override (e.g., grammar check on a `.js` file's comments), use the flag to force.
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 3. Flag matrix
+
+| Flag | Shortcut | Purpose |
+|---|---|---|
+| `--fix` | `-f` | Auto-corrects trivial errors (typos, basic type casts). |
+
+**`--fix` limitations.** Auto-fix handles:
+- ✅ Spelling corrections in markdown
+- ✅ Simple type widening (`string | undefined` when a param is optional)
+- ❌ Ambiguous type inference (won't guess between `number` and `string`)
+- ❌ Broken link rewiring (can't know where the file moved to)
+- ❌ Logic-level type errors (won't cast `any` to a specific type)
+
+When `--fix` can't resolve an error, it leaves it in place with a `⚠️ Manual fix required` annotation. The principle: **auto-fix is conservative.** A wrong auto-fix is worse than no fix.
+
+---
+
+## 4. Pipelines (the agent-native scenarios)
+
+<script setup>
+const wbCheckSimPipelines = [
+  {
+    "title": "Documentation integrity sweep for frontEnd/wbc-ui/core2/packages/wb-flow/templates",
+    "cmd": "/wbCheck frontEnd/wbc-ui/core2/packages/wb-flow/templates/**/*.md -l -g",
+    "logs": [
+      {
+        "text": "[SYSTEM] Initiating Documentation Integrity Sweep...",
+        "type": "sys"
+      },
+      {
+        "text": "[RESOLVE] 54 markdown files found.",
+        "type": "gen"
+      },
+      {
+        "text": "[LINKS] Extracting URLs...",
+        "type": "gen"
+      },
+      {
+        "text": "[LINKS] Scanned 412 internal links, 23 external URLs.",
+        "type": "gen"
+      },
+      {
+        "text": "\u2705 398 internal links resolve correctly.",
+        "type": "gen"
+      },
+      {
+        "text": "\u274c 12 broken internal links:",
+        "type": "gen"
+      },
+      {
+        "text": "- docs/commands/wbBroadcast/wbBroadcast_practical.md \u2192 file not found",
+        "type": "gen"
+      },
+      {
+        "text": "- commands/wbWork/wbWork_examples.md \u2192 moved to docs/",
+        "type": "gen"
+      },
+      {
+        "text": "...",
+        "type": "gen"
+      },
+      {
+        "text": "\u26a0\ufe0f 2 external URLs returned non-200:",
+        "type": "gen"
+      },
+      {
+        "text": "- https://github.com/wbc-ui2/issues/402 \u2192 404 (issue was closed/deleted)",
+        "type": "gen"
+      },
+      {
+        "text": "[GRAMMAR] Scanning 54 files (82,000 words)...",
+        "type": "gen"
+      },
+      {
+        "text": "\u274c 6 typos found:",
+        "type": "gen"
+      },
+      {
+        "text": "- wbTrack_template.md:L145 \u2014 \"seperately\" \u2192 \"separately\"",
+        "type": "gen"
+      },
+      {
+        "text": "- wbActOn_template.md:L89 \u2014 \"occured\" \u2192 \"occurred\"",
+        "type": "gen"
+      },
+      {
+        "text": "...",
+        "type": "gen"
+      },
+      {
+        "text": "[REPORT] 12 broken links, 6 typos. Run with -f to auto-fix typos.",
+        "type": "gen"
+      }
+    ],
+    "note": "The `frontEnd/wbc-ui/core2/packages/wb-flow/templates/` directory has 50+ markdown files with extensive cross-linking. After the v4 documentation overhaul, verify nothing is broken:",
+    "noteType": "info"
+  },
+  {
+    "title": "Strict type gate on wb-core source",
+    "cmd": "/wbCheck core2/packages/wb-core/src/**/*.js -t",
+    "logs": [
+      {
+        "text": "[SYSTEM] Engaging Static Type Analyzer...",
+        "type": "sys"
+      },
+      {
+        "text": "[AST] Scanning 18 files for JSDoc type contracts...",
+        "type": "gen"
+      },
+      {
+        "text": "[REPORT]",
+        "type": "gen"
+      },
+      {
+        "text": "| File | Line | Issue |",
+        "type": "sys"
+      },
+      {
+        "text": "|---|---|---|",
+        "type": "sys"
+      },
+      {
+        "text": "| renderString.js | L12 | Parameter `input` in escapeHTML() implicitly has 'any' type |",
+        "type": "sys"
+      },
+      {
+        "text": "| renderString.js | L34 | Function renderTemplate() lacks @returns annotation |",
+        "type": "sys"
+      },
+      {
+        "text": "| WBC.events.js | L8 | Parameter `handler` typed as Function \u2014 consider narrowing to EventHandler |",
+        "type": "sys"
+      },
+      {
+        "text": "[SUMMARY] 3 type violations across 2 files. 16 files are clean.",
+        "type": "gen"
+      }
+    ],
+    "note": "The team is migrating from vanilla JS to JSDoc-typed JS. Report all remaining loose types:",
+    "noteType": "info"
+  },
+  {
+    "title": "Auto-fix typos after grammar check",
+    "cmd": "/wbCheck frontEnd/wbc-ui/core2/packages/wb-flow/templates/**/*.md -g -f",
+    "logs": [
+      {
+        "text": "[SYSTEM] Grammar check with auto-fix...",
+        "type": "sys"
+      },
+      {
+        "text": "[SCAN] 54 files, 82,000 words.",
+        "type": "gen"
+      },
+      {
+        "text": "[FIX] Auto-corrected 6 typos:",
+        "type": "gen"
+      },
+      {
+        "text": "\u2705 wbTrack_template.md:L145 \u2014 \"seperately\" \u2192 \"separately\"",
+        "type": "gen"
+      },
+      {
+        "text": "\u2705 wbActOn_template.md:L89 \u2014 \"occured\" \u2192 \"occurred\"",
+        "type": "gen"
+      },
+      {
+        "text": "\u2705 wbStandup_template.md:L22 \u2014 \"recommand\" \u2192 \"recommend\"",
+        "type": "gen"
+      },
+      {
+        "text": "\u2705 wbExplain_exhaustive.md:L67 \u2014 \"absraction\" \u2192 \"abstraction\"",
+        "type": "gen"
+      },
+      {
+        "text": "\u26a0\ufe0f wbPlan_template.md:L200 \u2014 \"dependancy\" \u2192 ambiguous (dependency/dependance). Manual fix required.",
+        "type": "gen"
+      },
+      {
+        "text": "\u2705 wbValid_live_demo.md:L45 \u2014 \"verifiy\" \u2192 \"verify\"",
+        "type": "gen"
+      },
+      {
+        "text": "[RESULT] 5 auto-fixed, 1 requires manual review. Files saved.",
+        "type": "gen"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbCheck" titleSuffix="Exhaustive Simulation" :pipelines="wbCheckSimPipelines" />
+
+
+### 💠 Pipeline Documentation integrity sweep for frontEnd/wbc-ui/core2/packages/wb-flow/templates
+
+The `frontEnd/wbc-ui/core2/packages/wb-flow/templates/` directory has 50+ markdown files with extensive cross-linking. After the v4 documentation overhaul, verify nothing is broken:
+
+
+### 💠 Pipeline Strict type gate on wb-core source
+
+The team is migrating from vanilla JS to JSDoc-typed JS. Report all remaining loose types:
+
+
+### 💠 Pipeline Auto-fix typos after grammar check
+
+---
+
+## 5. Edge cases & refusals
+
+| Trigger | What `/wbCheck` does |
+|---|---|
+| `--fix` on an ambiguous type error | `⚠️ Cannot auto-fix implicit 'any' in processToken(). Manual casting required.` |
+| Empty directory (no files match glob) | `ℹ️ No files found matching pattern. Nothing to check.` |
+
+The unifying principle: **`/wbCheck` is the integrity layer.** It answers "is the codebase internally consistent?" — do the types match, do the links resolve, is the spelling correct? It's the static complement to `/wbAudit` (dynamic logic) and `/wbValid` (dynamic tests). All three can run on the same codebase and find different classes of problems.

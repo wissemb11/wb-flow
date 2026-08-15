@@ -1,5 +1,7 @@
 # wbRelease Template v2.1
 
+> Conforms to output_conventions v1.12 · template v2.1
+
 
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
@@ -17,23 +19,23 @@ Otherwise, ignore this section and proceed to the rest of the template.
 ## Four forms
 
 ```
-/wbRelease core2/                           # standard flow
-/wbRelease core2/ --dry-run                 # preview, no changes
-/wbRelease core2/ --restore                 # after /wbPublish succeeds
-/wbRelease core2/ --prerelease=beta         # 1.5.0-beta.0 style
+/wbRelease <monorepo-root>/                           # standard flow
+/wbRelease <monorepo-root>/ --dry-run                 # preview, no changes
+/wbRelease <monorepo-root>/ --restore                 # after /wbPublish succeeds
+/wbRelease <monorepo-root>/ --prerelease=beta         # 1.5.0-beta.0 style
 ```
 
-Always `core2/` as the target. Never a sub-package.
+Always `<monorepo-root>/` as the target. Never a sub-package.
 
 ## The full release workflow
 
 ```
 /wbAudit <pkg>     # must pass
 /wbTest <pkg>      # must pass
-/wbRelease core2/ --dry-run         # preview
-/wbRelease core2/                    # real release (unpicks workspace:)
+/wbRelease <monorepo-root>/ --dry-run         # preview
+/wbRelease <monorepo-root>/                    # real release (unpicks workspace:)
 /wbPublish <pkg>                     # actually push to npm
-/wbRelease core2/ --restore          # restore workspace: protocols
+/wbRelease <monorepo-root>/ --restore          # restore workspace: protocols
 ```
 
 Each step checks the previous. Skipping `--restore` is the most common mistake — your next `pnpm install` will start fetching from npm instead of using local packages.
@@ -73,7 +75,7 @@ Consider adding `--restore` to your end-of-day routine even if you're not sure y
 - Just want to commit changes → `git commit`. Release is for consumer-visible versions.
 - Pre-release experimental version → `--prerelease=...` flag, or manual `npm publish --tag=canary`.
 
-> For deeper reading: [`docs_claude/commands/wbRelease/wbRelease_practical_claude.md`](../../docs/docs_claude/commands/wbRelease/wbRelease_practical_claude.md) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+> For deeper reading: [`wbRelease_practical.md`](https://flow.wbc-ui.com/commands/wbRelease/wbRelease_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
 
 <!-- FLAGS_TABLE_START -->
 ## Flags & shortcuts
@@ -86,16 +88,25 @@ Both forms are equivalent — pass either:
 | `--prerelease` | `-p` |
 | `--restore` | `-r` |
 | `--tag` | `-t` |
+| `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
+| `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
+| `--archive` | `-A` | **Universal** (`_shared/output_conventions.md` §13). Consolidate first, then retire every superseded `<DD>/releases/` folder into `.wb/workflows/archives/` at the same depth. `--archive=all` sweeps every category; `--dry-run` previews. Shell out to `wb-flow archive` — never `mv` by hand. Never implied by another flag. |
 
 `-h` / `--help` / `--h` (any command) prints this help block instead of executing.
 ## Self-correct mode (dual-mode invocation)
 
 ```
 /wbRelease <scope_folder>           # normal mode — produce a fresh output file
-/wbRelease <previous_output_file>   # self-correct mode — verify & repair the file in place
+/wbRelease <previous_output_file>   # consolidate mode — absorb every still-open item from older releases/ files, then repair in place
+/wbRelease <previous_output_file> --archive   # …and then retire the releases/ folders it just superseded
 ```
 
 When the first arg is an existing output file from a prior `/wbRelease` run (detected by its first H1 — see this template's **Detection** section), the command runs in **verify-and-repair** mode: gap-fills missing fields, normalizes links, ticks done/valid checkboxes whose reports exist, never rewrites authored content. See [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §3.
+
+**Consolidation (§13.2) runs first, before any repair.** Sweep this scope's whole `reports/` tree for other `release_<scope>_*.md` files and absorb every item still open into THIS file — de-duplicated on the item's text (never its ID, which restarts per file), each carrying a relative `Origin` link back to the oldest file that raised it. Sources are read, never modified.
+
+**Archiving is opt-in and never implied.** With `--archive`, and only once consolidation has completed, retire the superseded folders by shelling out to the CLI — `wb-flow archive <this file> --dry-run` first, read the move list, then apply. Without the flag, merely offer it in `What's Next?`. Archiving before consolidating does not delete an open item; it makes it invisible, which is worse. Full contract: [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §13.
+
 
 <!-- FLAGS_TABLE_END -->
 <!-- HELP_GATE_END -->
@@ -109,6 +120,8 @@ Before processing `$ARGUMENTS`, normalize these short-form flags to their long e
 - `-p` → `--prerelease`
 - `-r` → `--restore`
 - `-t` → `--tag`
+- `-A` → `--archive`   *(universal — consolidate-then-sweep, §13)*
+- `-n` → `--dry-run`   *(universal — preview a sweep)*
 
 The rest of this template documents only the long forms; the substitution above is the only place short forms are mentioned.
 <!-- FLAG_NORMALIZE_END -->
@@ -206,16 +219,16 @@ Format required:
 ### 📚 Base Reference Files
 | Type | File | Description |
 |---|---|---|
-| Foundational | [context.md](../../../../../context.md) | Permanent Identity and Architecture (Source of Truth) |
+| Foundational | [context.md](../../../../../../../context.md) | Permanent Identity and Architecture (Source of Truth) |
 | Snapshot | [context_<scope>_<date>.md](../contexts/context_<scope>_<date>.md) | Daily snapshot used for current session context |
-| Foundational | [dev.md](../../../../../dev.md) | Permanent Development Commands and Status |
+| Foundational | [dev.md](../../../../../../../dev.md) | Permanent Development Commands and Status |
 
-### Global Files (`core2/` monorepo root)
+### Global Files (`<monorepo-root>/` monorepo root)
 | Category | File | Source Command |
 |---|---|---|
-| Reports | [audit_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_core2_<date>.md) | `/wbAudit core2/` |
-| Reports | [plan_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_core2_<date>.md) | `/wbPlan core2/` |
-| Tracks | [track_core2_<date>.md](../../../../../../../../../../.wb/workflows/tracks/<YYYY>/<MM>/<DD>/track_core2_<date>.md) | `/wbTrack core2/` |
+| Reports | [audit_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_core2_<date>.md) | `/wbAudit <monorepo-root>/` |
+| Reports | [plan_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_core2_<date>.md) | `/wbPlan <monorepo-root>/` |
+| Tracks | [track_core2_<date>.md](../../../../../../../../../../.wb/workflows/tracks/<YYYY>/<MM>/<DD>/track_core2_<date>.md) | `/wbTrack <monorepo-root>/` |
 
 <details>
   <summary>📂 Sub-Package: [Active Package Name]</summary>

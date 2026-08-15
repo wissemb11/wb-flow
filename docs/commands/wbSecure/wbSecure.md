@@ -1,3 +1,8 @@
+---
+title: "wbSecure — Security vulnerability scanning"
+description: "## Overview"
+---
+
 # /wbSecure — Security vulnerability scanning
 
 ## Overview
@@ -25,10 +30,6 @@
 - ❌ Does not audit general quality — use `/wbAudit` for that.
 - ❌ Does not handle licensing — use `/wbLicense` for compliance.
 
-## 🔗 Sister Edition
-
-> The [Claude edition (`flow.wbc-ui.com`)](../../../../apps/wb-flow/flow.wbc-ui.com/src/commands/wbSecure/) <!-- [CROSS-EDITION] Phase=A --> covers the same command in a self-help, opinionated register.
-
 ## What's Next?
 
 After reading this hub, either:
@@ -40,12 +41,18 @@ After reading this hub, either:
 
 Layered detection: regex patterns, static analysis, and CVE database lookups.
 
-## Key Options
+## Flags & Shortcuts
 
---staged for pre-commit, --deps-only for dependency audit, --fail-on severity
+Both forms are equivalent — pass either:
+| Long form | Shortcut |
+|---|---|
+| `--focus` | `-f` |
+| `--force-past-security` | `-F` |
+| `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
+| `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
 
+`-h` / `--help` / `--h` (any command) prints this help block instead of executing.
 
-> **Usage tip:** Use `--staged` as a pre-commit hook to catch secrets before they enter git history.
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

@@ -1,88 +1,269 @@
-# wb-flow Protocol: /wbTest Live Workspace Demo
+# /wbTest — Live Demo ()
 
-This document is the **Real-Time Execution Log** of the `/wbTest` command. It applies the exact structural matrix from the Exhaustive Simulation to the *current, live state* of the `wb-labs` workspace as of 2026-05-04.
+What `/wbTest` would actually do on `wb-labs` today (2026-05-04). The packages, runners, and live state below are real.
 
 ---
 
-## 1. Role & Definition Matrix (Live Application)
-**Target:** `wb-labs/frontEnd/wbc-ui/core2/packages/wb-core`
-**Live State Evaluated:** 
-*   Active Directory: `packages/wb-core`
-*   Current Status: `tierEnforcement.js` lacks an active `.test.js` equivalent. `renderString.js` has legacy tests.
+<CommandLiveDemoAnimation command="wbTest" />
 
-| Scenario | Live System Behavior (wb-labs) |
+## 1. Live target
+
+| Field | Live value |
 |---|---|
-| Target is Existing Test | **[ACTIVE]** System ready to execute Jest against `renderString.test.js`. |
-| Target is Source File | **[ACTIVE]** System detects missing tests for `tierEnforcement.js`. |
-| TDD Mode Active | **[AVAILABLE]** User can enforce TDD generation on Task 3. |
+| Active package (CWD-derived) | `wb-labs` root — *not* a package directly testable |
+| Most-tested package | `core2/packages/wb-core/` (vitest configured) |
+| Untested packages (per memory) | `core2/packages/wbc-ui2-cdn/` and several others — `wbc-ui2-tech-debt.md` flags untested apps as parked |
+| Active dev server | None running this session — would refuse `--profile="e2e"` |
+| Test runner | vitest (across core2 packages); no e2e infrastructure live in this workspace |
+
+The "untested apps" memory note is the operational truth here: `/wbTest` is a productive command in `wb-core` but partially silent in the rest of `core2/`, and that's known and parked.
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix (Live Application)
-| Argument Type | Input Executed | Live Parsed State (wb-labs) | Live Output Generation |
-|---|---|---|---|
-| Single Task ID | `Command: /wbTest -i="2"` | Targets Task 2. | `[PROCEED] Running existing tests for renderString.` |
-| Specific File Path | `Command: /wbTest src/tierEnforcement.js` | Locks onto file. No test found. | `[HALT] Error: No tests found. Use -g to generate.` |
-| Comma-Separated | `Command: /wbTest src/WBC.js,src/index.js` | Targets core files. | `[PROCEED] Executing suites for WBC.js and index.js sequentially.` |
-| Wildcard Glob | `Command: /wbTest src/**/*.js` | Targets 14 files in `wb-core`. | `[PROCEED] Massive test suite executing across 14 modules.` |
-| Natural Language | `Command: /wbTest "test the tier checks"` | Fuzzily matches to Task 1. | `[PROCEED] Resolving to tierEnforcement.js.` |
+## 2. What each target form would resolve to today
+
+| Target | Live resolution |
+|---|---|
+| `/wbTest` (no arg, from wb-labs root) | Halt — root is not a package. |
+| `/wbTest core2/packages/wb-core/` | Spawns vitest. Real run. |
+| `/wbTest core2/packages/wbc-ui2-cdn/` | Refused — no test runner config in this package per the parked-tech-debt note. |
+| `/wbTest "core2/packages/*/tests/**/*.spec.js"` | Glob expands across packages with vitest configured; skips the rest with a notice. |
+| `/wbTest core2/packages/wb-core/tests/WBCodeSlot.spec.js` | Single spec, single file. |
+| `/wbTest "the WBCode tests"` | Refused — free-text not supported. |
+| `/wbTest --task="2"` | Reads `plan_wb-core_20260504.md` row 2's Verify column. (All rows currently have placeholder Verify content; would handoff to manual.) |
 
 ---
 
-## 3. Flag Processing Matrix (Isolated Live Runs)
+## 3. Per-flag behavior, applied live
 
-| Flag | Live Executed Command | Live Output Impact |
-|---|---|---|
-| `--id="<id>"` | `Command: /wbTest -i="*"` | `[TEST] Wildcard detected. Queuing tests for all 3 active tasks.` |
-| `--generate` | `Command: /wbTest src/tierEnforcement.js -g` | `[GENERATE] Creating tierEnforcement.test.js with mock JWT data.` |
-| `--coverage` | `Command: /wbTest src/WBC.js -c="50"` | `[COVERAGE] Warning: WBC.js coverage is 34%. FAILED threshold.` |
-| `--tdd` | `Command: /wbTest -i="1" -t -g` | `[TDD] Generating failing assertions for Task 1 JWT Handshake.` |
-
----
-
-## 4. Omni-Channel Execution Pipeline (Live Chaining)
-
-### 💠 The "TDD Generator Loop" (`-i="1" -t -g`)
-**Live Context:** Implementing the JWT Handshake from today's plan requires strict TDD behavior to prevent breaking downstream apps.
-**Command Executed:** `/wbTest -i="1" -t -g`
-**Live Output:**
-```text
-> Command: /wbTest -i="1" -t -g
-
-[SYSTEM] Queued Task 1 (JWT Handshake).
-[GENERATE] Created src/tierEnforcement.test.js.
-[GENERATE] Injected 3 assertions: Missing Token, Invalid Token, Valid Handshake.
-[TDD] Running Jest...
-[TDD] SUCCESS: All 3 assertions failed exactly as expected.
-[SYNC] Pipeline clear. Use /wbWork -i="1" to write the implementation logic.
-```
-
-### 💠 The "Massive Coverage Check" (`src/**/*.js -c="80"`)
-**Live Context:** Running a pre-commit hook to verify `wb-core` has an 80% coverage floor.
-**Command Executed:** `/wbTest src/**/*.js -c="80"`
-**Live Output:**
-```text
-> Command: /wbTest src/**/*.js -c="80"
-
-[SYSTEM] Glob resolved to 14 javascript files. Found 9 test files.
-[TEST] Running Jest suite...
-[SUCCESS] 42 tests passed.
-[COVERAGE] Calculating...
-[COVERAGE] Threshold Check: 68% < 80%. FAILED.
-[ERROR] wb-core does not meet coverage requirements.
-```
+| Flag combination | Live result |
+|---|---|
+| `core2/packages/wb-core/` | Default profile (unit). Vitest runs. |
+| `core2/packages/wb-core/ --profile="unit"` | Same as above; explicit profile. |
+| `core2/packages/wb-core/ --profile="e2e"` | Refused — no dev server running. |
+| `core2/packages/wb-core/ --profile="all"` | Runs unit; aborts if unit fails; otherwise tries integration; e2e refused for same reason. |
+| `--task="2"` (no path arg) | Reads active plan, finds row 2, parses Verify. If Verify is manual → notice + exit 0. |
+| `--task="2" --profile="unit"` | Same as `--task="2"` if the row's Verify is testable; profile is informational only. |
 
 ---
 
-## 5. Operational Edge Cases (Live Workspace Check)
+## 4. Pipelines
 
-| Fault Trigger | Live System State | Live Resolution |
-|---|---|---|
-| No Tests Found | **[TRIGGERED]** If user runs `/wbTest src/tierEnforcement.js` | Halts execution. Warns user to append `-g`. |
-| Coverage Failure | **[PASS]** WBC.js is huge. Coverage fails. | Fails gracefully with coverage report attached. |
-| Glob Explosion | **[PASS]** Only 14 files in `wb-core/src`. | Safe to proceed. |
-| Invalid ID | **[TRIGGERED]** If user attempts `/wbTest -i="4"`. | `❌ Error: plan_wb-core_20260504.md only contains 3 tasks.` |
+<script setup>
+const wbTestPipelines = [
+  {
+    "title": "A clean wb-core unit pass",
+    "cmd": "/wbTest core2/packages/wb-core/",
+    "logs": [
+      {
+        "text": "[SYSTEM] Target: core2/packages/wb-core/",
+        "type": "sys"
+      },
+      {
+        "text": "[PROFILE] unit (default)",
+        "type": "gen"
+      },
+      {
+        "text": "[RUN] Spawning vitest --run --reporter=json...",
+        "type": "gen"
+      },
+      {
+        "text": "Suites: 6 / 6 passed",
+        "type": "gen"
+      },
+      {
+        "text": "Tests: 28 / 28 passed",
+        "type": "gen"
+      },
+      {
+        "text": "Time: 1.1s",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Clean run. Safe to commit.",
+        "type": "ok"
+      }
+    ],
+    "note": "The realistic shape: tests for wb-core are configured, the suite is small, the run is fast.",
+    "noteType": "info"
+  },
+  {
+    "title": "The \"this package isn't tested yet\" case",
+    "cmd": "/wbTest core2/packages/wbc-ui2-cdn/",
+    "logs": [
+      {
+        "text": "[SYSTEM] Target: core2/packages/wbc-ui2-cdn/",
+        "type": "sys"
+      },
+      {
+        "text": "[REFUSE] No test runner configured in this package.",
+        "type": "error"
+      },
+      {
+        "text": "[CONTEXT] Memory note `wbc-ui2-tech-debt.md` records this package as",
+        "type": "ctx"
+      },
+      {
+        "text": "\"untested apps\" \u2014 flagged but parked since the core2/ monorepo",
+        "type": "gen"
+      },
+      {
+        "text": "reorganization.",
+        "type": "gen"
+      },
+      {
+        "text": "[SUGGEST] If this package needs tests, that's a planning conversation",
+        "type": "gen"
+      },
+      {
+        "text": "(/wbPlan), not a /wbTest invocation.",
+        "type": "gen"
+      },
+      {
+        "text": "Add a row: \"Add vitest config + initial unit suite to wbc-ui2-cdn\"",
+        "type": "gen"
+      },
+      {
+        "text": "[NO RUN] No tests executed. Exit 0 (not a failure \u2014 just nothing to run).",
+        "type": "gen"
+      }
+    ],
+    "note": "Running against wbc-ui2-cdn surfaces the parked-untested-apps tech debt:",
+    "noteType": "info"
+  },
+  {
+    "title": "Refuse the e2e profile honestly",
+    "cmd": "/wbTest core2/packages/wb-core/ --profile=\"e2e\"",
+    "logs": [
+      {
+        "text": "[SYSTEM] Target: core2/packages/wb-core/",
+        "type": "sys"
+      },
+      {
+        "text": "[PROFILE] e2e",
+        "type": "gen"
+      },
+      {
+        "text": "[CHECK] Looking for running dev server on configured ports... none.",
+        "type": "gen"
+      },
+      {
+        "text": "[REFUSE] e2e requires a running dev server. /wbTest will not spawn one.",
+        "type": "error"
+      },
+      {
+        "text": "[REASON] Auto-spawning dev servers turns /wbTest into a deployment",
+        "type": "gen"
+      },
+      {
+        "text": "command. Port collisions, env state, and sub-process lifecycle",
+        "type": "gen"
+      },
+      {
+        "text": "are out of scope for a test runner.",
+        "type": "gen"
+      },
+      {
+        "text": "[SUGGEST] In one terminal: pnpm --filter wb-core dev",
+        "type": "gen"
+      },
+      {
+        "text": "In another: /wbTest core2/packages/wb-core/ --profile=\"e2e\"",
+        "type": "gen"
+      },
+      {
+        "text": "[NO RUN] Exit 0.",
+        "type": "gen"
+      }
+    ],
+    "note": "A user requests e2e without starting the dev server first:",
+    "noteType": "info"
+  },
+  {
+    "title": "`--task` with a manual Verify recipe",
+    "cmd": "/wbTest --task=\"1\"",
+    "logs": [
+      {
+        "text": "[SYSTEM] Reading plan_wb-core_20260504.md row 1.",
+        "type": "sys"
+      },
+      {
+        "text": "[VERIFY] Verify recipe: \"manual: navigate between two projects,",
+        "type": "gen"
+      },
+      {
+        "text": "observe refresh\"",
+        "type": "gen"
+      },
+      {
+        "text": "[NOTICE] This row has a manual Verify recipe. /wbTest cannot run it.",
+        "type": "gen"
+      },
+      {
+        "text": "[SUGGEST] Run the manual steps yourself:",
+        "type": "gen"
+      },
+      {
+        "text": "1. pnpm --filter wb-dataviewer dev",
+        "type": "gen"
+      },
+      {
+        "text": "2. Open in browser; navigate between projects",
+        "type": "gen"
+      },
+      {
+        "text": "3. Confirm second project's response renders",
+        "type": "gen"
+      },
+      {
+        "text": "Then mark the row with /wbValid --id=\"1\" if observed correctly.",
+        "type": "gen"
+      },
+      {
+        "text": "[NO RUN] Exit 0. (Manual verifies are valid; nothing went wrong.)",
+        "type": "gen"
+      }
+    ],
+    "note": "A plan row's Verify column says \"manual: navigate between two projects, observe refresh.\" The user runs:",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbTest" :pipelines="wbTestPipelines" />
+
+
+### 💠 Pipeline A clean wb-core unit pass
+
+The realistic shape: tests for wb-core are configured, the suite is small, the run is fast.
+
+
+### 💠 Pipeline The "this package isn't tested yet" case
+
+Running against wbc-ui2-cdn surfaces the parked-untested-apps tech debt:
+
+
+### 💠 Pipeline Refuse the e2e profile honestly
+
+A user requests e2e without starting the dev server first:
+
+
+### 💠 Pipeline `--task` with a manual Verify recipe
+
+A plan row's Verify column says "manual: navigate between two projects, observe refresh." The user runs:
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 5. What would refuse today
+
+| Trigger | Live response |
+|---|---|
+| `/wbTest` from wb-labs root with no arg | Halt — wb-labs is not a package. |
+| `/wbTest core2/` (whole monorepo) | Halt — too broad, ambiguous which package's runner to use. |
+| `/wbTest "the WBCode tests"` | Refuse with disambiguation list. |
+| `/wbTest core2/packages/wbc-ui2-cdn/` | Refuse + cite memory note. Exit 0. |
+| `/wbTest --profile="e2e"` without dev server | Refuse + reasoning. Exit 0. |
+| `/wbTest --task="99"` | Halt — row doesn't exist. |
+| `/wbTest core2/packages/wb-core/` after a real failure | Exit non-zero with failing test names + first lines + suggestion to run `/wbDebug "<failing test>"`. |
+
+The pattern: **`/wbTest` is a runner with strong opinions about what's in scope.** It refuses fuzzy targets, refuses to auto-spawn infrastructure, distinguishes "no run" from "failed run" in exit codes, and hands off to `/wbDebug` or `/wbValid` rather than trying to do their work.

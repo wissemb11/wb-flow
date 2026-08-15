@@ -1,3 +1,8 @@
+---
+title: "wbPublish — Publish a package to npm"
+description: "## Overview"
+---
+
 # /wbPublish — Publish a package to npm
 
 ## Overview
@@ -25,10 +30,6 @@
 - ❌ Does not create changelogs — use `/wbRelease` for that.
 - ❌ Does not announce the release — use `/wbBroadcast` after.
 
-## 🔗 Sister Edition
-
-> The [Claude edition (`flow.wbc-ui.com`)](../../../../apps/wb-flow/flow.wbc-ui.com/src/commands/wbPublish/) <!-- [CROSS-EDITION] Phase=A --> covers the same command in a self-help, opinionated register.
-
 ## What's Next?
 
 After reading this hub, either:
@@ -40,12 +41,20 @@ After reading this hub, either:
 
 Handles GitHub Pages base URL, .nojekyll, CNAME, and CDN purge.
 
-## Key Options
+## Flags & Shortcuts
 
---ci-only to generate GitHub Actions workflow, --domain for custom domains
+Both forms are equivalent — pass either:
+| Long form | Shortcut |
+|---|---|
+| `--all` | `-A` |
+| `--dry-run` | `-d` |
+| `--prerelease` | `-p` |
+| `--restore` | `-r` |
+| `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
+| `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
 
+`-h` / `--help` / `--h` (any command) prints this help block instead of executing.
 
-> **Usage tip:** Run `--ci-only` once to generate a GitHub Actions workflow for automated publishing.
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

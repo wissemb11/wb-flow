@@ -1,3 +1,7 @@
+---
+title: "wbStandup — End-of-session summary"
+description: "## Overview"
+---
 # /wbStandup — End-of-session summary
 
 ## Overview
@@ -25,10 +29,6 @@
 - ❌ Does not track session state — use `/wbTrack` for persistent tracking.
 - ❌ Does not audit quality — it only summarizes activity.
 
-## 🔗 Sister Edition
-
-> The [Claude edition (`flow.wbc-ui.com`)](../../../../apps/wb-flow/flow.wbc-ui.com/src/commands/wbStandup/) <!-- [CROSS-EDITION] Phase=A --> covers the same command in a self-help, opinionated register.
-
 ## What's Next?
 
 After reading this hub, either:
@@ -40,12 +40,65 @@ After reading this hub, either:
 
 Queries git log, GitHub API, and issue tracker for comprehensive daily summary.
 
-## Key Options
+## 🗄️ Why the standup is never itself archived
 
---team for multi-developer reports, --format slack for direct channel post
+Every other daily-history command (`/wbPlan`, `/wbAudit`, `/wbIdea`, `/wbVision`, …) keeps one live
+file per category and retires the rest. **`/wbStandup` and `/wbTrack` are exempt**, and this is a
+deliberate asymmetry, not an oversight:
 
+A standup's entire content is *"here is what was open yesterday, here is today."* A track is the
+session narrative. Both derive their value from **the series** — the eighth consecutive standup
+listing the same blocker is the signal, and it is the whole reason to read one. Keep only the newest
+and you have thrown away the thing that made it worth reading, while keeping the entry that says
+least.
 
-> **Usage tip:** Run at end of day for most accurate reporting. Review before posting to add missing context.
+## `--archive` — the fleet-wide sweep
+
+So the standup series stays whole, and `/wbStandup` takes the **inverse** role instead: the one
+command that sweeps everything *else*.
+
+```bash
+/wbStandup <monorepo-root>/            # unchanged — the daily agenda
+/wbStandup <monorepo-root>/ --archive  # …then one live file per category, per scope
+```
+
+With `--archive`, a PHASE 5 runs after the recommendation:
+
+1. **Consolidate into every keeper first** — for each scope and each non-exempt category, absorb the
+   still-open items from older files into the newest one.
+2. **Cross-check against the PHASE 1 scan** — *every open item listed in the agenda must now appear
+   in exactly one live file.* An agenda item with no live home means consolidation missed it; stop.
+3. **Preview and ask** — `wb-flow archive <target> --recursive --all --dry-run`, printed in the chat,
+   then wait for a go.
+4. **Apply and report** — results land in the standup file under `## 🗄️ Archive Sweep`, one row per
+   moved folder, plus a link to `archives/archive_log.md`.
+
+**Step 2 is why this belongs in the standup** rather than in a standalone command: PHASE 1–3 already
+built the complete inventory of what is open everywhere, and that inventory is the only cross-check
+that makes a fleet-wide sweep safe.
+
+**Step 3 is not optional.** A per-command `--archive` moves a handful of folders in one scope; this
+moves every superseded folder in every scope below the target — easily a hundred in a monorepo. It is
+reversible one folder at a time, which is little comfort at that volume.
+
+The standup file thereby becomes the index of the sweep, which is the right home for it: the standup
+is already the document whose job is to say where everything stands. Full model:
+[Report Lifecycle](../../concepts/report_lifecycle.md).
+
+## Flags & Shortcuts
+
+Both forms are equivalent — pass either:
+| Long form | Shortcut |
+|---|---|
+| `--act` | `-a` |
+| `--wbPlan` | `-P` |
+| `--archive` | `-A` | **Universal, and here it means the fleet-wide sweep.** Consolidate into every scope's newest file per category, then retire all superseded folders below the target. Defaults to `--archive=all`. `standups/` and `tracks/` are never swept. Always previews and asks before applying. See `_shared/output_conventions.md` §13.5. |
+| `--dry-run` | `-n` | With `--archive`: print the move list for every scope, move nothing. |
+| `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
+| `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
+
+`-h` / `--help` / `--h` (any command) prints this help block instead of executing.
+
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

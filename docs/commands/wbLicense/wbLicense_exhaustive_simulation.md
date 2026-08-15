@@ -1,90 +1,244 @@
-# wb-flow Protocol: /wbLicense Execution & Simulation Specification
+# /wbLicense — Exhaustive Simulation ()
 
-This document defines the **exhaustive behavior matrix** for the `/wbLicense` command. It serves as the definitive reference for how the agent scans dependencies for compliance conflicts, injects corporate license headers into source files, and generates `LICENSE` files.
+`/wbLicense` is the IP guardian. It scans dependency trees for compliance conflicts. The central principle: **fail-closed**. If a GPL dependency sneaks into a proprietary package, `/wbLicense` doesn't warn — it halts. The assumption is that deploying a copyleft violation is always worse than delaying a release.
+
+Read this if you want to know what the allow-list contains and how the compliance audit classifies a dependency.
 
 ---
 
-## 1. Role & Definition Matrix
-**Role:** The Open-Source Compliance & IP Guardian
-**Target:** Enforces copyright headers across the codebase and prevents the introduction of restrictive licenses (e.g., GPL) into proprietary code.
-**Core Protocol:** Strict "No-Copyleft" enforcement. The agent must halt if a viral open-source license is detected in the dependency tree of a closed-source package.
+## 1. Role & target
 
-| Scenario | System Behavior |
+| Aspect | Behavior |
 |---|---|
-| Target is Source File | **[PROCEED]** Analyzes file header. Injects or updates the copyright boilerplate without altering the AST. |
-| Target is Dependency Tree | **[PROCEED]** Scans `node_modules` and `package.json`. Extracts the license of every installed package. |
-| Compliance Conflict | **[HALT]** Protocol forbids executing a build or release if a GPL/AGPL dependency is found in a proprietary workspace. |
+| **Role** | The Open-Source Compliance & IP Guardian. |
+| **Target** | Source files (headers), `node_modules` trees (audit), or directories (LICENSE generation). |
+| **Cell scope** | None. `/wbLicense` doesn't interact with plans. |
+| **Side effects allowed** | Prepending headers to source files. Creating LICENSE/NOTICE files. |
+| **Side effects forbidden** | Modifying code logic, removing dependencies, altering `package.json` (except `license` field). |
+
+`--audit` is read-only — it scans and reports, and never writes to a source file. A compliance audit that also mutated the tree would be unusable as a gate: it might reveal that you shouldn't have been writing to those files at all (wrong license type for the package).
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix
-`/wbLicense` scopes its scanning logic based on the provided path type.
+## 2. Argument resolution
 
-| Argument Type | Example | Parsing Logic | Simulated Output Profile |
-|---|---|---|---|
-| Specific Logic File | `Command: /wbLicense src/WBC.js` | Locks onto file. | Prepends the standardized corporate license header to line 1. |
-| Directory Path | `Command: /wbLicense packages/wb-core` | Sweeps the package. | Scans `wb-core`'s dependency tree for license conflicts. |
-| Comma-Separated | `Command: /wbLicense src/app.js,src/index.css` | Targets specific files. | Injects headers in multiple files using the correct comment syntax (e.g., `/* ... */` vs `// ...`). |
-| Workspace Glob | `Command: /wbLicense apps/*` | Massive sweep. | Generates a unified Compliance Report across all frontend consumers. |
-
----
-
-## 3. Flag Processing Matrix (Isolated Capabilities)
-
-| Flag | Shortcut | Purpose | Example | Simulated Output Impact |
-|---|---|---|---|---|
-| `--audit` | `-a` | Analyzes the `node_modules` tree without altering source file headers. | `Command: /wbLicense . -a` | `[AUDIT] Scanned 402 packages. Found 1 GPL violation.` |
-| `--inject="<type>"`| `-i` | Automatically prepends the chosen license header (`MIT`, `proprietary`, `apache`) to all source files. | `Command: /wbLicense src/ -i="MIT"` | `[INJECT] Added MIT header to 14 files.` |
-| `--generate` | `-g` | Creates a global `LICENSE` and `NOTICE` file in the target directory root. | `Command: /wbLicense . -g` | `[GENERATE] Created LICENSE.md with MIT text.` |
-| `--dry-run` | `-d` | Simulates injection or generation without writing to disk. | `Command: /wbLicense src/ -i="MIT" -d` | `[DRY-RUN] Would inject header into 14 files. Disk untouched.` |
-
----
-
-## 4. Omni-Channel Execution Pipeline (Flag Chaining)
-
-### 💠 The "Pre-Release Compliance Gate" (`apps/* -a`)
-**Context:** Before pushing code to production, the tech lead wants to ensure no developer accidentally installed a restrictive package that would compromise their proprietary IP.
-**Command Executed:** `/wbLicense apps/* -a`
-**Simulated Protocol Chain:**
-1. Resolves all consumer apps.
-2. Engages NPM dependency tree crawler (`-a`).
-3. Extracts license metadata from 1,200 nested packages.
-4. Validates against the proprietary allow-list (MIT, Apache, BSD allowed. GPL, AGPL rejected).
-**Simulated Output:**
-```markdown
-> Command: /wbLicense apps/* -a
-
-[SYSTEM] Initiating Pre-Release Compliance Gate...
-[AUDIT] Crawling 1,200 nested dependencies across 3 apps...
-[ALERT] Found compliance violation in `wbc-ui.com`.
-[VIOLATION] Package `cool-pdf-generator` is licensed under GNU GPL v3.
-[SUCCESS] Audit complete. Deployment blocked. Please remove the package.
-```
-
-### 💠 The "Massive Header Injection" (`src/**/*.js -i="proprietary"`)
-**Context:** The company updated its legal entity name. All source files in the core package need their copyright headers updated.
-**Command Executed:** `/wbLicense src/**/*.js -i="proprietary"`
-**Simulated Output:**
-```markdown
-> Command: /wbLicense src/**/*.js -i="proprietary"
-
-[SYSTEM] Resolving glob pattern to 45 js files.
-[INJECT] Engaging Proprietary Template (Year: 2026, Entity: WBC Inc).
-[SYNC] Found existing outdated headers in 12 files. Overwriting...
-[SYNC] Injected fresh headers into 33 files.
-[SUCCESS] Workspace IP secured.
-```
-
----
-
-## 5. Operational Edge Cases & Protocol Faults
-
-| Fault Trigger | System Detection | Resolution / Output |
+| Form | Example | What `/wbLicense` does |
 |---|---|---|
-| Unlicensed Dependency | `node_modules` contains a package with no declared license. | `⚠️ Warning: Package 'mystery-lib' has no license. Human review required.` |
-| Header Syntax Error | Injecting header into a `.json` file (JSON does not support comments). | `⚠️ Warning: Cannot inject comments into JSON format. Skipping config.json.` |
-| Missing Template | User requests `-i="custom"`, but no custom template is defined in `.wb/`. | `❌ Error: License template 'custom' not found. Defaulting to 'proprietary'.` |
+| Specific file | `Command: /wbLicense src/WBC.js` | Prepends the standardized copyright header to line 1. |
+| Directory path | `Command: /wbLicense packages/wb-core` | Scans wb-core's dependency tree for compliance conflicts. |
+| Comma-separated | `Command: /wbLicense src/app.js,src/index.css` | Injects headers in both files using correct comment syntax (`// ...` vs `/* ... */`). |
+| Workspace glob | `Command: /wbLicense apps/*` | Generates a unified Compliance Report across all consumer apps. |
+
+The comment syntax adaptation is non-trivial. `/wbLicense` picks the right comment format per file extension: `//` for `.js`/`.ts`, `/* */` for `.css`, `<!-- -->` for `.html`, `#` for `.py`/`.sh`. JSON files get skipped with a warning — JSON has no comment syntax.
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 3. Flag matrix
+
+| Flag | Shortcut | Purpose |
+|---|---|---|
+| `--audit` | `-a` | Scans `node_modules` for license compliance. Read-only — no file modifications. |
+| `--dry-run` | `-d` | Simulates the run without writing to disk. |
+
+**The allow-list.** The compliance audit checks every dependency's license against a hardcoded allow-list:
+- ✅ Allowed: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, Unlicense
+- ❌ Blocked: GPL-2.0, GPL-3.0, AGPL-3.0, LGPL (when used in a proprietary package)
+- ⚠️ Review required: No license declared, custom license text, dual-licensed
+
+The wb-labs monorepo uses the `__WBC_DEV__` 3-mode gating pattern — the tier system means some packages are proprietary (`enterprise` tier) and some are open (`free` tier). `/wbLicense --audit` respects this distinction: a GPL dependency in a `free`-tier package is a warning; in an `enterprise`-tier package it's a halt.
+
+---
+
+## 4. Pipelines (the agent-native scenarios)
+
+<script setup>
+const wbLicenseSimPipelines = [
+  {
+    "title": "Pre-release compliance gate on all apps",
+    "cmd": "/wbLicense apps/* -a",
+    "logs": [
+      {
+        "text": "[SYSTEM] Initiating Compliance Audit for apps/*...",
+        "type": "sys"
+      },
+      {
+        "text": "[CRAWL] demo.wbc-ui.com: 142 dependencies...",
+        "type": "gen"
+      },
+      {
+        "text": "[CRAWL] md.wbc-ui.com: 89 dependencies...",
+        "type": "gen"
+      },
+      {
+        "text": "[CRAWL] wbc-ui.com: 201 dependencies...",
+        "type": "gen"
+      },
+      {
+        "text": "[REPORT]",
+        "type": "gen"
+      },
+      {
+        "text": "| App | Total Deps | Allowed | Blocked | Review |",
+        "type": "sys"
+      },
+      {
+        "text": "|---|---|---|---|---|",
+        "type": "sys"
+      },
+      {
+        "text": "| demo.wbc-ui.com | 142 | 141 | 0 | 1 (no license) |",
+        "type": "sys"
+      },
+      {
+        "text": "| md.wbc-ui.com | 89 | 89 | 0 | 0 |",
+        "type": "sys"
+      },
+      {
+        "text": "| wbc-ui.com | 201 | 199 | 1 | 1 |",
+        "type": "sys"
+      },
+      {
+        "text": "[ALERT] wbc-ui.com:",
+        "type": "gen"
+      },
+      {
+        "text": "\u274c BLOCKED: `cool-pdf-generator@2.1.0` \u2014 licensed under GNU GPL v3.",
+        "type": "gen"
+      },
+      {
+        "text": "\u26a0\ufe0f REVIEW: `legacy-utils@0.9.0` \u2014 no license field declared.",
+        "type": "gen"
+      },
+      {
+        "text": "[HALT] Deployment blocked. Remove `cool-pdf-generator` or obtain a commercial exception.",
+        "type": "gen"
+      }
+    ],
+    "note": "Before pushing to production, verify no developer accidentally installed a restrictive package:",
+    "noteType": "info"
+  },
+  {
+    "title": "Header injection after entity name change",
+    "cmd": "/wbLicense core2/packages/wb-core/src/**/*.js -i=\"proprietary\"",
+    "logs": [
+      {
+        "text": "[SYSTEM] Resolving glob: 18 .js files.",
+        "type": "sys"
+      },
+      {
+        "text": "[TEMPLATE] Proprietary header (Year: 2026, Entity: WBC Inc.)",
+        "type": "gen"
+      },
+      {
+        "text": "[SYNC] 12 files have existing headers (outdated entity name). Overwriting.",
+        "type": "gen"
+      },
+      {
+        "text": "[INJECT] 6 files have no header. Prepending.",
+        "type": "gen"
+      },
+      {
+        "text": "[RESULT]",
+        "type": "gen"
+      },
+      {
+        "text": "Updated: 12 files (old header \u2192 new header)",
+        "type": "gen"
+      },
+      {
+        "text": "Injected: 6 files (no header \u2192 new header)",
+        "type": "gen"
+      },
+      {
+        "text": "Skipped: 0",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] 18 files now carry the current proprietary header.",
+        "type": "ok"
+      }
+    ],
+    "note": "The company updated its legal entity name. All wb-core source files need updated headers:",
+    "noteType": "info"
+  },
+  {
+    "title": "Dry-run before a mass header change",
+    "cmd": "/wbLicense core2/packages/wb-core/src/**/*.js -i=\"MIT\" -d",
+    "logs": [
+      {
+        "text": "[DRY-RUN] Would affect 18 files.",
+        "type": "warn"
+      },
+      {
+        "text": "[PREVIEW]",
+        "type": "gen"
+      },
+      {
+        "text": "src/WBC.js:",
+        "type": "gen"
+      },
+      {
+        "text": "+ // MIT License",
+        "type": "gen"
+      },
+      {
+        "text": "+ // Copyright (c) 2026 WBC Inc.",
+        "type": "gen"
+      },
+      {
+        "text": "+ // Permission is hereby granted...",
+        "type": "gen"
+      },
+      {
+        "text": "src/tierEnforcement.js:",
+        "type": "gen"
+      },
+      {
+        "text": "- // Copyright 2025 WBC Labs (old proprietary header)",
+        "type": "gen"
+      },
+      {
+        "text": "+ // MIT License (replacing)",
+        "type": "gen"
+      },
+      {
+        "text": "[DRY-RUN] Disk untouched. Run without -d to apply.",
+        "type": "warn"
+      }
+    ],
+    "note": "Before committing to 18 file changes, preview what would happen:",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbLicense" titleSuffix="Exhaustive Simulation" :pipelines="wbLicenseSimPipelines" />
+
+
+### 💠 Pipeline Pre-release compliance gate on all apps
+
+Before pushing to production, verify no developer accidentally installed a restrictive package:
+
+
+### 💠 Pipeline Header injection after entity name change
+
+The company updated its legal entity name. All wb-core source files need updated headers:
+
+
+### 💠 Pipeline Dry-run before a mass header change
+
+Before committing to 18 file changes, preview what would happen:
+
+---
+
+## 5. Edge cases & refusals
+
+| Trigger | What `/wbLicense` does |
+|---|---|
+| Unlicensed dependency in `node_modules` | `⚠️ Package 'mystery-lib' has no license declared. Human review required.` |
+| Header injection into `.json` file | `⚠️ Cannot inject comments into JSON format. Skipping config.json.` |
+| `-i="custom"` but no custom template in `.agents/` | `❌ License template 'custom' not found. Available: MIT, proprietary, apache.` |
+| GPL dependency in a `free`-tier package | `⚠️ GPL detected in free-tier package. Copyleft is tolerable here but document the obligation.` (Warning, not halt.) |
+| GPL dependency in an `enterprise`-tier package | `❌ HALT. GPL in proprietary code. Remove the dependency or obtain a commercial license.` |
+
+The unifying principle: **`/wbLicense` treats IP compliance as a fail-closed gate.** Uncertainty is always escalated to a human (unlicensed deps get `⚠️ review`), clear violations halt execution (GPL in proprietary gets `❌`), and header injection adapts to file format without the user specifying comment syntax.

@@ -1,5 +1,7 @@
 # /wbBroadcast: Execution Template
 
+> Conforms to output_conventions v1.12 · template v1.0
+
 
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
@@ -18,7 +20,7 @@ Otherwise, ignore this section and proceed to the rest of the template.
 
 ```
 /wbBroadcast <package>                      # announce latest release
-/wbBroadcast core2/                         # monorepo-wide announcement
+/wbBroadcast <monorepo-root>/                         # monorepo-wide announcement
 /wbBroadcast <target> --status=<lts|preview|obsolete>
 ```
 
@@ -75,7 +77,7 @@ These are proposals. Apply manually if you agree.
 - Customer email → template in your email tool; AI copy here is wrong audience.
 - User feedback collection → not a broadcast; use a survey tool.
 
-> For deeper reading: [`docs_claude/commands/wbBroadcast/wbBroadcast_practical_claude.md`](../../docs/docs_claude/commands/wbBroadcast/wbBroadcast_practical_claude.md) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+> For deeper reading: [`wbBroadcast_practical.md`](https://flow.wbc-ui.com/commands/wbBroadcast/wbBroadcast_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
 
 <!-- FLAGS_TABLE_START -->
 ## Flags & shortcuts
@@ -85,8 +87,12 @@ Both forms are equivalent — pass either:
 | Long form | Shortcut |
 |---|---|
 | `--status` | `-s` |
+| `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
+| `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
+| `--archive` | `-A` | **Universal** (`_shared/output_conventions.md` §13). Consolidate first, then retire every superseded `<DD>/broadcasts/` folder into `.wb/workflows/archives/` at the same depth. `--archive=all` sweeps every category; `--dry-run` previews. Shell out to `wb-flow archive` — never `mv` by hand. Never implied by another flag. |
 
 `-h` / `--help` / `--h` (any command) prints this help block instead of executing.
+
 <!-- FLAGS_TABLE_END -->
 <!-- HELP_GATE_END -->
 
@@ -96,6 +102,8 @@ Both forms are equivalent — pass either:
 Before processing `$ARGUMENTS`, normalize these short-form flags to their long equivalents:
 
 - `-s` → `--status`
+- `-A` → `--archive`   *(universal — consolidate-then-sweep, §13)*
+- `-n` → `--dry-run`   *(universal — preview a sweep)*
 
 The rest of this template documents only the long forms; the substitution above is the only place short forms are mentioned.
 <!-- FLAG_NORMALIZE_END -->

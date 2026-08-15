@@ -1,85 +1,168 @@
-# wb-flow Protocol: /wbMonetize Live Workspace Demo
+# /wbMonetize — Live Demo ()
 
-This document is the **Real-Time Execution Log** of the `/wbMonetize` command. It applies the exact structural matrix from the Exhaustive Simulation to the *current, live state* of the `wb-labs` workspace as of 2026-05-04.
+This is what `/wbMonetize` actually does on `wb-labs` as the workspace stands today (2026-05-05). The matrix below mirrors the [exhaustive simulation](./wbMonetize_exhaustive_simulation), but every cell is filled from the *live* state of the repo.
 
 ---
 
-## 1. Role & Definition Matrix (Live Application)
-**Target:** `wb-labs/frontEnd/wbc-ui/core2/packages/wb-core`
-**Live State Evaluated:** 
-*   Active Directory: `packages/wb-core`
-*   Status: `tierEnforcement.js` already contains logic for validating JWTs and checking tiers, but the monetization HOCs haven't been forcefully injected into the monolith (`WBC.js`).
+<CommandLiveDemoAnimation command="wbMonetize" />
 
-| Scenario | Live System Behavior (wb-labs) |
+## 1. Live target
+
+| Field | Live value |
 |---|---|
-| Target is UI Component | **[INACTIVE]** `wb-core` exports utility logic, not React/Vue components. |
-| Target is API Route | **[INACTIVE]** No backend routes in this package. |
-| Target is Logic Method | **[ACTIVE]** System is primed to wrap specific exported methods in `WBC.js` with the `tierEnforcement.js` gate. |
+| Tier system | `tierEnforcement.js` in wb-core — 3 tiers: free, pro, enterprise |
+| `__WBC_DEV__` gating | 3-mode: `dev` (all unlocked), `staging` (tier-enforced), `prod` (tier-enforced + Stripe) |
+| Currently gated features | ExportPanel (enterprise), AdvancedFilters (pro), BulkExport (pro) |
+| Ungated features | BasicView, DataGrid, ThemeToggle |
+| Stripe config | `.env.STRIPE_KEY` configured for staging, not yet for production |
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix (Live Application)
-| Argument Type | Input Executed | Live Parsed State (wb-labs) | Live Output Generation |
-|---|---|---|---|
-| Specific File Path | `Command: /wbMonetize src/WBC.js` | Locks onto monolith. | `[PROCEED] Analyzing export signatures for paywall wrapping.` |
-| Directory Path | `Command: /wbMonetize src/` | Scans `wb-core`. | `[PROCEED] Monetizing all exported utilities in the package.` |
-| Comma-Separated | `Command: /wbMonetize src/utils/renderString.js` | Targets specific util. | `[PROCEED] Gating the regex rendering feature.` |
-| Natural Language | `Command: /wbMonetize "make regex premium"` | Fuzzily matches logic. | `[PROCEED] Applying pro tier to renderString.js.` |
+## 2. What each argument resolves to today
+
+| Argument | Live resolution |
+|---|---|
+| `/wbMonetize ExportPanel.vue -t="enterprise"` | Already gated at enterprise. No-op with `ℹ️ Already gated.` |
+| `/wbMonetize ThemeToggle.vue -t="pro"` | Would wrap ThemeToggle with pro-tier gate. |
+| `/wbMonetize AdvancedFilters.vue -r` | Would strip the pro gate, making it free. |
+| `/wbMonetize "make dark mode pro"` | Fuzzy-matches → ThemeToggle.vue, wraps dark-mode branch. |
 
 ---
 
-## 3. Flag Processing Matrix (Isolated Live Runs)
+## 3. Pipelines on this exact workspace
 
-| Flag | Live Executed Command | Live Output Impact |
-|---|---|---|
-| `--tier="<name>"` | `Command: /wbMonetize src/utils/renderString.js -t="enterprise"` | `[TIER] Only enterprise JWTs can execute this regex render.` |
-| `--stripe` | `Command: /wbMonetize src/WBC.js -s` | `[STRIPE] Ignored. Cannot inject UI elements into a vanilla JS logic library.` |
-| `--dry-run` | `Command: /wbMonetize src/WBC.js -d` | `[DRY-RUN] Would wrap 4 methods with checkTier(). Disk untouched.` |
-| `--remove` | `Command: /wbMonetize src/tierEnforcement.js -r` | `[REMOVE] Stripped all enforcement checks. wb-core is fully Free.` |
+<script setup>
+const wbMonetizePipelines = [
+  {
+    "title": "Gate dark mode to Pro tier",
+    "cmd": "/wbMonetize core2/packages/wb-dataviewer/src/components/ThemeToggle.vue -t=\"pro\" -s",
+    "logs": [
+      {
+        "text": "[SYSTEM] Gating ThemeToggle.vue at Pro tier.",
+        "type": "sys"
+      },
+      {
+        "text": "[AST] Parsed: 1 default export (ThemeToggle component).",
+        "type": "gen"
+      },
+      {
+        "text": "[GATE]",
+        "type": "gen"
+      },
+      {
+        "text": "import { withTierGate } from '@wbc-ui2/wb-core/tierEnforcement'",
+        "type": "gen"
+      },
+      {
+        "text": "import { useStripeCheckout } from '@wbc-ui2/wb-core/billing'",
+        "type": "gen"
+      },
+      {
+        "text": "export default withTierGate(ThemeToggle, {",
+        "type": "gen"
+      },
+      {
+        "text": "tier: 'pro',",
+        "type": "gen"
+      },
+      {
+        "text": "fallback: () => StripeUpgradeModal({ feature: 'Dark Mode' })",
+        "type": "gen"
+      },
+      {
+        "text": "})",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] ThemeToggle is now Pro-gated with Stripe checkout.",
+        "type": "ok"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  },
+  {
+    "title": "Free up AdvancedFilters for engagement",
+    "cmd": "/wbMonetize core2/packages/wb-dataviewer/src/components/AdvancedFilters.vue -r",
+    "logs": [
+      {
+        "text": "[SYSTEM] Removing tier gate from AdvancedFilters.vue...",
+        "type": "sys"
+      },
+      {
+        "text": "[AST] Found: withTierGate(AdvancedFilters, { tier: 'pro' })",
+        "type": "gen"
+      },
+      {
+        "text": "[REMOVE] Stripped wrapper + 2 unused imports.",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] AdvancedFilters is now free for all users.",
+        "type": "ok"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  },
+  {
+    "title": "Audit all gated features (dry-run)",
+    "cmd": "/wbMonetize core2/packages/wb-dataviewer/src/**/*.vue -t=\"pro\" -d",
+    "logs": [
+      {
+        "text": "[DRY-RUN] Scanning 12 Vue components...",
+        "type": "warn"
+      },
+      {
+        "text": "[STATUS]",
+        "type": "gen"
+      },
+      {
+        "text": "Already gated (pro): AdvancedFilters.vue, BulkExport.vue",
+        "type": "gen"
+      },
+      {
+        "text": "Already gated (enterprise): ExportPanel.vue",
+        "type": "gen"
+      },
+      {
+        "text": "Would gate (pro): DataPipeline.vue, ScheduledReports.vue, ThemeToggle.vue",
+        "type": "gen"
+      },
+      {
+        "text": "Already free: BasicView.vue, DataGrid.vue, + 4 others",
+        "type": "gen"
+      },
+      {
+        "text": "[DRY-RUN] 3 files would be modified. 2 already at requested tier. Disk untouched.",
+        "type": "warn"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbMonetize" :pipelines="wbMonetizePipelines" />
+
+
+### 💠 Pipeline Gate dark mode to Pro tier
+
+
+### 💠 Pipeline Free up AdvancedFilters for engagement
+
+
+### 💠 Pipeline Audit all gated features (dry-run)
 
 ---
 
-## 4. Omni-Channel Execution Pipeline (Live Chaining)
+## 4. What would refuse today
 
-### 💠 The "Massive Pro-Tier Lockdown" (`src/utils/**/*.js -t="pro"`)
-**Live Context:** The team decides that all utility functions in `wb-core` (like `renderString`) should only be available to Pro users of the `wbc-ui.com` application.
-**Command Executed:** `/wbMonetize src/utils/**/*.js -t="pro"`
-**Live Output:**
-```text
-> Command: /wbMonetize src/utils/**/*.js -t="pro"
+| Trigger | Live response |
+|---|---|
+| `/wbMonetize BasicView.vue -t="premium"` | `❌ Tier 'premium' not found. Available: free, pro, enterprise.` |
+| `/wbMonetize ExportPanel.vue -r` (enterprise feature) | Proceeds. `[REMOVE] Stripping enterprise gate.` (No confirmation for destructive action — use `-d` first.) |
+| `/wbMonetize src/WBC.js -t="pro"` | `⚠️ WBC.js is a core runtime file, not a feature component. Gating it would break all consumers. Confirm intent?` |
 
-[SYSTEM] Initiating Massive Pro-Tier Lockdown for wb-core/utils...
-[AST] Parsed 4 utility files.
-[TIER] Applying 'pro' access requirement using local `tierEnforcement.js`.
-[SYNC] Rewriting ASTs...
-[SUCCESS] 4 utility functions successfully gated. Throwing `TierError` if check fails.
-```
-
-### 💠 The "Feature Democratization" (`src/WBC.js -r -d`)
-**Live Context:** Simulating what it would look like if we removed all tier enforcement from the main monolith file.
-**Command Executed:** `/wbMonetize src/WBC.js -r -d`
-**Live Output:**
-```text
-> Command: /wbMonetize src/WBC.js -r -d
-
-[SYSTEM] Initiating Feature Democratization...
-[AST] Locating `checkTier()` logic wrappers in WBC.js.
-[DRY-RUN] Found 2 wrapped methods.
-[DRY-RUN] Would remove `import { checkTier } from './tierEnforcement'`.
-[DRY-RUN] Would unwrap methods, making them public.
-[SUCCESS] Dry-run complete. Safe to execute.
-```
-
----
-
-## 5. Operational Edge Cases (Live Workspace Check)
-
-| Fault Trigger | Live System State | Live Resolution |
-|---|---|---|
-| Missing Billing Context | **[PASS]** `tierEnforcement.js` is locally available to handle checks. | Gating logic applies successfully. |
-| Syntax Error | **[PASS]** `WBC.js` uses standard ES6 Class methods. | AST successfully targets methods for wrapping. |
-| Remove Misfire | **[PASS]** System detects existing wrappers before executing `-r`. | Execution is idempotent. |
-
----
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+The pattern: **`/wbMonetize` is the per-feature application of the tier system.** `tierEnforcement.js` defines the tiers; `/wbMonetize` connects individual components to those tiers. The `__WBC_DEV__` mode determines runtime behavior — in dev mode, all gates pass regardless of tier assignment.

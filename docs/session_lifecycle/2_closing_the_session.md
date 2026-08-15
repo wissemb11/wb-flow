@@ -1,75 +1,73 @@
-# Closing the Session
+---
+title: Closing the Session
+description: Why and how to properly end a chat session to avoid context-bloat costs.
+---
 
-<div style="max-width:650px;margin:16px auto">
+# Closing the Session — 
 
-```mermaid
-flowchart LR
-  classDef plan fill:#161b22,stroke:#d2a8ff,color:#c9d1d9
-  classDef work fill:#161b22,stroke:#58a6ff,color:#c9d1d9
-  classDef valid fill:#161b22,stroke:#3fb950,color:#c9d1d9
-  classDef teal fill:#161b22,stroke:#00d4aa,color:#c9d1d9
-  classDef muted fill:#161b22,stroke:#30363d,color:#8b949e
-
-  S[Session Start]:::plan --> T1[Task 1]:::work
-  T1 --> T2[Task 2]:::work
-  T2 --> T3[Task 3]:::work
-  T3 --> B[Context Bloated 🧠💥]:::muted
-  B --> C{Close Session?}:::teal
-  C -- "Yes" --> Save[Golden Save Point 💾]:::valid
-  C -- "No" --> T4[❌ Errors mount]:::muted
-```
-
-</div>
-
-## Why Close a Session?
-AI Agents have a "context window." As you chat, the window fills up with old logs, executed code, and discarded thoughts. If a session gets too long, the AI becomes "bloated"—it starts hallucinating, forgetting instructions, and costing more tokens per message.
-
-When you hit a [Golden Save Point](1_the_golden_save_point.md), or when you finish working for the day, you must formally close the session to keep the AI sharp.
-
-## How to Close the Session (SOP)
-
-1. **Snapshot the Day**: 
-   Run `/wbStandup <target>`
-   *Why?* This aggregates all the work you just finished and creates a neat, machine-readable summary in the `reports/<YYYY>/<MM>/<DD>/standups/` folder.
-
-2. **Finalize the Tracker**:
-   Run `/wbStopTrack --finalize`
-   *Why?* This tells the AI to cleanly close out the active `track_<target>_<YYYYMMDD>.md` file. It will summarize any major decisions and mark the file's status as `🔴 CLOSED`.
-
-3. **Purge the Context (The Human Step)**:
-   **Close the actual chat window/thread in your AI interface.** 
-   *Why?* This is the physical act of clearing the AI's short-term memory. The next time you open a chat, the AI will be fresh, fast, and unburdened by past tokens. It will rely purely on the written `context.md` and your `reports/` folder.
-
-
-## Why Formal Closure Matters
-
-Closing a session formally ensures that the AI tracker has an accurate record of what was accomplished, what decisions were made, and what the next steps are. It prevents context bleed between sessions and gives the next session a clean starting point.
-
-## Related Concepts
-
-- **[The Golden Save Point](1_the_golden_save_point.md)** — The ideal state before closing
-- **[Opening a New Session](3_opening_a_new_session.md)** — Starting fresh after closure
-- **[Session Lifecycle Hub](README.md)** — Full lifecycle overview
-
-
-
-## Summary
-
-Closing a session formally captures the work done, decisions made, and next steps. It prevents context bleed and ensures the next session starts with a clean slate.
-
-## Checklist
-
-- [ ] All tasks marked Valid
-- [ ] Changes committed to git
-- [ ] Session tracker stopped
-- [ ] Standup generated and shared
-
-
-## Related
-
-- [The Golden Save Point](1_the_golden_save_point.md) — Prerequisite for closing
-- [Opening a New Session](3_opening_a_new_session.md) — Next step after closing
+> Ending a chat is a workflow step, not a chore. If you skip it, the next session pays the cost — in slower responses, more hallucinations, and (literally) more dollars per token.
 
 ---
-← [Session Lifecycle Hub](README.md) · [Home](../README.md)
 
+## Why bother
+
+The AI's context window is finite. Every message you send carries the entire prior thread. By message 200 of a working session, you're paying for:
+
+<div align="center">
+<ContextBloatAnimation />
+*A 200-message session accumulates ~28K tokens of stale context. A fresh session starts at ~5K. Closing isn't hygiene — it's economics.*
+</div>
+
+- Old code that's already been written and committed.
+- Discarded ideas, rejected suggestions, abandoned approaches.
+- Tool outputs from `/wbAudit` runs whose findings are now resolved.
+- Multiple `context.md` re-reads as the AI re-grounds itself.
+
+None of that helps the next response. All of it slows generation, raises cost, and increases the odds the AI hallucinates a function name from earlier in the thread that no longer exists.
+
+A clean session-close cuts the rope. The next session loads `context.md` fresh, reads `reports/` fresh, and has nothing to forget.
+
+## The SOP (3 steps, ~2 minutes)
+
+### 1. Snapshot the day
+
+```
+/wbStandup <target>/
+```
+
+Aggregates today's reports into `reports/<YYYY>/<MM>/<DD>/standups/standup_<target>_<date>.md`. This is the **only** thing tomorrow-you (or tomorrow-AI) will read to figure out what happened today.
+
+If you skip it, tomorrow's session has to re-derive today's state from raw `git log` + scattered audit/plan files. That works, but it's slow and lossy.
+
+### 2. Finalize the tracker
+
+```
+/wbStopTrack --finalize
+```
+
+If you ran `/wbTrack` at session start, this closes the tracker. It writes a final `§END` section summarizing the session, then extracts derivative files (`tips/`, `warnings/`, `commentaries/`, `all_commands/`, `resume/`) into `walkthroughs/`.
+
+The tracker is `🔴 CLOSED` after this. New `/wb*` commands won't append to it — they'll start a fresh tracker if `/wbTrack` is invoked again.
+
+If you didn't run `/wbTrack` at the start, skip this step. There's nothing to finalize.
+
+### 3. Close the chat window
+
+This is the step that actually clears the AI's working memory. **The previous two steps wrote files; this one releases tokens.**
+
+If you keep the window open and "just ask one more question tomorrow," the cost-per-token math is brutal:
+
+- Fresh window @ 5K tokens of context = cheap, fast.
+- Same window with 200 messages of history = expensive, slow, prone to drift.
+
+Most clients won't volunteer this. You have to do it manually.
+
+## When NOT to close
+
+- **You're mid-task.** Closing during execution loses the in-flight reasoning. Finish the task, then close.
+- **You're debugging something subtle.** The AI's mental model of the bug is in the thread; a fresh session will re-derive it from scratch and may miss the same nuance.
+- **Closing would force a re-onboarding.** If the next session is in 5 minutes for one quick question, the close-then-reopen cost outweighs the context-tax savings.
+
+The rough rule: close when the cost of carrying the context forward exceeds the cost of re-loading it. By default, that's at the [Golden Save Point](1_the_golden_save_point) and at end-of-day.
+
+---

@@ -1,91 +1,176 @@
-# wb-flow Protocol: /wbBroadcast Execution & Simulation Specification
+# /wbBroadcast — Exhaustive Simulation ()
 
-This document defines the **exhaustive behavior matrix** for the `/wbBroadcast` command. It serves as the definitive reference for how the agent triggers cross-package notifications, dispatches multi-repository events, and fires webhooks.
+`/wbBroadcast` is the event dispatcher. It fires notifications across external systems (Slack, Discord, webhooks) and internal micro-frontends (PubSub events). The central constraint: **asynchronous, non-blocking.** Broadcasting never halts the CI/CD pipeline or the active development loop. It fires and reports, but a failed broadcast doesn't cascade into a build failure.
+
+Read this if you want to know how channel targeting works, what the `-d` (data) flag carries versus the `-m` (message) flag, and why `/wbBroadcast` is the only command that makes external HTTP requests.
 
 ---
 
-## 1. Role & Definition Matrix
-**Role:** The Event Dispatcher & Notification Agent
-**Target:** Distributes messages, build statuses, and semantic events across external systems (Slack, Discord) and internal micro-frontends.
-**Core Protocol:** Strict "Asynchronous Execution". The agent must fire and forget, ensuring that broadcasting never blocks the primary CI/CD pipeline or active development loop.
+## 1. Role & target
 
-| Scenario | System Behavior |
+| Aspect | Behavior |
 |---|---|
-| Target is Webhook | **[PROCEED]** Pings the specified external URL with a JSON payload of the event. |
-| Target is Internal PubSub | **[PROCEED]** Dispatches a custom event to the `window` or internal message bus for other micro-frontends to consume. |
-| Missing Payload | **[HALT]** Protocol forbids broadcasting empty messages. Command must contain `-m` or pipe input. |
+| **Role** | The Event Dispatcher. Sends messages to external and internal systems. |
+| **Target** | Webhook URLs, Slack/Discord channels, or internal PubSub event bus. |
+| **Cell scope** | None. `/wbBroadcast` doesn't interact with plans or code. |
+| **Side effects allowed** | HTTP POST requests to external services. Internal event dispatch. |
+| **Side effects forbidden** | Modifying code, editing plans, altering local state. |
+
+The "fire-and-forget" principle is deliberate. A Slack notification failing shouldn't break a release pipeline. `/wbBroadcast` reports the HTTP status (200, 401, 429) but never blocks on failure. The caller decides whether to retry.
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix
-`/wbBroadcast` uses channel targeting to route payloads.
+## 2. Argument resolution
 
-| Argument Type | Example | Parsing Logic | Simulated Output Profile |
-|---|---|---|---|
-| Natural Language String | `Command: /wbBroadcast "Deployment Successful"` | Parses string into a basic text payload. | Sends a generic notification to the default channel. |
-| Specific Channel | `Command: /wbBroadcast "#engineering"` | Targets a specific Slack/Discord channel. | Routes the message to the specified team. |
-| Comma-Separated | `Command: /wbBroadcast #ops,#dev` | Parses multiple channels. | Multicasts the payload to multiple destinations simultaneously. |
-| Event Type | `Command: /wbBroadcast event:cache_invalidation` | Parses formal event syntax. | Triggers an internal architectural event across the monorepo. |
-
----
-
-## 3. Flag Processing Matrix (Isolated Capabilities)
-
-| Flag | Shortcut | Purpose | Example | Simulated Output Impact |
-|---|---|---|---|---|
-| `--message="<str>"`| `-m` | Explicitly defines the text payload of the broadcast. | `Command: /wbBroadcast #ops -m="Build Failed"` | `[MESSAGE] Formatting payload: { text: "Build Failed" }.` |
-| `--data="<json>"` | `-d` | Attaches structured JSON data to the event (crucial for webhooks). | `Command: /wbBroadcast webhook -d='{"id": 402}'` | `[DATA] Attaching nested JSON payload to POST request.` |
-| `--silent` | `-s` | Executes the broadcast without cluttering the agent's console output. | `Command: /wbBroadcast #dev -m="Ping" -s` | `[SILENT] (No output generated in terminal).` |
-| `--dry-run` | `-D` | Formats the payload and lists targets without actually firing the network request. | `Command: /wbBroadcast #all -m="Test" -D` | `[DRY-RUN] Would send POST to https://hooks.slack.com/...` |
-
----
-
-## 4. Omni-Channel Execution Pipeline (Flag Chaining)
-
-### 💠 The "Massive Post-Release Broadcast" (`#dev,#ops,#product -m="..." -d="..."`)
-**Context:** The tech lead has just successfully deployed `wbc-ui.com` to production. They want to notify all relevant teams simultaneously with structured release data.
-**Command Executed:** `/wbBroadcast #dev,#ops,#product -m="Release v4.6.0 is Live" -d='{"version": "4.6.0", "status": "success"}'`
-**Simulated Protocol Chain:**
-1. Parses 3 distinct target channels.
-2. Constructs the primary message string (`-m`).
-3. Attaches structured metadata (`-d`).
-4. Fires parallel asynchronous HTTP requests to Slack/Discord webhooks.
-**Simulated Output:**
-```markdown
-> Command: /wbBroadcast #dev,#ops,#product -m="Release v4.6.0 is Live" -d='{...}'
-
-[SYSTEM] Initiating Massive Cross-Channel Broadcast...
-[PAYLOAD] Formatted JSON with message and metadata.
-[DISPATCH] Firing webhook for #dev... 200 OK.
-[DISPATCH] Firing webhook for #ops... 200 OK.
-[DISPATCH] Firing webhook for #product... 200 OK.
-[SUCCESS] Multi-channel broadcast complete.
-```
-
-### 💠 The "Internal Cache Invalidation" (`event:purge_cache -D`)
-**Context:** An architect is testing an event that will force all micro-frontends to drop their local caches when the core library updates.
-**Command Executed:** `/wbBroadcast event:purge_cache -D`
-**Simulated Output:**
-```markdown
-> Command: /wbBroadcast event:purge_cache -D
-
-[SYSTEM] Formatting internal PubSub event...
-[DRY-RUN] Event Name: `wb:purge_cache`.
-[DRY-RUN] Target: Global `window` and WebSocket message bus.
-[DRY-RUN] Payload: `{ timestamp: 1714856000 }`
-[SUCCESS] Dry-run complete. Run without -D to fire event.
-```
-
----
-
-## 5. Operational Edge Cases & Protocol Faults
-
-| Fault Trigger | System Detection | Resolution / Output |
+| Form | Example | What `/wbBroadcast` does |
 |---|---|---|
-| Dead Webhook | HTTP request returns 404 or 401 Unauthorized. | `⚠️ Warning: Broadcast to #dev failed (HTTP 401). Check webhook URL.` |
-| Malformed JSON | User passes invalid JSON to the `-d` flag. | `❌ Error: Cannot parse JSON payload. Escaping error at position 12.` |
-| Network Timeout | API is unreachable after 5 seconds. | `⚠️ Warning: Broadcast timed out. Executed as fire-and-forget; pipeline continues.` |
+| Natural language string | `Command: /wbBroadcast "Deployment Successful"` | Sends text to the default notification channel. |
+| Channel target | `Command: /wbBroadcast "#engineering"` | Routes the message to a specific Slack/Discord channel. |
+| Comma-separated | `Command: /wbBroadcast #ops,#dev` | Multicasts to multiple destinations simultaneously. |
+| Event type | `Command: /wbBroadcast event:cache_invalidation` | Fires an internal architectural event across the micro-frontend bus. |
+
+The `event:` prefix is the mode switch. Without it, `/wbBroadcast` sends a human-readable message to a chat channel. With it, it dispatches a machine-readable event to the internal PubSub system — consumed by `window.addEventListener('wb:cache_invalidation', ...)` in the micro-frontends.
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 3. Flag matrix
+
+| Flag | Shortcut | Purpose |
+|---|---|---|
+| `--dry-run` | `-D` | Formats the payload and lists targets without firing the request. |
+
+---
+
+## 4. Pipelines (the agent-native scenarios)
+
+<script setup>
+const wbBroadcastSimPipelines = [
+  {
+    "title": "Post-release notification to all teams",
+    "cmd": "/wbBroadcast #dev,#ops,#product -m=\"Release v4.6.0 is Live\" -d='{\"version\": \"4.6.0\", \"packages\": [\"wb-core\", \"wb-dataviewer\"], \"status\": \"success\"}'",
+    "logs": [
+      {
+        "text": "[SYSTEM] Multicasting to 3 channels...",
+        "type": "sys"
+      },
+      {
+        "text": "[PAYLOAD] Message: \"Release v4.6.0 is Live\"",
+        "type": "gen"
+      },
+      {
+        "text": "Data: {\"version\": \"4.6.0\", \"packages\": [...], \"status\": \"success\"}",
+        "type": "gen"
+      },
+      {
+        "text": "[DISPATCH] #dev \u2192 200 OK (0.3s)",
+        "type": "gen"
+      },
+      {
+        "text": "[DISPATCH] #ops \u2192 200 OK (0.4s)",
+        "type": "gen"
+      },
+      {
+        "text": "[DISPATCH] #product \u2192 200 OK (0.2s)",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] 3/3 channels notified successfully.",
+        "type": "ok"
+      }
+    ],
+    "note": "After a successful `/wbRelease`, notify engineering, ops, and product:",
+    "noteType": "info"
+  },
+  {
+    "title": "Internal cache purge event (dry-run first)",
+    "cmd": "/wbBroadcast event:purge_cache -d='{\"scope\": \"wb-core\", \"reason\": \"v4.6.0 export surface changed\"}' -D",
+    "logs": [
+      {
+        "text": "[DRY-RUN] Event: wb:purge_cache",
+        "type": "warn"
+      },
+      {
+        "text": "[DRY-RUN] Target: Global window + WebSocket message bus",
+        "type": "warn"
+      },
+      {
+        "text": "[DRY-RUN] Payload: {",
+        "type": "warn"
+      },
+      {
+        "text": "\"scope\": \"wb-core\",",
+        "type": "gen"
+      },
+      {
+        "text": "\"reason\": \"v4.6.0 export surface changed\",",
+        "type": "gen"
+      },
+      {
+        "text": "\"timestamp\": 1746403200",
+        "type": "gen"
+      },
+      {
+        "text": "}",
+        "type": "gen"
+      },
+      {
+        "text": "[DRY-RUN] Would dispatch to 4 registered listeners.",
+        "type": "warn"
+      },
+      {
+        "text": "[DRY-RUN] No requests fired. Run without -D to dispatch.",
+        "type": "warn"
+      }
+    ],
+    "note": "The core library updated. All micro-frontends need to drop their local caches. Test the event payload first:",
+    "noteType": "info"
+  },
+  {
+    "title": "Silent CI notification",
+    "cmd": "/wbBroadcast #ci-notifications -m=\"wb-core build passed\" -s",
+    "logs": [
+      {
+        "text": "(no console output \u2014 silent mode)",
+        "type": "gen"
+      },
+      {
+        "text": "[Internal: HTTP 200 to #ci-notifications]",
+        "type": "gen"
+      }
+    ],
+    "note": "In a CI pipeline, broadcast the build status without cluttering logs:",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbBroadcast" titleSuffix="Exhaustive Simulation" :pipelines="wbBroadcastSimPipelines" />
+
+
+### 💠 Pipeline Post-release notification to all teams
+
+After a successful `/wbRelease`, notify engineering, ops, and product:
+
+
+### 💠 Pipeline Internal cache purge event (dry-run first)
+
+The core library updated. All micro-frontends need to drop their local caches. Test the event payload first:
+
+
+### 💠 Pipeline Silent CI notification
+
+In a CI pipeline, broadcast the build status without cluttering logs:
+
+---
+
+## 5. Edge cases & refusals
+
+| Trigger | What `/wbBroadcast` does |
+|---|---|
+| No message and no data (`/wbBroadcast #dev`) | `❌ Empty payload. Use -m for text or -d for structured data.` |
+| Dead webhook (HTTP 404) | `⚠️ Broadcast to #dev failed (HTTP 404). Check webhook URL. Pipeline continues.` |
+| Malformed JSON in `-d` | `❌ Cannot parse JSON payload. Check escaping at position N.` |
+| Network timeout (5s) | `⚠️ Broadcast timed out. Fire-and-forget — pipeline continues.` |
+| Event type without `event:` prefix | Treated as a channel name. `/wbBroadcast cache_invalidation` → sends to `#cache_invalidation` channel, not the PubSub bus. |
+
+The unifying principle: **`/wbBroadcast` is the only command that reaches outside the workspace.** Every other `/wb*` command operates on local files and local state. Broadcasting is the exit point — it tells the world what happened. That external scope is why it defaults to fire-and-forget: the workspace shouldn't depend on Slack being up.

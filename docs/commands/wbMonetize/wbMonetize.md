@@ -1,3 +1,8 @@
+---
+title: "wbMonetize — Freemium tier strategy and gating"
+description: "## Overview"
+---
+
 # /wbMonetize — Freemium tier strategy and gating
 
 ## Overview
@@ -25,16 +30,11 @@
 - ❌ Does not audit code — use `/wbAudit` for technical assessment.
 - ❌ Does not handle licensing — use `/wbLicense` for compliance.
 
-## 🔗 Sister Edition
-
-> The [Claude edition (`flow.wbc-ui.com`)](../../../../apps/wb-flow/flow.wbc-ui.com/src/commands/wbMonetize/) <!-- [CROSS-EDITION] Phase=A --> covers the same command in a self-help, opinionated register.
-
 ## What's Next?
 
 After reading this hub, either:
 - Pick a **layer file** above for deep reading
 - Run `/wbNext` to see what commands naturally follow `/wbMonetize` in a workflow
-
 
 ## How It Works
 
@@ -42,10 +42,9 @@ Profiles project, segments users, evaluates feature value, benchmarks pricing.
 
 ## Key Options
 
---license-only for license recommendation, --adjust for pricing updates
-
+Analyses the package and reports monetisation options.
 
 > **Usage tip:** Run early in the project lifecycle before making irreversible licensing or architecture decisions.
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

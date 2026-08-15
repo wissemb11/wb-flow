@@ -1,5 +1,7 @@
 <!-- HELP_GATE_START -->
 # `/wbExplain` Command
+
+> Conforms to output_conventions v1.12 · template v1.0
 **Role:** The Teacher / The Architect
 **Purpose:** Generate persistent, formatted explanations for a specific task ID, a codebase architecture, or a general technical question, without executing code changes.
 **Usage:** `/wbExplain <target> "<query>|<column_filter>|*" [--as=<style>]`
@@ -76,16 +78,16 @@ Format required:
 ### 📚 Base Reference Files
 | Type | File | Description |
 |---|---|---|
-| Foundational | [context.md](../../../../../context.md) | Permanent Identity and Architecture (Source of Truth) |
+| Foundational | [context.md](../../../../../../../context.md) | Permanent Identity and Architecture (Source of Truth) |
 | Snapshot | [context_<scope>_<date>.md](../contexts/context_<scope>_<date>.md) | Daily snapshot used for current session context |
-| Foundational | [dev.md](../../../../../dev.md) | Permanent Development Commands and Status |
+| Foundational | [dev.md](../../../../../../../dev.md) | Permanent Development Commands and Status |
 
-### Global Files (`core2/` monorepo root)
+### Global Files (`<monorepo-root>/` monorepo root)
 | Category | File | Source Command |
 |---|---|---|
-| Reports | [audit_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_core2_<date>.md) | `/wbAudit core2/` |
-| Reports | [plan_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_core2_<date>.md) | `/wbPlan core2/` |
-| Tracks | [track_core2_<date>.md](../../../../../../../../../../.wb/workflows/tracks/<YYYY>/<MM>/<DD>/track_core2_<date>.md) | `/wbTrack core2/` |
+| Reports | [audit_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_core2_<date>.md) | `/wbAudit <monorepo-root>/` |
+| Reports | [plan_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_core2_<date>.md) | `/wbPlan <monorepo-root>/` |
+| Tracks | [track_core2_<date>.md](../../../../../../../../../../.wb/workflows/tracks/<YYYY>/<MM>/<DD>/track_core2_<date>.md) | `/wbTrack <monorepo-root>/` |
 
 <details>
   <summary>📂 Sub-Package: [Active Package Name]</summary>

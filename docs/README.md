@@ -1,252 +1,212 @@
-# wb-flow
+---
+title: wb-flow Documentation
+description: Official documentation for the 33-command /wb* agentic workflow system — a field manual for developers.
+---
 
-> **Your AI assistant is brilliant. It's just undisciplined.**  
-> wb-flow gives it a spine — a strict verb-driven pipeline that turns vague requests into structured, traceable, verifiable work.
+# wb-flow Documentation
 
-[Quickstart](start_here/README.md) · [Command Reference](#the-command-catalog) · [Concepts](concepts/README.md) · [Daily Use](daily_use/README.md) · [Session Lifecycle](session_lifecycle/README.md)
+> The official documentation for the 33-command `/wb*` agentic workflow system.
+>
+> This is a field manual — opinionated, direct, and written for developers who actually use these commands rather than just read about them.
+
+<WorkflowDiagram src="/diagrams/daily_workflow_loop.png" alt="The Daily Workflow Loop — Orient → Plan → Execute → Validate → Commit → Close" />
 
 ---
 
-## The Problem
+## Who is this for?
 
-You give your AI a 3-hour task. Two hours in, it's rewriting files you didn't ask it to touch, skipped the part where it should have audited the codebase first, and committed with `git commit -m "fix stuff"`.
+**Stack-agnostic.** wb-flow runs on any project where you have source files and markdown — Vue, React, Svelte, Solid, Next.js, Nuxt, Astro, Django, FastAPI, Rails, Go, Rust, anything. The 33 commands operate on `package.json`, source trees, and report folders; none of them care which framework wrote the code they're reading.
 
-It didn't fail because it's not smart enough. It failed because **nobody gave it a process**.
+**The one exception:** `/wbToWBC` converts code to use the wbc-ui2 component primitives, which are Vue-based. If you're not on Vue, ignore that one command. The other 32 are universal.
 
----
+**Why examples skew Vue.** This documentation was authored within a Vue monorepo (`wb-core`, `wb-press`, `wbdataviewer2.wbc-ui.com`), so every worked example draws from there. The patterns transfer one-for-one — `/wbAudit` reads source code the same way whether the source is `.vue`, `.tsx`, or `.py`.
 
-## The Solution: Verbs, Not Personas
+**What you need on day one:**
 
-Most AI workflow tools solve this with *personas* — "ask the QA Agent", "invoke the Architect". wb-flow takes a different approach: **verbs over personas**.
-
-You don't ask a role to review your code. You run `/wbAudit`. You don't ask a planner to break down a feature. You run `/wbPlan`. The command *is* the contract — explicit, named, deterministic, and impossible to drift from.
-
-The result is a four-stage **Ideas Pipeline** that every task flows through:
-
-```
-/wbAudit  →  /wbPlan  →  /wbWork  →  /wbValid
-  Audit        Plan        Execute     Validate
-```
-
-**Audit before you plan. Plan before you execute. Validate before you ship.**  
-The AI cannot skip steps because you haven't given it the next command yet.
+- A folder with code in it (any language)
+- A way to run the commands (any AI agent environment that accepts prompts)
+- Nothing else — no Node version requirement, no framework lock-in
 
 ---
 
-![The Daily Workflow Loop — Orient → Plan → Execute → Validate → Commit → Close](diagrams/daily_workflow_loop.png)
+## How outputs are tagged (v1.8+)
 
+Every output file from a *suggestion-emitting* command (`/wbPlan`, `/wbAudit`, `/wbReview`, `/wbVision`, `/wbIdea`, `/wbStandup`, `/wbNext`, `/wbActOn`) carries three metadata layers:
+
+**1. YAML front-matter:**
+
+```yaml
 ---
-
-## What is wb-flow?
-
-wb-flow is a **prompt-based command system** that runs inside your AI assistant. Install it once and it drops 33 structured slash-command templates into your repo — pure Markdown files your AI reads and follows as operating procedures.
-
-- **Zero runtime.** No server, no daemon, no Python environment. The tool installs itself and then disappears — all that's left are the Markdown files.
-- **Zero lock-in.** Works with Claude Code, Cursor, OpenCode, Gemini CLI, or any assistant that reads a prompt. Works with Vue, Python, Go, Rust, SQL, Terraform — anything with source files.
-- **Zero ambiguity.** Every command has a defined input contract, a defined output format, and a defined handoff to the next step. The AI knows exactly what regime it is in.
-
-```bash
-npm install -g wb-flow
-cd my-project
-wb-flow init
+type: 🔨 Worker     # the dominant action type
+emits: mixed         # `pure` or `mixed`
+---
 ```
 
-That's it. No config files. No framework registration. No API keys.
+**2. A `Requires` column in every recommendation table:**
+
+| # | Requires | Suggestion | … |
+|---|---|---|---|
+| 1 | 🔨 Worker | Refactor `bin/install.js` | … |
+| 2 | ✅ Validator | Audit the new auth middleware | … |
+| 3 | 📋 Mechanical | Run `npm pack --dry-run` | … |
+
+**3. The four canonical action types:**
+
+- 🧠 **Planner** — Deep reasoning, strategy, multi-step decomposition
+- ✅ **Validator** — Big-thinker code-quality judgment, scoring
+- 🔨 **Worker** — Coder/executor: surgical code edits, refactors
+- 📋 **Mechanical** — Run command, parse output, format report. No judgment
+
+See [`concepts/model_recommendations`](concepts/model_recommendations) for which model to use per role.
 
 ---
 
-## A Full Cycle in 4 Commands
+## How to read this documentation
 
-```bash
-/wbSetup .                   # Read the codebase — generates context.md + dev.md
-/wbPlan "add dark mode"      # Break the goal into a ranked task table
-/wbWork --id=1               # Execute the first task, fully traced
-/wbValid                     # Verify: does the work match the plan?
-```
-
-Every output is a Markdown file. Every file carries YAML front-matter tagging it as **Planner**, **Validator**, **Worker**, or **Mechanical** — so you can route each piece of work to whichever AI model excels at that role.
-
----
-
-## Works Everywhere — Not Just Frontend
-
-wb-flow operates on source trees, `package.json`, and report folders. It doesn't know or care which framework wrote the code it's reading.
-
-| Domain | Representative Stacks |
+| Folder | When to read it |
 |---|---|
-| Frontend | Vue, React, Svelte, Solid, Astro |
-| Backend | Node.js, Python, Go, Rust, Java, Ruby |
-| Mobile | React Native, Flutter, native iOS/Android |
-| Data / ML | Python notebooks, MLOps pipelines |
-| Infrastructure | Terraform, Docker, CI/CD configs |
+| [`start_here/`](start_here/README) | First time using the system, or returning after weeks away |
+| [`concepts/`](/concepts/README) | When you want to understand *why* the system works the way it does |
+| [`daily_use/`](/daily_use/README) | When you've forgotten which command to run at 10am vs. 4pm |
+| [`commands/`](/commands/README) | Per-command deep-dives — seven reading files per command |
+| [`session_lifecycle/`](/session_lifecycle/README) | When and how to start and stop AI sessions cleanly |
 
-### Ship an npm Package — 5 Commands
+The seven files per command:
 
-```bash
-/wbAudit   packages/my-lib   # Is it shippable? Scores + blockers
-/wbTest    packages/my-lib   # All tests green
-/wbRelease packages/my-lib   # Bump version, update CHANGELOG, unpin workspace:*
-/wbPublish packages/my-lib   # Publish to npm
-/wbBroadcast packages/my-lib # Generate release notes + social posts
-```
-
-No manual version bumping. No forgotten changelog entries.
-
-### Ship a Commit — 3 Commands
-
-```bash
-/wbGit                                          # Analyze diff, classify by Conventional Commits
-/wbGit --commit="feat(api): add rate limiting"  # Draft and commit with a proper message
-/wbGit --push                                   # Push to remote
-```
-
-Stops lazy `git commit -m "wip"`. Every commit follows [Conventional Commits](https://www.conventionalcommits.org/) with zero effort.
-
-### Debug a Data Pipeline — 4 Commands
-
-```bash
-/wbSetup data-pipeline/        # Initialize wb-flow on your Python project
-/wbAudit src/etl/transform.py  # Score + find issues in the ETL logic
-/wbDebug src/ml/train.py       # Hypothesize → pinpoint why accuracy dropped
-/wbTest  data-pipeline/        # Run pytest, classify failures, suggest fixes
-```
-
-`/wbAudit` reads `.py` the same way it reads `.vue`.
-
-### Why Agentic over Manual?
-
-*Why do I need a CLI tool for this? Why can't I just tell the AI what to do?*  
-Because conversational prompting is undisciplined, but `/wb*` commands enforce a strict, repeatable contract. See our side-by-side [Agentic vs Manual Release Cycle](concepts/agentic_vs_manual.md) to understand how the pipeline eliminates cognitive load and guarantees hygiene.
+| File | Length | Read when |
+|---|---|---|
+| **hub** (`wbX.md`) | 1 page | Quick overview: purpose, invocation, what happens |
+| **eli5** | 1–2 paragraphs | One-line mental model |
+| **practical** | 1 page | About to run the command, need trade-offs |
+| **expert** | 2–3 pages | Considering modifying the template |
+| **examples** | 3–5 pages | Forgot what the output looks like |
+| **exhaustive** | 4–6 pages | Need the definitive edge-case simulation |
+| **live_demo** | 2–4 pages | Want the command grounded in an actual workspace |
 
 ---
 
-## A Day With wb-flow
+## Reading order for a new user
 
-| Time | Command | What It Does |
-|------|---------|-------------|
-| Morning | `/wbStandup` | Scan the monorepo for stale work, open PRs, in-flight tasks |
-| Planning | `/wbPlan "<goal>"` | Break a feature into a task table with worker/validator tags |
-| Executing | `/wbWork --id=3` | Execute one task with full traceability |
-| Afternoon | `/wbTest` | Run tests, classify failures (code-wrong vs. test-wrong) |
-| Before PR | `/wbAudit` | Deep audit — catch issues before the reviewer does |
-| Shipping | `/wbRelease` | Bump versions, generate changelog, prepare for npm |
+1. [`start_here/installation`](start_here/installation) — NPM, NPX, or Git installation
+2. [`start_here/getting_started`](start_here/getting_started) — 30-day onboarding plan
+3. [`start_here/first_run_walkthrough`](start_here/first_run_walkthrough) — Annotated first session
+4. [`start_here/bootstrapping_existing_project`](start_here/bootstrapping_existing_project) — Inheriting code without `/wbSetup`
+5. [`concepts/overview_agentic_workflows`](concepts/overview_agentic_workflows) — Commands grouped by the question they answer
+6. [`daily_use/the_daily_playbook`](daily_use/the_daily_playbook) — Morning → midday → afternoon → evening shape
+7. [`commands/<cmd>/<cmd>_practical`](commands/) — Pick the command you're about to use; read its `practical` file
 
----
-
-## How Outputs Are Tagged
-
-Every output file from a suggestion-emitting command carries YAML front-matter that classifies the recommended work type — so you can predictably route work to the right model.
-
-| Tag | Role | Best Used For |
-|-----|------|---------------|
-| 🧠 **Planner** | Deep reasoning, strategy, multi-step decomposition | Architecture decisions, feature scoping |
-| ✅ **Validator** | Code-quality judgment and scoring | Reviews, audits, test analysis |
-| 🔨 **Worker** | Surgical code edits and refactors | Implementation, bug fixes |
-| 📋 **Mechanical** | Run command, parse output, format report — no judgment | CI steps, changelog formatting |
-
-Commands that emit tagged output: `/wbPlan`, `/wbAudit`, `/wbReview`, `/wbVision`, `/wbIdea`, `/wbStandup`, `/wbNext`, `/wbActOn`.
+If you only ever read one of these, read the daily playbook.
 
 ---
 
-## 🐕 Built With wb-flow
+## Concept deep-dives
 
-This documentation suite — 250+ files across 33 command references, concept deep-dives, and workflow guides — was itself built entirely using `wb-flow`. The project used its own pipeline at every stage:
+Cross-cutting ideas that don't belong in any single command's docs:
 
-- **`/wbPlan`** broke the documentation into a 22-task backlog with worker/validator assignments
-- **`/wbWork`** executed each task atomically, one page at a time
-- **`/wbAudit`** scored the suite after every batch (starting at 5.2/10, finishing at 10/10)
-- **`/wbValid`** verified each completed task against its plan before marking it done
-- **`/wbGit`** generated every commit message from the actual diff
-
-The tool eats its own cooking. If you want proof that the pipeline works, you're reading it.
-
----
-
-## Prerequisites
-
-- A folder with source files (any language)
-- An AI assistant — Claude Code, Cursor, OpenCode, Antigravity, or any surface that accepts a prompt
-
-Nothing else.
+- [`concepts/agentic_vs_manual`](concepts/agentic_vs_manual) — When structured commands beat freeform prompting (and when they don't)
+- [`concepts/command_classification`](concepts/command_classification) — All 33 commands grouped into functional families
+- [`concepts/command_composition`](concepts/command_composition) — Self-application, chaining notation, chain recipes
+- [`concepts/wbPlan_flag`](concepts/wbPlan_flag) — How `--act` and `--wbPlan` compose across commands
+- [`concepts/plan_state_management`](concepts/plan_state_management) — The five task states (`⬜` `✅` `⏸️` `🚫` `🔄`) and override flags
+- [`concepts/ideas_pipeline`](concepts/ideas_pipeline) — The 8-step Ideas Pipeline from birth to execution
+- [`concepts/model_recommendations`](concepts/model_recommendations) — Which model to use per command role
+- [`concepts/flags_and_shortcuts`](concepts/flags_and_shortcuts) — System-wide flag→shortcut grammar
+- [`concepts/universal_flags_exhaustive_simulation`](concepts/universal_flags_exhaustive_simulation) — Brain Control super-flags simulation
+- [`concepts/wbWorkflow/`](/concepts/wbWorkflow/README) — Workflow architecture, lifecycle, and task sequencing
+- [`session_lifecycle/`](/session_lifecycle/README) — Golden Save Point, session boundaries, publishing arcs
 
 ---
 
-<a name="the-command-catalog"></a>
+## The 33-command catalog
 
-## The Command Catalog
+Grouped by the question you're asking when you reach for them.
 
-| # | Command | What It Does | Guides |
-|---|---------|--------------|--------|
-| 01 | `/wbSetup` | Initialize agentic identity for a folder | [Ref](commands/wbSetup/wbSetup.md) · [Expert](commands/wbSetup/wbSetup_expert.md) · [Practical](commands/wbSetup/wbSetup_practical.md) |
-| 02 | `/wbContext` | Generate context report (identity, deps, constraints) | [Ref](commands/wbContext/wbContext.md) · [Expert](commands/wbContext/wbContext_expert.md) · [Practical](commands/wbContext/wbContext_practical.md) |
-| 03 | `/wbPlan` | Break a goal into a task table | [Ref](commands/wbPlan/wbPlan.md) · [Expert](commands/wbPlan/wbPlan_expert.md) · [Practical](commands/wbPlan/wbPlan_practical.md) |
-| 04 | `/wbAudit` | Deep technical audit with scoring | [Ref](commands/wbAudit/wbAudit.md) · [Expert](commands/wbAudit/wbAudit_expert.md) · [Practical](commands/wbAudit/wbAudit_practical.md) |
-| 05 | `/wbReview` | Formal quality review of changes | [Ref](commands/wbReview/wbReview.md) · [Expert](commands/wbReview/wbReview_expert.md) · [Practical](commands/wbReview/wbReview_practical.md) |
-| 06 | `/wbTest` | Execute tests and classify failures | [Ref](commands/wbTest/wbTest.md) · [Expert](commands/wbTest/wbTest_expert.md) · [Practical](commands/wbTest/wbTest_practical.md) |
-| 07 | `/wbRelease` | Bump versions, prepare changelog | [Ref](commands/wbRelease/wbRelease.md) · [Expert](commands/wbRelease/wbRelease_expert.md) · [Practical](commands/wbRelease/wbRelease_practical.md) |
-| 08 | `/wbPublish` | Build and publish to npm | [Ref](commands/wbPublish/wbPublish.md) · [Expert](commands/wbPublish/wbPublish_expert.md) · [Practical](commands/wbPublish/wbPublish_practical.md) |
-| 09 | `/wbDeploy` | Deploy app to web host | [Ref](commands/wbDeploy/wbDeploy.md) · [Expert](commands/wbDeploy/wbDeploy_expert.md) · [Practical](commands/wbDeploy/wbDeploy_practical.md) |
-| 10 | `/wbClean` | Find dead code and stale files | [Ref](commands/wbClean/wbClean.md) · [Expert](commands/wbClean/wbClean_expert.md) · [Practical](commands/wbClean/wbClean_practical.md) |
-| 11 | `/wbLicense` | License compliance and gating | [Ref](commands/wbLicense/wbLicense.md) · [Expert](commands/wbLicense/wbLicense_expert.md) · [Practical](commands/wbLicense/wbLicense_practical.md) |
-| 12 | `/wbRefactor` | Restructure code, preserve behavior | [Ref](commands/wbRefactor/wbRefactor.md) · [Expert](commands/wbRefactor/wbRefactor_expert.md) · [Practical](commands/wbRefactor/wbRefactor_practical.md) |
-| 13 | `/wbDebug` | Diagnose errors with hypothesis testing | [Ref](commands/wbDebug/wbDebug.md) · [Expert](commands/wbDebug/wbDebug_expert.md) · [Practical](commands/wbDebug/wbDebug_practical.md) |
-| 14 | `/wbDoc` | Generate documentation from source code | [Ref](commands/wbDoc/wbDoc.md) · [Expert](commands/wbDoc/wbDoc_expert.md) · [Practical](commands/wbDoc/wbDoc_practical.md) |
-| 15 | `/wbStandup` | Scan for unfinished work across projects | [Ref](commands/wbStandup/wbStandup.md) · [Expert](commands/wbStandup/wbStandup_expert.md) · [Practical](commands/wbStandup/wbStandup_practical.md) |
-| 16 | `/wbVision` | Propose strategic features to build next | [Ref](commands/wbVision/wbVision.md) · [Expert](commands/wbVision/wbVision_expert.md) · [Practical](commands/wbVision/wbVision_practical.md) |
-| 17 | `/wbBroadcast` | Generate release announcements | [Ref](commands/wbBroadcast/wbBroadcast.md) · [Expert](commands/wbBroadcast/wbBroadcast_expert.md) · [Practical](commands/wbBroadcast/wbBroadcast_practical.md) |
-| 18 | `/wbGit` | Generate conventional commits from diffs | [Ref](commands/wbGit/wbGit.md) · [Expert](commands/wbGit/wbGit_expert.md) · [Practical](commands/wbGit/wbGit_practical.md) |
-| 19 | `/wbSecure` | Scan for vulnerabilities and secrets | [Ref](commands/wbSecure/wbSecure.md) · [Expert](commands/wbSecure/wbSecure_expert.md) · [Practical](commands/wbSecure/wbSecure_practical.md) |
-| 20 | `/wbTranslate` | Extract strings and generate locale files | [Ref](commands/wbTranslate/wbTranslate.md) · [Expert](commands/wbTranslate/wbTranslate_expert.md) · [Practical](commands/wbTranslate/wbTranslate_practical.md) |
-| 21 | `/wbToWBC` | Convert legacy code to WBC components | [Ref](commands/wbToWBC/wbToWBC.md) · [Expert](commands/wbToWBC/wbToWBC_expert.md) · [Practical](commands/wbToWBC/wbToWBC_practical.md) |
-| 22 | `/wbMonetize` | Bootstrap free/pro tier plumbing | [Ref](commands/wbMonetize/wbMonetize.md) · [Expert](commands/wbMonetize/wbMonetize_expert.md) · [Practical](commands/wbMonetize/wbMonetize_practical.md) |
-| 23 | `/wbActOn` | Turn diagnostics into ranked actions | [Ref](commands/wbActOn/wbActOn.md) · [Expert](commands/wbActOn/wbActOn_expert.md) · [Practical](commands/wbActOn/wbActOn_practical.md) |
-| 24 | `/wbCheck` | Pre-flight quality check | [Ref](commands/wbCheck/wbCheck.md) · [Expert](commands/wbCheck/wbCheck_expert.md) · [Practical](commands/wbCheck/wbCheck_practical.md) |
-| 25 | `/wbTrack` | Session logging and tracking | [Ref](commands/wbTrack/wbTrack.md) · [Expert](commands/wbTrack/wbTrack_expert.md) · [Practical](commands/wbTrack/wbTrack_practical.md) |
-| 26 | `/wbStopTrack` | End session tracking and produce summary | [Ref](commands/wbStopTrack/wbStopTrack.md) |
-| 27 | `/wbLog` | Append structured log entries to session track | [Ref](commands/wbLog/wbLog.md) |
-| 28 | `/wbNext` | Determine the optimal next command | [Ref](commands/wbNext/wbNext.md) · [Expert](commands/wbNext/wbNext_expert.md) · [Practical](commands/wbNext/wbNext_practical.md) |
-| 29 | `/wbExplain` | Generate plain-language explanations of code or tasks | [Ref](commands/wbExplain/wbExplain.md) · [Expert](commands/wbExplain/wbExplain_expert.md) · [Practical](commands/wbExplain/wbExplain_practical.md) |
-| 30 | `/wbHelp` | Command catalog and per-command help | [Ref](commands/wbHelp/wbHelp.md) · [Expert](commands/wbHelp/wbHelp_expert_part1.md) · [Practical](commands/wbHelp/wbHelp_practical_part1.md) |
-| 31 | `/wbValid` | Validate executed work against its plan | [Ref](commands/wbValid/wbValid_ref.md) · [Expert](commands/wbValid/wbValid_expert.md) · [Practical](commands/wbValid/wbValid_practical.md) |
-| 32 | `/wbWork` | Execute tasks from a plan file | [Ref](commands/wbWork/wbWork.md) · [Expert](commands/wbWork/wbWork_expert.md) · [Practical](commands/wbWork/wbWork_practical.md) |
-| 33 | `/wbIdea` | Capture, score, and promote ideas | [Ref](commands/wbIdea/wbIdea.md) · [Expert](commands/wbIdea/wbIdea_expert_part1.md) · [Practical](commands/wbIdea/wbIdea_practical_part1.md) |
+### "What is this codebase?" — Context Builders
+
+| # | Command | Purpose | Hub |
+|---|---|---|---|
+| 01 | `/wbSetup` | Write `context.md` + `dev.md` for a new package | [hub](commands/wbSetup/wbSetup) |
+| 02 | `/wbContext` | Refresh package context against current code | [hub](commands/wbContext/wbContext) |
+| 03 | `/wbStandup` | Monorepo-wide scan: what's in-flight, what's stale | [hub](commands/wbStandup/wbStandup) |
+
+### "What should I do next?" — Planners
+
+| # | Command | Purpose | Hub |
+|---|---|---|---|
+| 04 | `/wbPlan` | Break a goal into a worker/validator task table | [hub](commands/wbPlan/wbPlan) |
+| 05 | `/wbVision` | Brainstorm features when the queue is empty | [hub](commands/wbVision/wbVision) |
+| 06 | `/wbIdea` | Capture and score speculative ideas | [hub](commands/wbIdea/wbIdea) |
+| 07 | `/wbNext` | Pick the next optimal command based on repo state | [hub](commands/wbNext/wbNext) |
+| 08 | `/wbHelp` | Print the command catalog or per-command help | [hub](commands/wbHelp/wbHelp) |
+| 09 | `/wbActOn` | Triage a diagnostic doc into ranked actions | [hub](commands/wbActOn/wbActOn) |
+| 10 | `/wbExplain` | Generate a persistent explanation of code or a task | [hub](commands/wbExplain/wbExplain) |
+
+### "Execute and validate" — Workers & Validators
+
+| # | Command | Purpose | Hub |
+|---|---|---|---|
+| 11 | `/wbWork` | Execute tasks defined in a plan file | [hub](commands/wbWork/wbWork) |
+| 12 | `/wbValid` | Audit `/wbWork` output against the plan — PASS/FAIL | [hub](commands/wbValid/wbValid) |
+
+### "Is this any good?" — Critics
+
+| # | Command | Purpose | Hub |
+|---|---|---|---|
+| 13 | `/wbAudit` | Brutal review against production standards | [hub](commands/wbAudit/wbAudit) |
+| 14 | `/wbReview` | PR-style review of a change vs. its plan | [hub](commands/wbReview/wbReview) |
+| 15 | `/wbTest` | Run tests, classify failures | [hub](commands/wbTest/wbTest) |
+| 16 | `/wbCheck` | Pre-flight quiz to verify AI understanding | [hub](commands/wbCheck/wbCheck) |
+
+### "Clean this up" — Surgeons
+
+| # | Command | Purpose | Hub |
+|---|---|---|---|
+| 17 | `/wbClean` | Find dead code, stale files, forgotten `console.log` | [hub](commands/wbClean/wbClean) |
+| 18 | `/wbRefactor` | Restructure code without changing behavior | [hub](commands/wbRefactor/wbRefactor) |
+| 19 | `/wbDebug` | Hypothesize then investigate a specific error | [hub](commands/wbDebug/wbDebug) |
+| 20 | `/wbDoc` | Generate JSDoc + READMEs from code | [hub](commands/wbDoc/wbDoc) |
+
+### "Ship it" — Shippers
+
+| # | Command | Purpose | Hub |
+|---|---|---|---|
+| 21 | `/wbRelease` | Bump versions, unpick `workspace:*` | [hub](commands/wbRelease/wbRelease) |
+| 22 | `/wbPublish` | Build + push a package to npm | [hub](commands/wbPublish/wbPublish) |
+| 23 | `/wbDeploy` | Build + push an app to a web host | [hub](commands/wbDeploy/wbDeploy) |
+| 24 | `/wbLicense` | Inject premium gating and license checks | [hub](commands/wbLicense/wbLicense) |
+| 25 | `/wbBroadcast` | Generate release announcement kit | [hub](commands/wbBroadcast/wbBroadcast) |
+| 26 | `/wbMonetize` | Bootstrap Free/Pro/Dev tier plumbing | [hub](commands/wbMonetize/wbMonetize) |
+
+### "Version control" — Archivist
+
+| # | Command | Purpose | Hub |
+|---|---|---|---|
+| 27 | `/wbGit` | Analyze diff, draft Conventional Commit | [hub](commands/wbGit/wbGit) |
+| 28 | `/wbModel` | Set or show the active model roster (Planner / Validator / Worker / Mechanical) | [hub](commands/wbModel/wbModel) |
+
+### "Protect & cross-cut" — Security, Translation, Migration
+
+| # | Command | Purpose | Hub |
+|---|---|---|---|
+| 29 | `/wbSecure` | Red-team scan: secrets, XSS, insecure deps | [hub](commands/wbSecure/wbSecure) |
+| 30 | `/wbTranslate` | Pull hardcoded strings to i18n keys | [hub](commands/wbTranslate/wbTranslate) |
+| 31 | `/wbToWBC` | Rewrite legacy/Vuetify into wbc-ui2 components | [hub](commands/wbToWBC/wbToWBC) |
+
+### "Session telemetry" — Tracking
+
+| # | Command | Purpose | Hub |
+|---|---|---|---|
+| 32 | `/wbTrack` | Toggle session-wide logging of `/wb*` invocations | [hub](commands/wbTrack/wbTrack) |
+| 33 | `/wbStopTrack` | Finalize session, archive tracker, prepare for closure | [hub](commands/wbStopTrack/wbStopTrack) |
 
 ---
 
-## Explore by Topic
+## What this documentation is NOT
 
-| Section | Best For | Entry Point |
-|---------|----------|-------------|
-| **Start Here** | New to wb-flow? Start here | [start_here/README.md](start_here/README.md) |
-| **Daily Use** | Day-to-day workflow patterns | [daily_use/README.md](daily_use/README.md) |
-| **Concepts** | Architecture & philosophy | [concepts/README.md](concepts/README.md) |
-| **Session Lifecycle** | Tracking, logging, session flow | [session_lifecycle/README.md](session_lifecycle/README.md) |
+- **Not the runtime templates.** The source-of-truth `_template.md` files that define what each command actually does live in `packages/wb-flow/templates/commands/`. This documentation covers *how to use* them.
+- **Not API documentation.** Every file is hand-authored for human readers.
+- **Not exhaustive on flags.** If a command has 12 flags but only 3 matter daily, the docs cover the 3. The full flag list is in the runtime template.
 
 ---
 
-## 👨‍💻 About the Owner & Resources
-
-**wb-flow** is created and maintained by **Wissem Boughamoura** as a standalone, framework-agnostic dev tool. It is independent of the Vue-based `wbc-ui` ecosystem (despite the shared author) and is free to use with any AI coding assistant.
-
-* 🐙 **GitHub:** [@wissemb11/wb-flow](https://github.com/wissemb11/wb-flow)
-* 📦 **npm:** [@wbc-ui2/wb-flow](https://www.npmjs.com/package/@wbc-ui2/wb-flow)
-* 📚 **Documentation site:** [flow.wbc-ui.com](https://flow.wbc-ui.com)
-* 👤 **Author:** [Wissem Boughamoura](https://github.com/wissemb11) — `wissemb11@gmail.com`
-
-### 📬 Contact & Support
-
-* Bugs / feature requests → [GitHub Issues](https://github.com/wissemb11/wb-flow/issues)
-* General questions → email `wissemb11@gmail.com`
-
----
-
-*License: MIT © 2026 Wissem Boughamoura. See [LICENSE](../LICENSE).*
-*Changelog: see [CHANGELOG.md](../CHANGELOG.md).*
-
----
-
-<div align="center">
-
-← Home · [Start Here →](start_here/README.md) · [Install](../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
-
-</div>
+*wb-flow documentation — [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [wi-bg.com](https://www.wi-bg.com)*

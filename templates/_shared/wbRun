@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# wbRun — Error-guarded execution wrapper for wb-flow fallback chains
+#
+# The guard answers ONE question: did the provider refuse to run the agent?
+# It must never answer "did the agent's work go well" — that is what the wave
+# runner's three gates are for, and output text is not a signal for them.
+#
+# INFRA_PATTERN is the shell twin of `INFRA_GREP_PATTERN` in bin/wave.js.
+# Keep them byte-identical: test/wave_gates.js --only=wbrun asserts it, because
+# the two drifting apart is exactly the bug this pattern replaced.
+#
+# Fixed 2026-08-03. The previous pattern was:
+#   ^Error:|^FATAL:|^fatal:|Insufficient credits|API key|rate limit|quota exceeded|authentication failed
+# Five of its eight alternatives were UNANCHORED, so they matched anywhere on a
+# line — including inside quoted text. Measured against five realistic strings,
+# four were false positives:
+#   ✗ `Error: Could not find oldString`            a tool error the agent then retried
+#   ✗ `✓ G1 classifies as INFRA: "Error: ..."`     this package's own passing tests
+#   ✗ `The fallback fires on rate limit errors.`   ordinary prose
+#   ✗ `- Fixed: API key handling in wbRun`         a CHANGELOG line
+#   ✓ `Error: Model not found`                     a genuine fatal
+# Four wave cells were scored INFRA on 2026-08-03 after completing their work;
+# two had their authorship reassigned to a fallback model that did nothing.
+
+INFRA_PATTERN='^(Error: (Model not found|Insufficient (credits|balance|funds)|Rate limit|Quota|Authentication|Payment)|ERROR: \{"type":"error")'
+
+cmd_label="$*"
+echo "--------------------------------------------------------------------------------"
+echo "▶ Executing: $cmd_label"
+echo "--------------------------------------------------------------------------------"
+
+tmpfile=$(mktemp)
+"$@" 2>&1 | tee "$tmpfile"
+res=${PIPESTATUS[0]}
+
+# Strip ANSI colour before matching: agents emit escape codes mid-line, which
+# would otherwise sit between the line start and the word the anchor expects.
+if [ "$res" -ne 0 ] || sed 's/\x1b\[[0-9;]*m//g' "$tmpfile" | grep -qE "$INFRA_PATTERN"; then
+  rm -f "$tmpfile"
+  echo ""
+  echo "⚠️  [wbRun] Error detected in: $cmd_label"
+  echo "--------------------------------------------------------------------------------"
+  exit 1
+fi
+rm -f "$tmpfile"
+exit 0

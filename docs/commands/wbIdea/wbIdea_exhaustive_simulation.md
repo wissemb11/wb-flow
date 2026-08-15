@@ -1,108 +1,192 @@
-# /wbIdea — Exhaustive Simulation
+# /wbIdea — Exhaustive Simulation ()
 
-This document provides a comprehensive operational breakdown of `/wbIdea`, the engine driving the wb-flow Ideas Pipeline. It details argument resolution, flag interactions, and edge-case handling logic.
+`/wbIdea` is the scored idea pipeline. It captures, scores, explores, validates, and promotes speculative ideas into actionable plan tasks. Read this for the full argument resolution, flag matrix, and edge cases.
 
 ---
 
-## 1. Operational Parameters
+## 1. Role & target
 
-| Parameter | Specification |
+| Aspect | Behavior |
 |---|---|
-| **Designation** | The Ideator — Responsible for capturing, scoring, and staging concepts. |
-| **Valid Targets** | Package paths, specific folders, or direct paths to existing `idea_*.md` artifacts. |
-| **Execution Scope** | Strictly constrained. `/wbIdea` operates entirely within the `.wb/workflows/reports/` architecture. |
-| **Permitted Actions** | Creation and modification of `idea_*.md` files. Execution of the Promotion Protocol into `plan_*.md`. |
-| **Restricted Actions** | Direct modification of source code. Execution of plan tasks. |
+| **Role** | The Ideator — captures and scores speculative ideas. |
+| **Target** | Package directories, folder scopes, or existing `idea_*.md` files. |
+| **Cell scope** | None. `/wbIdea` does not modify source code. |
+| **Side effects allowed** | Writing/updating `idea_*.md` files. Promoting ideas to `plan_*.md`. |
+| **Side effects forbidden** | Modifying source code, executing tasks, creating task reports. |
 
 ---
 
-## 2. Argument Resolution Matrix
+## 2. Argument resolution
 
-| Invocation | Target | System Action |
+| Form | Example | What `/wbIdea` does |
 |---|---|---|
-| `/wbIdea apps/saas-dashboard` | Folder Path | Contextual scan resulting in the generation of 3-5 newly scored ideas. |
-| `/wbIdea apps/saas-dashboard --task="Add MFA"` | Folder Path + Flag | Direct registration of a manual idea, accompanied by an AI-calculated score. |
-| `/wbIdea apps/saas-dashboard --resume` | Folder Path + Flag | Locates today's idea file, recalculates scores against current context, and normalizes formatting. |
-| `/wbIdea apps/saas-dashboard --id=3 --promote` | Folder Path + Flags | Bypasses standard validation and immediately executes the Promotion Protocol for Idea #3. |
-| `/wbIdea apps/saas-dashboard --id=1,2 --reject` | Folder Path + Flags | Applies the `🚫 Rejected` verdict to Ideas #1 and #2. |
-| `/wbIdea apps/saas-dashboard --id=4 --defer` | Folder Path + Flags | Applies the `⏸️ Deferred` verdict to Idea #4. |
-| `/wbIdea idea_saas-dashboard_20260508.md` | Direct File | Engages Self-Correct Mode: Audits the file structure, heals broken links, and synchronizes states. |
+| Folder scope | `/wbIdea packages/wb-core` | AI scans context, proposes scored ideas |
+| Manual idea | `/wbIdea packages/wb-core --task="Add retry logic"` | Registers one specific idea with computed score |
+| Resume | `/wbIdea packages/wb-core --resume` | Re-reads existing idea file, re-scores based on current context |
+| Promote | `/wbIdea packages/wb-core --id=1 --promote` | Promotes idea #1 to today's plan file |
+| Reject | `/wbIdea packages/wb-core --id=1,2 --reject` | Marks ideas 1,2 as 🚫 Rejected |
+| Defer | `/wbIdea packages/wb-core --id=3 --defer` | Marks idea 3 as ⏸️ Deferred |
+| Self-correct | `/wbIdea idea_wb-core_20260508.md` | Normalizes the file, fills gaps, re-scores |
 
 ---
 
-## 3. Flag Infrastructure
+## 3. Flag matrix
 
-| Flag | Shortcut | Operational Effect |
+| Flag | Shortcut | Purpose |
 |---|---|---|
-| `--task="<string>"` | `-t` | Injects a specific, human-defined idea into the pipeline. |
-| `--resume` | `-r` | Triggers a re-evaluation of the active idea artifact. |
-| `--id=<X,Y>` | `-i` | Targets specific row indices within the idea matrix. |
-| `--promote` | `-p` | Administrative override to instantly elevate an idea to a plan task. |
-| `--reject` | `-x` | Designates an idea as permanently unviable. |
-| `--defer` | `-d` | Designates an idea as temporarily unviable. |
-| `--scope` | `-s` | Overrides standard contextual scope detection. |
+| `--task="<desc>"` | `-t` | Register a specific idea with the given description. |
+| `--resume` | `-r` | Re-read existing idea file, re-evaluate scores. |
+| `--id=<N,M,...>` | `-i` | Target specific idea indices. |
+| `--promote` | `-p` | Promote targeted ideas to the plan file. |
+| `--reject` | `-x` | Mark targeted ideas as 🚫 Rejected. |
+| `--defer` | `-d` | Mark targeted ideas as ⏸️ Deferred. |
+| `--scope` | `-s` | Override scope resolution. |
 
 ---
 
-## 4. Pipeline Execution Protocols
+## 4. Pipelines
 
-### Protocol Alpha: Autonomous Ideation
+<script setup>
+const wbIdeaSimPipelines = [
+  {
+    "title": "Native idea generation",
+    "cmd": "/wbIdea packages/wb-dataviewer",
+    "logs": [
+      {
+        "text": "[SYSTEM] Reading context.md...",
+        "type": "sys"
+      },
+      {
+        "text": "[SYSTEM] Reading recent reports/...",
+        "type": "sys"
+      },
+      {
+        "text": "[SCORE] Computing impact \u00d7 feasibility \u00d7 urgency for each idea...",
+        "type": "gen"
+      },
+      {
+        "text": "[GENERATE] 4 ideas scored:",
+        "type": "gen"
+      },
+      {
+        "text": "#1: Score 8 \u2014 Column-level search with multi-color highlighting",
+        "type": "gen"
+      },
+      {
+        "text": "#2: Score 6 \u2014 Row grouping by any column value",
+        "type": "gen"
+      },
+      {
+        "text": "#3: Score 4 \u2014 CSV/XLSX export button",
+        "type": "gen"
+      },
+      {
+        "text": "#4: Score 9 \u2014 Virtual scrolling for 10k+ rows",
+        "type": "gen"
+      },
+      {
+        "text": "[OUTPUT] idea_wb-dataviewer_20260508.md created.",
+        "type": "gen"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  },
+  {
+    "title": "Promote-and-ingest cycle",
+    "cmd": "/wbIdea packages/wb-dataviewer --id=4 --promote",
+    "logs": [
+      {
+        "text": "[SYSTEM] Reading idea #4 (Score: 9, \u2610 Valid: \u2b1c)...",
+        "type": "sys"
+      },
+      {
+        "text": "[PROMOTE] Setting \u2610 Valid to \ud83c\udfaf Promoted 9/10",
+        "type": "gen"
+      },
+      {
+        "text": "[PLAN] Locating plan_wb-dataviewer_20260508.md...",
+        "type": "gen"
+      },
+      {
+        "text": "[PLAN] Appending as Task #7:",
+        "type": "gen"
+      },
+      {
+        "text": "Origin: \ud83d\udca1 /wbIdea #4",
+        "type": "gen"
+      },
+      {
+        "text": "Task: Virtual scrolling for 10k+ rows",
+        "type": "gen"
+      },
+      {
+        "text": "P: P1 | Est: 240m",
+        "type": "gen"
+      },
+      {
+        "text": "[LINK] \u2192 Task = `\u2192 Plan #7`",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Idea #4 promoted to plan.",
+        "type": "ok"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  },
+  {
+    "title": "Self-correct mode",
+    "cmd": "/wbIdea idea_wb-dataviewer_20260508.md",
+    "logs": [
+      {
+        "text": "[SYSTEM] Detected self-correct mode (H1 = \"# Idea Backlog:\")",
+        "type": "sys"
+      },
+      {
+        "text": "[CHECK] 4 ideas, 1 explored, 0 validated",
+        "type": "gen"
+      },
+      {
+        "text": "[FIX] Idea #1: \u2610 Done is \u2b1c but exploration report exists \u2192 setting \u2705",
+        "type": "gen"
+      },
+      {
+        "text": "[FIX] Idea #3: Score 4 seems high for CSV export given existing priorities \u2192 re-scoring to 3",
+        "type": "gen"
+      },
+      {
+        "text": "[APPEND] Self-corrected: 2026-05-08 15:30 by the AI agent",
+        "type": "gen"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  }
+];
+</script>
 
-```text
-> Input: /wbIdea apps/metrics-api
+<LiveDemoAnimation command="wbIdea" titleSuffix="Exhaustive Simulation" :pipelines="wbIdeaSimPipelines" />
 
-[SYSTEM] Initializing context graph...
-[SYSTEM] Scanning active dependencies and recent execution reports...
-[EVALUATION] Applying heuristic (Impact × 0.4 + Feasibility × 0.3 + Urgency × 0.3)
 
-[OUTPUT] Generated 3 strategic propositions:
-  Index 1: [Score 8] Implement GraphQL endpoint for bulk metric retrieval
-  Index 2: [Score 6] Add Redis caching layer to /v1/stats
-  Index 3: [Score 4] Refactor logging middleware
+### 💠 Pipeline Native idea generation
 
-[WRITE] Artifact idea_metrics-api_20260508.md created successfully.
-```
 
-### Protocol Beta: The Promotion Engine
+### 💠 Pipeline Promote-and-ingest cycle
 
-```text
-> Input: /wbIdea apps/metrics-api --id=1 --promote
 
-[SYSTEM] Validating Idea #1 status... (Score: 8, Current Verdict: ⬜)
-[EXECUTE] Forcing verdict state to: 🎯 Promoted 8/10
-[ROUTING] Locating active execution plan: plan_metrics-api_20260508.md
-[INGEST] Appending Idea #1 to the plan matrix as Task #5.
-[LINK] Establishing bidirectional trace: → Task = [→ Plan #5](../plans/plan_metrics-api_20260508.md)
-
-[SUCCESS] Promotion Protocol finalized.
-```
-
-### Protocol Gamma: Self-Correction
-
-```text
-> Input: /wbIdea idea_metrics-api_20260508.md
-
-[SYSTEM] Target verified as Idea Artifact. Engaging Self-Correct routines...
-[AUDIT] Analyzing 3 active rows...
-[CORRECTION] Idea #2: Exploration report detected at /ideas_reports/idea_2/, but ☐ Done state is ⬜. Healing state to ✅.
-[CORRECTION] Idea #3: Context shift detected. Recalculating score from 4 to 3 based on newly reduced urgency.
-[WRITE] Modifications committed. Self-correction complete.
-```
+### 💠 Pipeline Self-correct mode
 
 ---
 
-## 5. Constraint & Refusal Logic
+## 5. Edge cases & refusals
 
-The system is designed with strict guardrails to maintain pipeline integrity.
-
-| Trigger Condition | System Response |
+| Trigger | What `/wbIdea` does |
 |---|---|
-| `context.md` is missing | Proceeds with a warning: "Context absent. Output quality degraded. Recommend running `/wbSetup`." |
-| `--promote` invoked on an idea already linked to a plan | Halts execution: "Redundant action. Idea #N is already linked to Plan #M." |
-| `--promote` invoked on a `🚫 Rejected` idea | Refuses execution: "Policy violation. Idea #N holds a Rejected verdict. Use `--open` to reset state prior to promotion." |
-| Target index (`--id=99`) exceeds matrix bounds | Halts execution: "Index out of bounds. Matrix contains 3 active rows." |
-| `--resume` invoked without an existing `idea_*.md` file | Gracefully falls back to Protocol Alpha (Autonomous Ideation), generating a fresh artifact. |
-
----
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+| No context.md exists | Warns: "No context found. Ideas will be generic. Consider /wbSetup first." |
+| `--promote` on already-promoted idea | Skips: "Idea #N already promoted → Plan #M." |
+| `--promote` on rejected idea | Refuses: "Idea #N was rejected. Use --open first to reopen, then --promote." |
+| All ideas already validated | In resume mode: "All ideas validated. Consider /wbPlan --resume to check ingestion." |
+| Idea file doesn't exist + `--resume` | Creates fresh file instead: "No existing idea file found. Generating new ideas." |
+| `--id=99` (out of range) | Error: "Idea #99 not found. File has 4 ideas (1–4)." |

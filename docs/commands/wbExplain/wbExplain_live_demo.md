@@ -1,84 +1,375 @@
-# wb-flow Protocol: /wbExplain Live Workspace Demo
+# /wbExplain — Live Demo ()
 
-This document is the **Real-Time Execution Log** of the `/wbExplain` command. It applies the exact structural matrix from the Exhaustive Simulation to the *current, live state* of the `wb-labs` workspace as of 2026-05-04.
+What `/wbExplain` would actually produce on `wb-labs` today (2026-05-04). Rows, files, and concepts in this matrix are real — the explanations the agent would generate are excerpted from realistic outputs.
 
 ---
 
-## 1. Role & Definition Matrix (Live Application)
-**Target:** `wb-labs/frontEnd/wbc-ui/core2/packages/wb-core`
-**Live State Evaluated:** 
-*   Active Plan: `plan_wb-core_20260504.md`
-*   Pending Tasks: 3
-    *   Task 1: JWT Handshake
-    *   Task 2: renderString escape
-    *   Task 3: WBC.js Decomposition
+<CommandLiveDemoAnimation command="wbExplain" />
 
-| Scenario | Live System Behavior (wb-labs) |
+## 1. Live target
+
+| Field | Live value |
 |---|---|
-| Target is Code File | **[ACTIVE]** Ready to read `tierEnforcement.js` or `WBC.js`. |
-| Target is Plan Task | **[ACTIVE]** Plan detected. Ready to explain Tasks 1, 2, or 3. |
+| Active package | `core2/packages/wb-core` |
+| Active plan | `reports/20260504/plans/plan_wb-core_20260504.md` (3 rows, all `⬜`) |
+| Memory available to the agent | `MEMORY.md` index plus 12 leaf files (user profile, project tech debt, feedback rules, etc.) |
+| Search corpus for free-text targets | The full working tree under `/home/wissemb11/Allprojects/wb-labs/` |
+
+`/wbExplain` is the only command in this group that *actively reads memory at runtime*. When you ask "what is the docs edition," it's the memory file `project_docs_edition.md` that tells it. The other commands in the QA group read code; `/wbExplain` reads code *and* memory.
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix (Live Application)
-| Argument Type | Input Executed | Live Parsed State (wb-labs) | Live Output Generation |
-|---|---|---|---|
-| Single Task ID | `Command: /wbExplain -i="1"` | Targets Task 1 (JWT). | `[PROCEED] Generating conceptual explanation for JWT integration.` |
-| Multi-Task Array | `Command: /wbExplain -i="1,2"` | Targets Tasks 1 and 2. | `[PROCEED] Linking JWT and renderString updates in one explanation.` |
-| Wildcard (All Tasks) | `Command: /wbExplain -i="*"` | Extracts all 3 tasks. | `[PROCEED] Generating epic overview for the entire May 4th plan.` |
-| File Path | `Command: /wbExplain src/utils/renderString.js` | Analyzes specific file. | `[PROCEED] Explaining current regex logic in renderString.js.` |
+## 2. What each target form would resolve to today
+
+| Target | Live resolution |
+|---|---|
+| `--id="1"` | Row 1 of `plan_wb-core_20260504.md` — JWT handshake. Files referenced: `tierEnforcement.js`. |
+| `--id="*"` | All 3 rows: JWT handshake, renderString escape, WBC.js decomposition. Synthesized as one narrative. |
+| `core2/packages/wb-core/` | Package-level explanation: role, exports, position in the monorepo. |
+| `core2/packages/wbc-ui2-cdn/` | Triggers the parked tech-debt note: "package declares main at dist/ but vite writes to dist-dev/" (per `project_pkg_dist_mismatch.md`). |
+| `"the wbCode dev gate"` | Resolves to the `__WBC_DEV__` 3-mode pattern (full / dev / hidden) — visible in `feedback_wbCode_dev_only.md`. |
+| `"WBDataViewer apiResponse_"` | Resolves to the cache-pattern memory note plus the actual code in `core2/packages/wb-dataviewer/`. |
+| `"docs edition"` | Resolves to `project_docs_edition.md` (the structural rules for this very documentation project). |
+
+The free-text resolutions are interesting because they pull from memory + code. A naive grep would miss them; a code-only search would miss the context the memory adds.
 
 ---
 
-## 3. Flag Processing Matrix (Isolated Live Runs)
+## 3. Per-flag behavior, applied live
 
-| Flag | Live Executed Command | Live Output Impact |
-|---|---|---|
-| `--id="<id>"` | `Command: /wbExplain -i="*"` | `[EXPLAIN] Evaluating all 3 tasks in plan_wb-core_20260504.md...` |
-| `--tone="<type>"` | `Command: /wbExplain -i="3" -t="eli5"` | `[TONE] Explaining 'WBC.js Decomposition' as breaking a giant LEGO set into smaller bags.` |
-| `--language="<lang>"`| `Command: /wbExplain -i="1" -l="fr"` | `[LANG] Generating French docs: 'Explication du Handshake JWT'.` |
-| `--diagram` | `Command: /wbExplain -i="3" -d` | `[DIAGRAM] Injecting Mermaid graph showing how WBC.js is split into 4 handlers.` |
-
----
-
-## 4. Omni-Channel Execution Pipeline (Live Chaining)
-
-### 💠 The "Massive Onboarding Guide" (`-i="*" -t="eli5" -d`)
-**Live Context:** Running this *right now* to create a friendly guide for a junior dev joining the `wb-core` team today.
-**Command Executed:** `/wbExplain -i="*" -t="eli5" -d`
-**Live Output:**
-```text
-> Command: /wbExplain -i="*" -t="eli5" -d
-
-[SYSTEM] Wildcard detected. Processing 3 tasks from May 4th Plan.
-[TONE] Applying ELI5 pedagogy to all explanations.
-[DIAGRAM] Generating Mermaid flow showing JWT -> renderString -> WBC.js handlers.
-[SUCCESS] Saved reports/2026/05/04/plans/explanations/onboarding_wb-core_20260504.md.
-```
-
-### 💠 The "Multilingual Technical Deep Dive" (`src/tierEnforcement.js -t="expert" -l="ar"`)
-**Live Context:** Generating an Arabic technical brief on the current state of tier enforcement in `wb-core`.
-**Command Executed:** `/wbExplain src/tierEnforcement.js -t="expert" -l="ar"`
-**Live Output:**
-```text
-> Command: /wbExplain src/tierEnforcement.js -t="expert" -l="ar"
-
-[SYSTEM] Scanning src/tierEnforcement.js...
-[TONE] Applying Expert pedagogy.
-[LANG] Engaging Arabic translation matrix.
-[SUCCESS] Generated reports/2026/05/04/plans/explanations/tierEnforcement_expert_ar.md.
-```
+| Flag combination | What `/wbExplain` would produce |
+|---|---|
+| `--id="1"` (no style) | ~400-word principle-first explanation of the JWT handshake row. |
+| `--id="1" --as="eli5"` | ~200-word version with bouncer/bracelet metaphors. |
+| `--id="1" --as="fr, expert"` | Same content, French, with technical vocabulary preserved (no translation of `JWT`, `tierEnforcement`). |
+| `"WBDataViewer apiResponse_" --as="senior reviewer, skeptical"` | Surfaces the three open questions (key scope, naming, no invalidation) before any approval. |
+| `"docs edition"` (no style) | The structural rules: 33 commands × 6 layers, no hub files, english-only docs. |
 
 ---
 
-## 5. Operational Edge Cases (Live Workspace Check)
+## 4. Pipelines
 
-| Fault Trigger | Live System State | Live Resolution |
-|---|---|---|
-| Translation Failure | **[PASS]** Default languages (en, fr, ar) are supported. | Execution proceeds. |
-| Diagram Complexity | **[PASS]** Task 3 decomposition graph is under token limit. | Single unified graph generated. |
-| Invalid ID | **[TRIGGERED]** If user attempts `/wbExplain -i="4"`. | `❌ Error: plan_wb-core_20260504.md only contains 3 tasks.` |
+<script setup>
+const wbExplainPipelines = [
+  {
+    "title": "Onboarding doc for the IPEIM student",
+    "cmd": "/wbExplain \"frontEnd/wbc-ui/core2/packages/wb-flow/templates/\" --as=\"expert, fr, IPEIM CS senior, internship onboarding\"",
+    "logs": [
+      {
+        "text": "[EXPLAIN] Target: frontEnd/wbc-ui/core2/packages/wb-flow/templates/ (the agentic framework root)",
+        "type": "gen"
+      },
+      {
+        "text": "[STYLE] expert FR \u2014 assume systems thinking, no agent 101 preamble.",
+        "type": "gen"
+      },
+      {
+        "text": "[CONTEXT] Memory: user is IPEIM CS instructor; the documentation docs convention applies.",
+        "type": "ctx"
+      },
+      {
+        "text": "# Le framework wb-flow \u2014 vue d'ensemble pour stagiaire",
+        "type": "gen"
+      },
+      {
+        "text": "Le syst\u00e8me repose sur trois invariants, et tout le reste d\u00e9coule d'eux.",
+        "type": "gen"
+      },
+      {
+        "text": "**Invariant 1 \u2014 le plan est l'unique source de v\u00e9rit\u00e9.** Chaque journ\u00e9e",
+        "type": "sys"
+      },
+      {
+        "text": "de travail est repr\u00e9sent\u00e9e par un fichier `plan_<package>_<date>.md`.",
+        "type": "gen"
+      },
+      {
+        "text": "Ce fichier contient un tableau dont chaque ligne d\u00e9crit une t\u00e2che, son",
+        "type": "gen"
+      },
+      {
+        "text": "impl\u00e9menteur (`Done`), son validateur (`Valid`), et ses d\u00e9pendances.",
+        "type": "gen"
+      },
+      {
+        "text": "Aucune autre forme de tracking n'est autoris\u00e9e.",
+        "type": "gen"
+      },
+      {
+        "text": "**Invariant 2 \u2014 le worker et le validateur ne sont jamais le m\u00eame",
+        "type": "sys"
+      },
+      {
+        "text": "mod\u00e8le.** `/wbWork` \u00e9crit la cellule `Done`. `/wbValid` \u00e9crit la",
+        "type": "gen"
+      },
+      {
+        "text": "cellule `Valid`. Une seule commande peut \u00e9crire une cellule donn\u00e9e.",
+        "type": "gen"
+      },
+      {
+        "text": "Cela \u00e9limine l'auto-validation et force une revue ind\u00e9pendante.",
+        "type": "gen"
+      },
+      {
+        "text": "**Invariant 3 \u2014 chaque commande mute z\u00e9ro ou une cellule.** `/wbExplain`",
+        "type": "sys"
+      },
+      {
+        "text": "mute z\u00e9ro (production de prose). `/wbWork` mute une (`Done`). `/wbPlan`",
+        "type": "gen"
+      },
+      {
+        "text": "peut muter les deux dans une transition d'\u00e9tat (rare). Toute tentative",
+        "type": "gen"
+      },
+      {
+        "text": "de muter plusieurs cellules dans une commande viole le contrat.",
+        "type": "gen"
+      },
+      {
+        "text": "\u00c0 partir de ces trois r\u00e8gles, l'arborescence `frontEnd/wbc-ui/core2/packages/wb-flow/templates/` se d\u00e9duit...",
+        "type": "gen"
+      }
+    ],
+    "note": "Wissem teaches at IPEIM (CS instructor since 2018, per memory). A senior-year student joining wb-labs for an internship needs the conceptual map of the agentic framework, in French.",
+    "noteType": "info"
+  },
+  {
+    "title": "The WBDataViewer apiResponse_ design review",
+    "cmd": "/wbExplain \"WBDataViewer apiResponse_\" --as=\"senior reviewer, skeptical\"",
+    "logs": [
+      {
+        "text": "[EXPLAIN] Resolving \"WBDataViewer apiResponse_\"...",
+        "type": "gen"
+      },
+      {
+        "text": "[MATCH] Code: core2/packages/wb-dataviewer/src/App.vue (apiResponse_ pattern usage)",
+        "type": "gen"
+      },
+      {
+        "text": "[MATCH] Memory: project_wbdataviewer_apiResponse.md",
+        "type": "gen"
+      },
+      {
+        "text": "[STYLE] skeptical \u2014 surface trade-offs first.",
+        "type": "gen"
+      },
+      {
+        "text": "The pattern: `apiResponse_` (with trailing underscore) caches the result",
+        "type": "gen"
+      },
+      {
+        "text": "of the fetch so that subsequent `project` changes don't refire the",
+        "type": "gen"
+      },
+      {
+        "text": "network call. The memory note records this as an intentional design",
+        "type": "gen"
+      },
+      {
+        "text": "decision, not an accident.",
+        "type": "gen"
+      },
+      {
+        "text": "Three questions you should ask before extending it:",
+        "type": "gen"
+      },
+      {
+        "text": "1. **Cache key scope.** The cache lives on the component instance. If",
+        "type": "gen"
+      },
+      {
+        "text": "the route remounts the component, the cache is gone. Was that",
+        "type": "gen"
+      },
+      {
+        "text": "intentional? (Memory says yes \u2014 the route remount is treated as a",
+        "type": "gen"
+      },
+      {
+        "text": "\"fresh context\" signal.) Verify with the original author before",
+        "type": "gen"
+      },
+      {
+        "text": "refactoring.",
+        "type": "gen"
+      },
+      {
+        "text": "2. **Naming convention.** The trailing underscore is a custom signal,",
+        "type": "gen"
+      },
+      {
+        "text": "not a language idiom. Is it documented anywhere a new contributor",
+        "type": "gen"
+      },
+      {
+        "text": "would find it? (Currently: only in memory and in the code itself.",
+        "type": "gen"
+      },
+      {
+        "text": "Worth a one-line comment at the declaration site.)",
+        "type": "gen"
+      },
+      {
+        "text": "3. **Invalidation.** There is no manual invalidation API. Once cached,",
+        "type": "gen"
+      },
+      {
+        "text": "the data is fixed for the component's life. If a future requirement",
+        "type": "gen"
+      },
+      {
+        "text": "adds \"refresh on user gesture,\" the pattern needs an escape hatch.",
+        "type": "gen"
+      },
+      {
+        "text": "That work is not in the current plan; flag it for a future row.",
+        "type": "gen"
+      },
+      {
+        "text": "What would *not* warrant extending: a one-off bug fix that wraps",
+        "type": "gen"
+      },
+      {
+        "text": "`apiResponse_` in another layer of caching. The pattern is already a",
+        "type": "gen"
+      },
+      {
+        "text": "cache; double-caching is a smell.",
+        "type": "gen"
+      }
+    ],
+    "note": "A reviewer comes back to the WBDataViewer code six months from now. They see `apiResponse_` (with the trailing underscore) and don't remember why. Run live:",
+    "noteType": "info"
+  },
+  {
+    "title": "The dist-folder mismatch, explained for a fresh pair of eyes",
+    "cmd": "/wbExplain \"core2 dist folder mismatch\" --as=\"new contributor, debugging\"",
+    "logs": [
+      {
+        "text": "[EXPLAIN] Resolving \"core2 dist folder mismatch\"...",
+        "type": "gen"
+      },
+      {
+        "text": "[MATCH] Memory: project_pkg_dist_mismatch.md (the parked tech debt)",
+        "type": "gen"
+      },
+      {
+        "text": "[MATCH] Code: core2/packages/*/package.json + core2/packages/*/vite.config.js",
+        "type": "gen"
+      },
+      {
+        "text": "[STYLE] new-contributor debugging \u2014 assume they're staring at a",
+        "type": "gen"
+      },
+      {
+        "text": "\"Cannot find module\" error and want to know if it's their fault.",
+        "type": "gen"
+      },
+      {
+        "text": "Short answer: it's not your setup. This is a known mismatch parked in",
+        "type": "gen"
+      },
+      {
+        "text": "the project memory and not yet resolved.",
+        "type": "gen"
+      },
+      {
+        "text": "What's happening: the package.json files in `core2/packages/*` declare",
+        "type": "gen"
+      },
+      {
+        "text": "`main: \"./dist/index.js\"`. The vite config in those same packages",
+        "type": "gen"
+      },
+      {
+        "text": "writes the build output to `dist-dev/index.js`. Consumer apps that",
+        "type": "gen"
+      },
+      {
+        "text": "import these packages resolve `main` and look in `dist/` \u2014 which is",
+        "type": "gen"
+      },
+      {
+        "text": "empty. The error you see is the symptom.",
+        "type": "gen"
+      },
+      {
+        "text": "Why it's parked instead of fixed: per the memory note, fixing it",
+        "type": "gen"
+      },
+      {
+        "text": "requires either (a) updating package.json `main` fields to point at",
+        "type": "gen"
+      },
+      {
+        "text": "`dist-dev/`, which leaks the dev convention into consumers, or",
+        "type": "gen"
+      },
+      {
+        "text": "(b) reconfiguring vite to actually write to `dist/`, which collides",
+        "type": "gen"
+      },
+      {
+        "text": "with the existing dev-mode output flow. Neither is a one-liner, and",
+        "type": "gen"
+      },
+      {
+        "text": "neither has a clear right answer yet.",
+        "type": "gen"
+      },
+      {
+        "text": "What you can do today: build manually with `pnpm build` (which",
+        "type": "gen"
+      },
+      {
+        "text": "populates `dist/` correctly via a different code path than vite's dev",
+        "type": "gen"
+      },
+      {
+        "text": "build), or pull from a tag where `dist/` was committed. Don't try to",
+        "type": "gen"
+      },
+      {
+        "text": "patch package.json \u2014 your fix will get reverted.",
+        "type": "gen"
+      }
+    ],
+    "note": "A real piece of tech debt parked in memory: the wbc-ui2 packages declare `main` at `dist/` but vite writes to `dist-dev/`. Someone new sees a \"module not found\" error and asks `/wbExplain \"core2 dist folder mismatch\"`:",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbExplain" :pipelines="wbExplainPipelines" />
+
+
+### 💠 Pipeline Onboarding doc for the IPEIM student
+
+Wissem teaches at IPEIM (CS instructor since 2018, per memory). A senior-year student joining wb-labs for an internship needs the conceptual map of the agentic framework, in French.
+
+
+### 💠 Pipeline The WBDataViewer apiResponse_ design review
+
+A reviewer comes back to the WBDataViewer code six months from now. They see `apiResponse_` (with the trailing underscore) and don't remember why. Run live:
+
+
+### 💠 Pipeline The dist-folder mismatch, explained for a fresh pair of eyes
+
+A real piece of tech debt parked in memory: the wbc-ui2 packages declare `main` at `dist/` but vite writes to `dist-dev/`. Someone new sees a "module not found" error and asks `/wbExplain "core2 dist folder mismatch"`:
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 5. What would refuse today
+
+| Trigger | Live response |
+|---|---|
+| `/wbExplain` with no target | Halt. Provide `--id`, a path, or a concept string. |
+| `/wbExplain --id="*"` right now | Produces the 3-row epic overview (rows are `⬜` but explanation doesn't require `Done`). |
+| `/wbExplain --id="4"` | Halt. Plan only contains 3 rows. |
+| `/wbExplain "the auth thing"` | Disambiguation prompt — could be JWT in wb-core, login in wbc-ui.com, session handling in wbc-ui2-cdn. Lists all three; asks user to pick. |
+| `/wbExplain "rebuild the universe"` | Honest "no clear target found in workspace" with suggestions of nearby concepts. |
+| `/wbExplain --id="1" --as="haiku"` | Honors the constraint. Produces a haiku about the JWT handshake row. The user owns the format. |
+
+The unifying point: `/wbExplain` is the **most permissive** command in the QA group on the input side and the **most disciplined** on the output side. It accepts almost any target; it refuses to produce content that's incorrect-but-confident. When in doubt, it asks; when truly unable, it admits.

@@ -1,5 +1,7 @@
 # /wbMonetize: Execution Template
 
+> Conforms to output_conventions v1.12 · template v1.0
+
 
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
@@ -65,7 +67,7 @@ Maintenance runs include an advisory pass: "feature X could be promoted to Pro",
 
 **Re-running bootstrap by editing the marker out.** If you want to re-bootstrap a package (rare), do it intentionally: revert the package, delete the marker, run `/wbMonetize` again. Don't half-strip the marker and hope the heuristic catches it — that's the abort case, and you'll have to confirm the override anyway.
 
-> For deeper reading: [`docs_claude/commands/wbMonetize/wbMonetize_practical_claude.md`](../../docs/docs_claude/commands/wbMonetize/wbMonetize_practical_claude.md) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+> For deeper reading: [`wbMonetize_practical.md`](https://flow.wbc-ui.com/commands/wbMonetize/wbMonetize_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
 <!-- HELP_GATE_END -->
 
 **ROLE:** The Monetization Bootstrapper
@@ -76,7 +78,7 @@ Convert a tier-unaware package into a tier-aware one (first run), or verify and 
 
 ## ━━━ PHASE 1: CONTEXT SYNC ━━━
 1. Read the local `context.md` and `dev.md` of the target package.
-2. Strictly review the global `core2/.wb/workflows/monorepo_rules.md` — sections 3 (Tier System) and 4 (Licensing Flow).
+2. Strictly review the global `<monorepo-root>/.wb/workflows/monorepo_rules.md` — sections 3 (Tier System) and 4 (Licensing Flow).
 3. Detect the package's monetization state using **the hybrid mechanism (option 3)**:
    - **Authoritative marker:** look for `wbMonetize` field in the package's `package.json` (or `.wb-monetized.json` in the package root). If present, package is monetized.
    - **Heuristic safety check:** independently scan the source for any of `__WBC_DEV__`, `isWb[Pkg]Pro`, `userTier`, `WB[Pkg]_SIMULATE_PRO`, the `created()` license hook, or `_wb_[pkg]_auth` cookies.

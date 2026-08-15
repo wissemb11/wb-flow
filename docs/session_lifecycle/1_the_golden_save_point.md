@@ -1,52 +1,51 @@
-# The Golden Save Point
+---
+title: The Golden Save Point
+description: How to recognize the safe repository state for starting risky work or stopping guilt-free.
+---
 
-## What is it?
-The **"Golden Save Point"** is a specific, highly-desirable state in the agentic workflow. You have reached this state when:
-1. All tasks in the active `/wbPlan` are completed and marked as `✅ Valid`.
-2. The repository has no lingering tech debt, unresolved bugs, or "dirty" legacy AI files littering the root.
-3. The `context.md` and `dev.md` files are fully up-to-date and accurately reflect the current system.
+# The Golden Save Point — 
 
-When `/wbNext` outputs that the repository is **"fully sanitized"** and ready for **"proactive feature development,"** you have hit the Golden Save Point.
-
-## Why is it important?
-Think of this like a video game save point right before a major boss battle. If you start a massive new feature (like `wb-sync` CRDTs) without saving, and the AI hallucinates or breaks the build, rolling back is chaotic. 
-
-The Golden Save Point ensures you have a pristine, working foundation. 
-
-## What to do when you reach it:
-Do not immediately start coding new features. Instead:
-
-1. **Commit to Git**: This is the perfect time for a clean commit. 
-   - Run `/wbGit <target>` to let the AI draft a commit message explaining the hygiene improvements.
-   - Run `git add .`, `git commit`, and `git push`.
-2. **Close the Session**: You need to formally close out the AI tracker so the next feature starts with a fresh brain. (See `2_closing_the_session.md`).
-
-
-## What's Next?
-
-After reaching a Golden Save Point, proceed to close the session (`2_closing_the_session.md`) to formally end the AI tracker. Then open a new session (`3_opening_a_new_session.md`) for the next feature.
-
-## Related Concepts
-
-- **[Session Lifecycle Hub](README.md)** — Overview of the full session lifecycle
-- **[Closing the Session](2_closing_the_session.md)** — How to close formally and commit
-- **[Opening a New Session](3_opening_a_new_session.md)** — Starting fresh with full context
-- **[Daily Use](../daily_use/README.md)** — Daily operational procedures
-
-
-
-## Summary
-
-The Golden Save Point is the ideal state before closing a session: all tasks complete, no tech debt, documentation up to date. Always reach this state before starting a new major feature.
-
-
-## Related
-
-- [Session Lifecycle Hub](README.md) — Overview of the full lifecycle
-- [Closing the Session](2_closing_the_session.md) — Next step after reaching the golden save point
-
+> A specific, recognizable repository state. Not a metaphor. Not a celebration. A checkpoint you should learn to spot, because it's the only safe moment to start something risky.
 
 ---
 
----
-← [Session Lifecycle Hub](README.md) · [Home](../README.md)
+## How to recognize it
+
+You're at a Golden Save Point when **all three** are true:
+
+1. **Every task in the active plan is `✅ Valid`** (not just `✅ Done` — `/wbValid` has signed off).
+2. **The repo has no dirty parking lot.** No half-moved files, no `*.orig`, no stale `chat_*.md` at the root, no `dist/` ↔ `dist-dev/` mismatch (you know the wbc-ui2 quirk).
+3. **`context.md` and `dev.md` reflect the actual code.** Last `/wbContext` was on this code, not three commits ago.
+
+`/wbNext` is the cheapest detector: when its top recommendation is *"start a new feature"* rather than *"clean X"* or *"fix Y"*, you're there.
+
+If only 2 of the 3 are true, you're not at the save point — you have one chore left. Do it.
+
+## Why it matters
+
+It's the only state from which a `git reset` is meaningful. If you start `wb-sync` (or any large new feature) on a dirty foundation, the next bug could be from your new code, the inherited mess, or both — and you can't bisect them apart.
+
+The save point separates *previous-session debt* from *this-session work*. Without that line, every session inherits the previous one's noise.
+
+## What to do at it
+
+Three things, in order. The first two are non-negotiable; the third is a judgment call.
+
+### 1. Commit, then stop
+
+`/wbGit <target>/` reads the diff, drafts a Conventional Commit message, and (if you say so) runs `git add` + `git commit` + `git push`. It is the **only** `/wb*` command that touches git for you.
+
+The commit message at a save point should describe the hygiene work — the chores you cleared, the docs you synced, the agents you re-wired. Not the new feature you haven't started yet. Future-you bisecting a bug needs to know that THIS commit was the clean baseline.
+
+### 2. Close the session
+
+The save point is also the cheapest moment to close the AI session — your context window is mostly full of *cleanup* tokens, not *feature* tokens. Carrying that into the next phase is wasteful. Move to [`2_closing_the_session`](2_closing_the_session).
+
+### 3. Decide whether to keep going
+
+The trap is treating the save point as a *finish line* (great, I'm done!) or as a *starting gun* (great, time to ship `wb-sync`!). Both miss the point.
+
+The right move is usually to **stop**. The save point is rare. The next session will be sharper if it starts from a clean context with a clean repo, even if "stop" means "in two hours, after lunch, with a fresh chat."
+
+If you do continue, [open a new session](3_opening_a_new_session) — don't ride the current one into a 4-hour mega-thread. The math on that is in `2_closing_the_session.md`.
+

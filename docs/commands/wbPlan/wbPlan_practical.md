@@ -1,52 +1,79 @@
-# /wbPlan — Practical Guide
+# /wbPlan — Practical
 
-## Step-by-Step Walkthrough
+## When to reach for /wbPlan
 
-### Scenario: Plan a dark mode feature
+| Situation | Use /wbPlan? |
+|---|---|
+| "Fix the padding on this button" | No — one sentence |
+| "Add a CSV export button" | Maybe — borderline, 3-4 tasks |
+| "Migrate wb-core to structural array handling" | Yes — multi-step, architectural |
+| "Debug this crash in WBDataViewer" | Yes, but plan starts with `reproduce` task |
+| "Clean up this package" | No — that's `/wbClean` |
+| "Refactor this file" | Maybe — if > 1 file affected |
 
-```bash
-/wbPlan "Add dark mode support to the dashboard"
+Rule of thumb: if the work will span multiple sessions, you want a plan. If it fits in one session, just describe the work.
+
+## The three forms
+
+```
+/wbPlan <pkg> # AI infers the task from context
+/wbPlan <pkg> --task="<description>" # explicit task framing (recommended)
+/wbPlan <pkg> --resume # read existing open plan, continue
 ```
 
-### Expected Output
+## Reading a plan file
 
-| ID | Task | Priority | Estimate | Depends On |
-|---|---|---|---|---|
-| T1 | Define color tokens and theme variables | P0 | 2h | — |
-| T2 | Create ThemeProvider context component | P0 | 3h | T1 |
-| T3 | Update existing components to use theme | P1 | 4h | T2 |
-| T4 | Add theme toggle to settings | P1 | 2h | T3 |
-| T5 | Write tests for theme switching | P2 | 2h | T2 |
+Every plan has a table. Three columns matter most:
 
-### Practical Tips
+- **Details** — must be specific enough that another session could execute without asking questions.
+- **Validator** — who verifies the task is done. If empty, the plan is weak.
+- **Done / Valid** — checkboxes. The state machine.
 
-- Be specific: "Support WCAG AA contrast in dark mode" yields better plans than "Improve UI"
-- Use `--deadline` to get a reality check on your timeline
-- Review the plan and reorder tasks before starting — the plan is a draft, not a contract
+Skim these before executing. If the details are vague, the plan is bad; fix it before running anything.
 
+## Resuming a plan
 
-### Advanced Example: Time-Constrained Planning
-
-```bash
-/wbPlan "Add user dashboard with charts" --deadline "2026-06-01" --team-size 2
+```
+/wbPlan <pkg> --resume
 ```
 
-When the deadline is tight, the planner will suggest:
-- Parallelizing independent tasks across the two team members
-- Reducing scope (e.g., deferring chart animations to a follow-up)
-- Flagging dependencies that could block the timeline
+The AI reads the existing plan file, sees which rows are ✅ / ⬜ / 🔨, and tells you which task is next. If a row is 🔨 (in progress) and stale (> 12h old), the AI will ask: "verify this task's actual state before proceeding." Don't skip that check — state rot happens.
 
+## When /wbPlan refuses to write a plan
 
-### Tips for Better Plans
+This is correct behavior, not a bug. `/wbPlan` refuses when:
 
-- Include acceptance criteria in your goal description
-- Review the generated plan before starting — reorder tasks if needed
-- Use `--deadline` to let the planner flag impossible timelines
+- Your `dev.md` contains a rule like "confirm decision X before extending" and the task would require extending.
+- The task contradicts an existing open decision in `context.md`.
+- The task is too vague to decompose ("make it better", "improve performance").
 
+When refused, answer the question the AI asks. Don't work around it.
+
+## The one mistake to avoid
+
+**Generating a plan and then ignoring the validator column.** Without independent validation, the plan degrades to a TODO list. The whole point of the worker/validator split is that a second pass catches what the first misses. Use a different model for validation when possible; use the same model with an adversarial prompt when not.
+
+## When /wbPlan is the wrong command
+
+- You want to *do* the work → describe the task, skip the plan.
+- You want to *know* if the code is good → `/wbAudit`.
+- You want to *find* why something's broken → `/wbDebug`.
+- You want to *brainstorm* features → `/wbVision`.
+
+`/wbPlan` answers one question: *"Given this goal, what are the steps?"* Not "is this goal worth it?" (that's `/wbVision`) and not "is this work done correctly?" (that's `/wbAudit`).
+
+<!-- FLAGS_SHORTCUTS_START -->
+## Flags & shortcuts
+
+Long-form and short-form are equivalent — `/wbPlan --execute` and `/wbPlan -e` produce the same behavior.
+
+| Long form | Shortcut |
+|---|---|
+| `--resume` | `-r` |
+| `--scope` | `-s` |
+| `--task` | `-t` |
+
+`-h`, `--h`, and `--help` are accepted on **every** `/wb*` command and print the manual instead of executing.
+<!-- FLAGS_SHORTCUTS_END -->
 
 ---
-
----
-
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

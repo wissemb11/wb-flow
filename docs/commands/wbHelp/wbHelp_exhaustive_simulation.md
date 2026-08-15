@@ -1,96 +1,328 @@
-# wb-flow Protocol: /wbHelp Execution & Simulation Specification
+# /wbHelp — Exhaustive Simulation ()
 
-This document defines the **exhaustive behavior matrix** for the `/wbHelp` command. It serves as the definitive reference for how the agent parses its own capabilities, queries the documentation matrix, and delivers context-aware usage instructions to the developer.
+`/wbHelp` is the internal documentation router. It reads the `frontEnd/wbc-ui/core2/packages/wb-flow/templates/docs/` directory and command schemas to provide usage guides, flag definitions, and scenario recommendations. The hard constraint: **meta-awareness without hallucination.** The agent dynamically parses the documentation source of truth rather than relying on memorized knowledge of its own commands.
+
+Read this if you want to know what happens with no arguments, how the search flag works across the docs tree, and why `/wbHelp` refuses to describe commands that don't exist.
 
 ---
 
-## 1. Role & Definition Matrix
-**Role:** The Internal Documentation & Capability Router
-**Target:** Reads `frontEnd/wbc-ui/core2/packages/wb-flow/templates/docs/` and internal command schemas to provide usage guides, flag definitions, and scenario recommendations.
-**Core Protocol:** Strict "Meta-Awareness". The agent must dynamically parse the documentation source of truth rather than relying on hallucinated knowledge of its own commands.
+## 1. Role & target
 
-| Scenario | System Behavior |
+| Aspect | Behavior |
 |---|---|
-| No Argument Provided | **[PROCEED]** Outputs the massive 26-Command Arsenal matrix, categorized by operational group (e.g., Execution, Diagnostics). |
-| Specific Command Queried | **[PROCEED]** Extracts and summarizes the Exhaustive Simulation documentation for the requested command. |
-| Unknown Command Queried | **[HALT]** Protocol forbids hallucinating commands. Returns a "Command Not Found" error and suggests similar valid commands. |
+| **Role** | The Capability Router. Answers "what can I do?" and "how does X work?" |
+| **Target** | `frontEnd/wbc-ui/core2/packages/wb-flow/templates/docs/`, command templates, `wb_commands_reference.json`. |
+| **Cell scope** | None. `/wbHelp` is read-only and meta-level. |
+| **Side effects allowed** | None. Pure read + render to stdout. |
+| **Side effects forbidden** | Everything. `/wbHelp` produces prose and stops. |
+
+The "no hallucination" rule is what separates `/wbHelp` from a generic "help" command. When `/wbHelp wbPlan` runs, it doesn't recall what `/wbPlan` does from training data — it reads `wbPlan_template.md` and the exhaustive simulation file, then summarizes what it finds. If the template changed since training, the help output reflects the current version.
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix
-`/wbHelp` parses command names and natural language to resolve documentation queries.
+## 2. Argument resolution
 
-| Argument Type | Example | Parsing Logic | Simulated Output Profile |
-|---|---|---|---|
-| No Argument | `Command: /wbHelp` | Defaults to global index. | Displays the table of all 26 commands and their short descriptions. |
-| Specific Command | `Command: /wbHelp wbPlan` | Locks onto `wbPlan` docs. | Outputs the usage guide, flags, and edge cases specifically for `/wbPlan`. |
-| Comma-Separated | `Command: /wbHelp wbWork,wbValid` | Parses both queries. | Outputs a comparative guide on how `/wbWork` and `/wbValid` chain together. |
-| Natural Language | `Command: /wbHelp "how do I fix a bug?"` | Fuzzily matches intent to Diagnostic commands. | Suggests using `/wbDebug` and `/wbAudit`. |
-
----
-
-## 3. Flag Processing Matrix (Isolated Capabilities)
-
-| Flag | Shortcut | Purpose | Example | Simulated Output Impact |
-|---|---|---|---|---|
-| `--examples` | `-e` | Forces the output to focus heavily on practical code examples and scenarios rather than theory. | `Command: /wbHelp wbSetup -e` | `[EXAMPLES] Displaying 3 concrete scenarios for running wbSetup.` |
-| `--flags` | `-f` | Forces the output to print only the argument resolution matrix and flag table for the command. | `Command: /wbHelp wbWork -f` | `[FLAGS] Displaying the 4 specific flags available for /wbWork.` |
-| `--search="<term>"`| `-s` | Deep searches the entire `frontEnd/wbc-ui/core2/packages/wb-flow/templates` docs directory for a specific keyword. | `Command: /wbHelp -s="Smart Merge"` | `[SEARCH] Found references to 'Smart Merge' in wbTrack and wbPlan.` |
-| `--voice="<tone>"` | `-v` | Adjusts output verbosity (`concise`, `verbose`, `eli5`). | `Command: /wbHelp wbGit -v="concise"` | `[VOICE] Outputting 2-line summary of wbGit. Skipping edge cases.` |
-
----
-
-## 4. Omni-Channel Execution Pipeline (Flag Chaining)
-
-### 💠 The "Deep Capability Search" (`-s="wildcard" -e`)
-**Context:** The developer forgets which commands support wildcard (`*`) arrays and wants practical examples of how to use them.
-**Command Executed:** `/wbHelp -s="wildcard" -e`
-**Simulated Protocol Chain:**
-1. Deep scans `frontEnd/wbc-ui/core2/apps/wb-flow/wb-flow-docs/commands/`.
-2. Matches "Wildcard" in `wbWork`, `wbValid`, `wbExplain`, and `wbAudit`.
-3. Filters content to show only the specific `Example` columns (`-e`).
-**Simulated Output:**
-```markdown
-> Command: /wbHelp -s="wildcard" -e
-
-[SYSTEM] Initiating Deep Capability Search for "wildcard"...
-[MATCH] Found support in 4 core commands.
-[EXAMPLES] 
-- /wbWork -i="*" (Executes all unblocked tasks)
-- /wbValid -i="*" (Validates all implemented tasks)
-- /wbExplain -i="*" (Generates epic onboarding guide)
-- /wbAudit src/**/*.js (Massive glob security sweep)
-[SUCCESS] Search complete.
-```
-
-### 💠 The "Command Deep Dive" (`wbRelease -f -e`)
-**Context:** Developer is about to cut a release but wants a quick refresher on exactly what flags are available and how to chain them for a beta release.
-**Command Executed:** `/wbHelp wbRelease -f -e`
-**Simulated Output:**
-```markdown
-> Command: /wbHelp wbRelease -f -e
-
-[SYSTEM] Extracting wbRelease documentation...
-[FLAGS] 
--v="<type>" : Force SemVer (major, minor, patch, beta)
--c          : Auto-generate changelog
--g          : Push to GitHub
--d          : Dry-Run
-[EXAMPLES]
-Beta Run: `/wbRelease packages/* -v="beta" -d`
-[SUCCESS] Help delivered.
-```
-
----
-
-## 5. Operational Edge Cases & Protocol Faults
-
-| Fault Trigger | System Detection | Resolution / Output |
+| Form | Example | What `/wbHelp` does |
 |---|---|---|
-| Hallucinated Command | User queries `/wbHelp wbMagic`. | `❌ Error: 'wbMagic' is not recognized. Did you mean 'wbMake'?` |
-| Search Timeout | User searches for a term like "the", resulting in 10,000 matches. | `⚠️ Warning: Search too broad. Truncating results to top 5 commands.` |
-| Corrupt Documentation| System cannot locate `frontEnd/wbc-ui/core2/packages/wb-flow/templates/docs/`. | `❌ Error: Protocol Fault. Documentation missing. Agent amnesic.` |
+| No argument | `Command: /wbHelp` | Outputs the full command catalog: all 27 commands, grouped by role (Execution, QA, Orchestration, etc.). |
+| Specific command | `Command: /wbHelp wbPlan` | Extracts usage guide, flags, and edge cases for `/wbPlan`. |
+| Comma-separated | `Command: /wbHelp wbWork,wbValid` | Comparative guide showing how the two commands chain together (worker/validator). |
+| Natural language | `Command: /wbHelp "how do I fix a bug?"` | Fuzzy-matches to Diagnostic commands. Suggests `/wbDebug` and `/wbAudit`. |
+
+The comma-separated form is the non-obvious value. `/wbHelp wbWork,wbValid` doesn't just concatenate two help pages — it explains the **relationship**: worker writes `Done`, validator writes `Valid`, they run from different model pools, the separation prevents self-approval.
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 3. Flag matrix
+
+`/wbHelp` declares no flags of its own. Its entire interface is positional:
+
+| Form | Purpose |
+|---|---|
+| `/wbHelp` | Prints the role-grouped catalog of every command. |
+| `/wbHelp <wbX>` | Prints one command's manual — identical to `/<wbX> -h`. |
+
+`-h` / `--help` is accepted, as it is on every command, and prints the same
+catalog. Any other argument is treated as a command name.
+
+---
+
+## 4. Pipelines (the agent-native scenarios)
+
+<script setup>
+const wbHelpSimPipelines = [
+  {
+    "title": "Full catalog (no arguments)",
+    "cmd": "/wbHelp",
+    "logs": [
+      {
+        "text": "[SYSTEM] Loading command catalog from wb_commands_reference.json...",
+        "type": "sys"
+      },
+      {
+        "text": "# wb-flow Command Arsenal (27 commands)",
+        "type": "gen"
+      },
+      {
+        "text": "## Execution & QA",
+        "type": "sys"
+      },
+      {
+        "text": "| Command | Role | Quick Description |",
+        "type": "sys"
+      },
+      {
+        "text": "|---|---|---|",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbWork` | Worker | Implements plan rows. Writes to Done. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbValid` | Validator | Validates completed rows. Writes to Valid. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbExplain` | Teacher | Explains code/plans in any style. Read-only. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbTest` | Tester | Runs test suites and reports results. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbAudit` | Auditor | Scans for technical debt and security issues. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbReview` | Reviewer | Code review with approval/rejection. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbDebug` | Debugger | Root-cause analysis for errors. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbContext` | Mapper | Generates context.md files from source. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbPlan` | Planner | Creates task plans with DAG dependencies. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbGit` | Committer | Generates commit messages (no git execution). |",
+        "type": "sys"
+      },
+      {
+        "text": "## Orchestration & Workflow",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbTrack` | Logger | Session tracking toggle. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbStandup` | Briefer | Morning status report. Read-only. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbNext` | Navigator | Returns the next unblocked task. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbActOn` | Triage | Ranks findings into execution order. |",
+        "type": "sys"
+      },
+      {
+        "text": "## Refactoring & Transformation",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbRefactor` | Refactorer | Restructures code preserving behavior. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbClean` | Cleaner | Removes dead code and organizes files. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbSecure` | Hardener | Security-focused code hardening. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbTranslate` | Translator | i18n and locale management. |",
+        "type": "sys"
+      },
+      {
+        "text": "## Deployment & Release",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbDeploy` | Deployer | Deployment configuration and execution. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbRelease` | Releaser | Version bumps and changelog generation. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbPublish` | Publisher | npm publish workflows. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbSetup` | Bootstrapper | Project initialization and scaffolding. |",
+        "type": "sys"
+      },
+      {
+        "text": "## Compliance & Documentation",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbDoc` | Writer | JSDoc, README, API spec generation. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbLicense` | Guardian | IP compliance and header injection. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbHelp` | Router | This command. Documentation lookup. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbCheck` | Checker | Static analysis and link verification. |",
+        "type": "sys"
+      },
+      {
+        "text": "## Special Ops & Conversion",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbBroadcast` | Dispatcher | Cross-system notifications. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbMonetize` | Commercializer | Paywall and tier gating. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbToWBC` | Migrator | Converts generic code to WBC patterns. |",
+        "type": "sys"
+      },
+      {
+        "text": "| `/wbVision` | Cartographer | Architecture visualization (Mermaid). |",
+        "type": "sys"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  },
+  {
+    "title": "Deep capability search",
+    "cmd": "/wbHelp -s=\"worker validator\" -e",
+    "logs": [
+      {
+        "text": "[SYSTEM] Searching frontEnd/wbc-ui/core2/packages/wb-flow/templates/docs/ for \"worker validator\"...",
+        "type": "sys"
+      },
+      {
+        "text": "[MATCH] 4 commands reference the worker/validator pattern:",
+        "type": "gen"
+      },
+      {
+        "text": "1. **wbWork** \u2014 The worker side. Implements rows, writes Done.",
+        "type": "gen"
+      },
+      {
+        "text": "Example: `/wbWork --id=\"2\"` \u2192 edits code, runs verify, marks \u2705.",
+        "type": "gen"
+      },
+      {
+        "text": "2. **wbValid** \u2014 The validator side. Checks work, writes Valid.",
+        "type": "gen"
+      },
+      {
+        "text": "Example: `/wbValid --id=\"2\"` \u2192 reads implementation, runs checks, marks \u2705.",
+        "type": "gen"
+      },
+      {
+        "text": "3. **wbPlan** \u2014 Plans include Worker Model / Validator Model columns.",
+        "type": "gen"
+      },
+      {
+        "text": "Example: Row has `Worker: the agent 4`, `Validator: the agent 4`.",
+        "type": "gen"
+      },
+      {
+        "text": "4. **wbActOn** \u2014 --wbPlan generates task tables with worker/validator assignments.",
+        "type": "gen"
+      },
+      {
+        "text": "[PRINCIPLE] Worker and validator always run from different model pools.",
+        "type": "gen"
+      },
+      {
+        "text": "A model cannot validate its own work (feedback_model_selection.md).",
+        "type": "gen"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  },
+  {
+    "title": "Concise flag reference",
+    "cmd": "/wbHelp wbWork -f -v=\"concise\"",
+    "logs": [
+      {
+        "text": "[FLAGS] /wbWork has 4 flags:",
+        "type": "gen"
+      },
+      {
+        "text": "--id=\"<filter>\" (-i) : Required. Row selector (single, CSV, wildcard, range, negation, boolean).",
+        "type": "gen"
+      },
+      {
+        "text": "--open (-o) : State-only. Resets Done to \u2b1c.",
+        "type": "gen"
+      },
+      {
+        "text": "--def (-d) : State-only. Marks Done as \u23f8\ufe0f Deferred.",
+        "type": "gen"
+      },
+      {
+        "text": "--can (-c) : State-only. Marks Done as \ud83d\udeab Cancelled.",
+        "type": "gen"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbHelp" titleSuffix="Exhaustive Simulation" :pipelines="wbHelpSimPipelines" />
+
+
+### 💠 Pipeline Full catalog (no arguments)
+
+
+### 💠 Pipeline Deep capability search
+
+
+### 💠 Pipeline Concise flag reference
+
+---
+
+## 5. Edge cases & refusals
+
+| Trigger | What `/wbHelp` does |
+|---|---|
+| `/wbHelp wbMagic` (nonexistent command) | `❌ 'wbMagic' is not a recognized command. Did you mean: wbMonetize, wbTrack?` |
+| `/wbHelp -s="the"` (too broad) | `⚠️ Search too broad (10,000+ matches). Truncating to top 5 commands. Narrow your query.` |
+| Corrupt/missing `frontEnd/wbc-ui/core2/packages/wb-flow/templates/docs/` | `❌ Documentation directory not found. Agent capabilities may be limited.` |
+| `/wbHelp wbGit -h` | Meta-inception: outputs the help block from `wbGit_template.md` (the `-h` intercept defined in every template). |
+| `/wbHelp wbWork,wbValid,wbExplain,wbTest,wbAudit,...` (too many) | Truncates to first 3 and suggests separate queries for the rest. |
+
+The unifying principle: **`/wbHelp` is the only command that reads its own documentation.** Every other command *does* something; `/wbHelp` describes what they do by parsing the docs tree, not by recalling training data. This self-referential design means the help output is always current — if a template gets a new flag, `/wbHelp` surfaces it automatically.

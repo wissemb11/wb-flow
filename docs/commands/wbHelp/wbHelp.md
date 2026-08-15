@@ -20,31 +20,25 @@ In a 28-command ecosystem, knowledge of which command to invoke for a given goal
 
 ## 📚 Reading Order
 
-1. **[ELI5](wbHelp_eli5.md)** — The single-paragraph mental model.
-2. **[Practical](wbHelp_practical_part1.md)** — The two forms, when to use each.
-3. **[Expert](wbHelp_expert_part1.md)** — Why the JSON-driven render is the right architecture.
-4. **[Examples](wbHelp_examples_part1.md)** — Five annotated transcripts.
+1. **[ELI5](wbHelp_eli5)** — The single-paragraph mental model.
+2. **[Practical](wbHelp_practical)** — The two forms, when to use each.
+3. **[Expert](wbHelp_expert)** — Why the JSON-driven render is the right architecture.
+4. **[Examples](wbHelp_examples)** — Five annotated transcripts.
 
 ## 🔗 Related
 
-- [`wb_commands_reference.json`](../../../templates/commands/wb_commands_reference.json) — The data source `/wbHelp` renders.
-- [`concepts/flags_and_shortcuts_part1.md`](../../concepts/flags_and_shortcuts_part1.md) — The system-wide flag→shortcut grammar that the catalog's `Flags` column documents.
-- [`concepts/model_recommendations_part1.md`](../../concepts/model_recommendations_part1.md) — Per-command model picks (orthogonal to `/wbHelp`).
-
-## 🔗 Sister Edition
-
-> The [Claude edition (`flow.wbc-ui.com`)](../../../../apps/wb-flow/flow.wbc-ui.com/src/commands/wbHelp/) <!-- [CROSS-EDITION] Phase=A --> covers the same command in a self-help, opinionated register.
-
-
+- `wb_commands_reference.json` — The data source `/wbHelp` renders.
+- [`concepts/flags_and_shortcuts`](../../concepts/flags_and_shortcuts) — The system-wide flag→shortcut grammar that the catalog's `Flags` column documents.
+- [`concepts/model_recommendations`](../../concepts/model_recommendations) — Per-command model picks (orthogonal to `/wbHelp`).
 
 ## Quick Reference
 
-`/wbHelp` lists all commands. `/wbHelp <cmd>` shows detailed help. `--search <keyword>` finds commands by function.
+`/wbHelp` lists all commands. `/wbHelp <cmd>` shows detailed help.
 
 
 ---
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+← [Home](/README) · [Commands](/README#the-command-catalog) · [Install](/start_here/installation) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
 

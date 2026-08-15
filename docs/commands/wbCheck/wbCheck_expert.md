@@ -1,71 +1,48 @@
-# wbCheck — Expert Architecture
+# /wbCheck: Expert Deep Dive 🎓
 
-> How `/wbCheck` performs lightweight pre-commit quality checks on code.
+## Why this exists
 
----
+The multi-model workflow has a trust problem. You use 5+ models. Each sees your workspace files, but you have no guarantee it understood them correctly.
 
-## 1. System Role
+A model can:
+- **Hallucinate** file contents it never read
+- **Confuse** your project with training data
+- **Apply wrong patterns** (Vue 3 on a Vue 2 project)
 
-`/wbCheck` is a **quick linter**. It performs fast, targeted quality checks without the depth of a full audit. Designed to run before every commit.
+`/wbCheck` solves this with an **asymmetric knowledge test**: you hold the answer key, the model holds only the source code.
 
-| Property | Value |
-|---|---|
-| **Role** | ✅ Validator (quick) |
-| **Input** | File or folder path |
-| **Output** | Pass/fail with issue list |
-| **Mutates files** | Never |
+## The information asymmetry
 
----
-
-## 2. Check Categories
-
-| Category | What It Checks |
-|---|---|
-| **Syntax** | Valid JS/Vue/JSON, no parse errors |
-| **Imports** | No circular imports, no missing modules |
-| **Naming** | Consistent conventions (camelCase, PascalCase) |
-| **TODOs** | Count and location of TODO/FIXME markers |
-| **Size** | Files exceeding 300 lines flagged |
-| **Exports** | Unused exports, missing index re-exports |
-
----
-
-## 3. Check vs. Audit vs. Review
-
-| Aspect | /wbCheck | /wbAudit | /wbReview |
-|---|---|---|---|
-| **Speed** | Fast (<10s) | Medium (30s+) | Slow (detailed) |
-| **Depth** | Surface | Deep | Line-by-line |
-| **Scope** | Files changed | Entire project | Specific changes |
-| **When** | Pre-commit | Pre-release | Pre-merge |
-| **Score** | Pass/fail | 1–10 score | Verdict scale |
-
----
-
-## 4. Output Format
-
-```text
-[AI] Checking src/ (12 files)...
-[AI]
-[AI] ✓ Syntax: 12/12 valid
-[AI] ✓ Imports: no circular dependencies
-[AI] ✗ Naming: src/utils.js:15 — `ProcessData` should be camelCase
-[AI] ✗ TODOs: 3 markers found
-[AI] ✓ Size: all files under 300 lines
-[AI]
-[AI] Result: FAIL (2 issues)
+```
+ YOU (planner) WORKER MODEL
+ ✅ Questions ✅ Questions (you sent them)
+ ✅ Answers ❌ Answers (never sent)
+ ✅ Keywords ❌ Keywords (never sent)
+ ✅ Source code ✅ Source code (workspace)
 ```
 
----
+The ONLY way the worker can answer correctly is by reading the real source code.
 
-## 5. Integration
+## What makes a good question
 
-| Workflow Position | Context |
+| Good question | Bad question |
 |---|---|
-| Before `/wbGit` | Quick check before commit |
-| After editing | Verify changes don't break conventions |
-| CI/CD | Lightweight gate in pipeline |
+| "How many tests fail?" (forces reading TEST_REPORT.md) | "Do tests work?" (yes/no) |
+| "Name the 6 renderer files" (proves directory traversal) | "What files exist?" (vague) |
+| "What does enforceTierLimits emit?" (implementation detail) | "Does tier enforcement exist?" (trivial) |
+
+**Rule:** If answerable with yes/no, it's a bad question.
+
+## Scaling to new packages
+
+1. Run `/wbContext` on the new package
+2. Ask Antigravity to generate questions from context.md
+3. 3. Add to your private question bank
+
+What `wb-flow-docs`'s playbook gets wrong about `/wbCheck`: presenting it as a comprehensive readiness verification, when the actual scope is deliberately narrow — existence and structure checks only. It cannot validate content correctness (that's /wbReview) or test execution (that's /wbTest). Calling it 'verification' oversells what is fundamentally a pre-flight grep.
+
+## One-paragraph verdict
+
+A lightweight, low-hallucination command that does one thing and does it well — checking existence and structure of expected artifacts. Its value is in the negative signal: a ✅ from `/wbCheck` is weak evidence (the template might still be broken in ways a script can't detect), but a ❌ is strong evidence something is missing. The main risk is scope creep ("let's also check for X, Y, Z") turning it into a swamp of ad-hoc checks. Maintain the discipline of one-check-per-flag, and it stays sharp. Weakest in semantic understanding — it can't tell if a file's content is correct, only that it exists.
 
 ---
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

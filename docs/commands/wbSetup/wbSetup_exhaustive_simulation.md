@@ -1,93 +1,359 @@
-# wb-flow Protocol: /wbSetup Execution & Simulation Specification
+# /wbSetup — Exhaustive Simulation ()
 
-This document defines the **exhaustive behavior matrix** for the `/wbSetup` command. It serves as the definitive reference for how the agent bootstraps local development environments, installs dependencies, populates `.env` files, and seeds databases.
+`/wbSetup` is the architect. Its job is to **bootstrap a new package's agentic context layer** — create the `.agents/workflows/` directory, scaffold the `context.md`, set up the convention files (i18n stub, dev-mode flag, package.json metadata) so the package is *ready to receive `/wb*` commands*. It's a one-time-per-package operation; `/wbContext` (recurring) builds on what `/wbSetup` (initial) creates.
+
+Read this if you want to know what `--focus` actually scopes during setup, why `/wbSetup` is rare and intentional, and where setup ends and the first `/wbContext` begins.
 
 ---
 
-## 1. Role & Definition Matrix
-**Role:** The Environment Bootstrapper & Scaffolding Agent
-**Target:** Prepares a raw repository clone or specific package for active development.
-**Core Protocol:** Strict "Idempotency". The agent must be able to run `/wbSetup` multiple times without breaking an existing, working environment. It checks for existing `.env` files and existing databases before overwriting.
+## 1. Role & target
 
-| Scenario | System Behavior |
+| Aspect | Behavior |
 |---|---|
-| Target is Monorepo Root | **[PROCEED]** Executes massive `npm ci` or `npm install`. Uses workspaces. Sets up monorepo-wide symlinks. |
-| Target is Sub-Package | **[PROCEED]** Bootstraps only the specific package (dependencies and `.env` clones). |
-| Missing Template | **[HALT]** Protocol forbids creating `.env` files from thin air. Must clone from `.env.example` or prompt user for secure injection. |
+| **Role** | The Architect — bootstraps the agentic context layer for a new package. |
+| **Target** | A directory that *will become* a package (already has `package.json` or will get one). |
+| **Cell scope** | None — `/wbSetup` doesn't create plan files. The first plan happens via `/wbPlan` after setup. |
+| **Side effects allowed** | Creating `.agents/workflows/` directory; scaffolding `context.md`; adding boilerplate config files (i18n stub, dev-mode flag in vite/build config); editing `package.json` for agent-aware metadata. |
+| **Side effects forbidden** | Editing source code; running tests; mutating other packages' configs; touching git state. |
+
+The "one-time-per-package" framing is what makes `/wbSetup` rare. Once a package is set up, every subsequent operation uses `/wbContext` (refresh state) or `/wbWork`/`/wbValid`/etc. (do work). Running `/wbSetup` on an already-bootstrapped package is a corner case — supported but with a confirmation gate.
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix
-`/wbSetup` is path-sensitive, executing different bootstrapping logic based on the target depth.
+## 2. Argument resolution matrix
 
-| Argument Type | Example | Parsing Logic | Simulated Output Profile |
-|---|---|---|---|
-| Specific Package | `Command: /wbSetup apps/wbc-ui.com` | Locks onto `wbc-ui.com`. | Runs `npm install` locally. Clones `.env.example` to `.env.local`. |
-| Directory Path | `Command: /wbSetup .` | Analyzes CWD. | Scaffolds the current folder. |
-| Comma-Separated | `Command: /wbSetup packages/core,apps/ui` | Parses multiple scopes. | Bootstraps both the core library and the UI consumer. |
-| Workspace Glob | `Command: /wbSetup apps/*` | Extracts all consumer apps. | Massive parallel installation of dependencies for all frontend applications. |
-
----
-
-## 3. Flag Processing Matrix (Isolated Capabilities)
-
-| Flag | Shortcut | Purpose | Example | Simulated Output Impact |
-|---|---|---|---|---|
-| `--clean` | `-c` | Destructively deletes `node_modules` and `package-lock.json` before installing. | `Command: /wbSetup . -c` | `[CLEAN] Purged node_modules. Initiating fresh install.` |
-| `--seed` | `-s` | Triggers database seeding scripts after dependency installation. | `Command: /wbSetup . -s` | `[SEED] Pushing dummy data to local PostgreSQL instance.` |
-| `--env` | `-e` | Forces `.env` regeneration, overwriting existing local variables. | `Command: /wbSetup . -e` | `[ENV] Warning: Overwrote .env.local with fresh .env.example template.` |
-| `--dry-run` | `-d` | Lists the bootstrapping steps that would be taken without executing them. | `Command: /wbSetup . -d` | `[DRY-RUN] Would run 'npm i', copy .env, and seed DB. Disk untouched.` |
-
----
-
-## 4. Omni-Channel Execution Pipeline (Flag Chaining)
-
-### 💠 The "Massive Monorepo Reset" (`. -c -e -s`)
-**Context:** A developer is switching to a new complex epic. Their local environment is broken. They want to completely nuke the environment and rebuild it from scratch, including database seeds.
-**Command Executed:** `/wbSetup . -c -e -s`
-**Simulated Protocol Chain:**
-1. Validates execution at monorepo root.
-2. Engages `-c` (Clean): Deletes all nested `node_modules` and lockfiles.
-3. Engages `-e` (Env): Re-clones all `.env.example` files across the monorepo.
-4. Executes massive `npm install` across all workspaces.
-5. Engages `-s` (Seed): Runs global database seeding script.
-**Simulated Output:**
-```markdown
-> Command: /wbSetup . -c -e -s
-
-[SYSTEM] Initiating Massive Monorepo Reset...
-[CLEAN] Purged 14 node_modules directories.
-[ENV] Reset 3 .env.local files to match .env.example.
-[INSTALL] Running npm install (Workspace Mode)... Done.
-[SEED] Injecting 500 dummy rows into local DB.
-[SUCCESS] Monorepo scaffolded. Ready for /wbWork.
-```
-
-### 💠 The "Surgical Scaffold" (`apps/md.wbc-ui.com -d`)
-**Context:** A new backend developer only needs to boot up the mobile UI to test their API. They want to see what steps are required before actually running it.
-**Command Executed:** `/wbSetup apps/md.wbc-ui.com -d`
-**Simulated Output:**
-```markdown
-> Command: /wbSetup apps/md.wbc-ui.com -d
-
-[SYSTEM] Executing Dry-Run Scaffolding...
-[DRY-RUN] Target: apps/md.wbc-ui.com.
-[DRY-RUN] Step 1: Execute `npm install` locally.
-[DRY-RUN] Step 2: Copy `.env.example` -> `.env.local`.
-[DRY-RUN] Step 3: Prompt user for `VITE_API_TOKEN`.
-[SUCCESS] Dry-run complete. Run without -d to execute.
-```
-
----
-
-## 5. Operational Edge Cases & Protocol Faults
-
-| Fault Trigger | System Detection | Resolution / Output |
+| Form | Example | What `/wbSetup` does |
 |---|---|---|
-| Missing .env.example | User runs `/wbSetup` on an app with no template. | `⚠️ Warning: No .env.example found. Creating empty .env file.` |
-| Port Conflict | Seed script fails because PostgreSQL is not running. | `❌ Error: Database connection refused. Ensure local Docker is running.` |
-| Clean Flag Danger | User runs `-c` but has unsaved work in `node_modules` (bad practice). | `⚠️ Warning: node_modules wiped. Any manual library edits are lost.` |
+| Directory | `Command: /wbSetup core2/packages/new-package/` | Bootstraps the agentic layer for the target. |
+| Free-text intent | `Command: /wbSetup "a new authentication library"` | Refused. Setup is path-required; intent → planning, not bootstrapping. |
+| Already-bootstrapped target | `Command: /wbSetup core2/packages/wb-core/` | Confirms whether to *re-run* (rare) or use `/wbContext --refresh` (more common). |
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 3. Flag matrix
+
+| Flag | Shortcut | Purpose |
+|---|---|---|
+| `--focus="<area>"` | `-f` | Scopes the setup to a specific concern: `dev-gate` (sets up __WBC_DEV__ pattern), `i18n` (initial locale file scaffolding), `agent-context` (agentic layer only, no other concerns). Default: full setup (all areas). |
+| `--scope="<level>"` | `-s` | `local` (default — single package) or `global` (rare — repo-wide conventions, like adding a CONTRIBUTING.md template). |
+
+The default is "full setup": every area gets bootstrapped. `--focus` is for partial setup when the user has done some areas manually and only needs help with a specific one.
+
+### What "full setup" produces
+
+A package post-`/wbSetup` has:
+
+| File | Purpose |
+|---|---|
+| `<pkg>/.agents/workflows/context.md` | Initial context. Filled in via the same logic as `/wbContext`. |
+| `<pkg>/.agents/workflows/conventions.md` | Pulled from memory + workspace conventions. Lists the `__WBC_DEV__` rule, model-selection rule, and other workspace-wide refusals. |
+| `<pkg>/i18n/en.json` (if package is UI-bearing) | Empty source-locale stub. Populated later via `/wbTranslate`. |
+| `<pkg>/.gitignore` (or appended to) | Standard agent-aware ignores: `dist*`, `.agents/cache/`, `i18n/<locale>.tmp.json`. |
+| `<pkg>/package.json` (modified) | Adds `wbc:` metadata block (agent-readable hints about the package's role, dev-gate status, i18n status). |
+
+The `wbc:` metadata block is interesting — it's the package's **declaration to the agent system** about how it should be treated. Agents read this block first when operating on the package; `/wbContext` updates it as the package matures.
+
+---
+
+## 4. Pipelines (the agent-native scenarios)
+
+<script setup>
+const wbSetupSimPipelines = [
+  {
+    "title": "Bootstrapping a new package",
+    "cmd": "/wbSetup core2/packages/new-feature/",
+    "logs": [
+      {
+        "text": "[SYSTEM] Target: core2/packages/new-feature/",
+        "type": "sys"
+      },
+      {
+        "text": "[CHECK] package.json exists? Yes.",
+        "type": "gen"
+      },
+      {
+        "text": "[CHECK] Already bootstrapped? No (no .agents/workflows/ directory).",
+        "type": "gen"
+      },
+      {
+        "text": "[CONTEXT] Reading sibling packages (wb-core) for convention inheritance...",
+        "type": "ctx"
+      },
+      {
+        "text": "[CONTEXT] Reading memory: feedback_wbCode_dev_only.md, feedback_model_selection.md, project_docs_edition.md.",
+        "type": "ctx"
+      },
+      {
+        "text": "[PROPOSAL] Full setup. Will create:",
+        "type": "gen"
+      },
+      {
+        "text": "1. .agents/workflows/context.md \u2014 initial context.",
+        "type": "gen"
+      },
+      {
+        "text": "2. .agents/workflows/conventions.md \u2014 inherited rules from memory.",
+        "type": "gen"
+      },
+      {
+        "text": "3. i18n/en.json \u2014 empty stub (assumes UI-bearing; can override with --focus).",
+        "type": "gen"
+      },
+      {
+        "text": "4. .gitignore \u2014 appended (or created) with agent-aware ignores.",
+        "type": "gen"
+      },
+      {
+        "text": "5. package.json \u2014 add `wbc:` metadata block.",
+        "type": "gen"
+      },
+      {
+        "text": "[CONFIRM] Proceed? [y/N] > y",
+        "type": "gen"
+      },
+      {
+        "text": "[CREATE] core2/packages/new-feature/.agents/workflows/context.md",
+        "type": "gen"
+      },
+      {
+        "text": "[CREATE] core2/packages/new-feature/.agents/workflows/conventions.md",
+        "type": "gen"
+      },
+      {
+        "text": "[CREATE] core2/packages/new-feature/i18n/en.json (empty {})",
+        "type": "gen"
+      },
+      {
+        "text": "[EDIT] core2/packages/new-feature/.gitignore (appended)",
+        "type": "gen"
+      },
+      {
+        "text": "[EDIT] core2/packages/new-feature/package.json (added wbc: block)",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Setup complete. Package is now agentic-aware.",
+        "type": "ok"
+      },
+      {
+        "text": "[NEXT STEPS]",
+        "type": "gen"
+      },
+      {
+        "text": "1. /wbContext core2/packages/new-feature/ \u2014 populate context with",
+        "type": "gen"
+      },
+      {
+        "text": "more detail as the package grows.",
+        "type": "gen"
+      },
+      {
+        "text": "2. /wbPlan --focus=\"<feature>\" \u2014 make the first plan for this package.",
+        "type": "gen"
+      },
+      {
+        "text": "3. /wbWork --id=\"*\" \u2014 start the first development cycle.",
+        "type": "gen"
+      }
+    ],
+    "note": "A user has just created `core2/packages/new-feature/` with a `package.json` and an empty `src/`. They want the agentic layer set up:",
+    "noteType": "info"
+  },
+  {
+    "title": "`--focus=\"agent-context\"` only",
+    "cmd": "/wbSetup core2/packages/new-feature/ --focus=\"agent-context\"",
+    "logs": [
+      {
+        "text": "[SYSTEM] Target: core2/packages/new-feature/",
+        "type": "sys"
+      },
+      {
+        "text": "[FOCUS] agent-context \u2014 only the .agents/workflows/ scaffolding.",
+        "type": "gen"
+      },
+      {
+        "text": "[CHECK] Existing files in target...",
+        "type": "gen"
+      },
+      {
+        "text": "i18n/en.json exists (manual setup respected).",
+        "type": "gen"
+      },
+      {
+        "text": "package.json has __WBC_DEV__ flag (manual setup respected).",
+        "type": "gen"
+      },
+      {
+        "text": ".agents/workflows/ does not exist.",
+        "type": "gen"
+      },
+      {
+        "text": "[PROPOSAL] Will create only:",
+        "type": "gen"
+      },
+      {
+        "text": "1. .agents/workflows/context.md",
+        "type": "gen"
+      },
+      {
+        "text": "2. .agents/workflows/conventions.md",
+        "type": "gen"
+      },
+      {
+        "text": "3. package.json: add wbc: block (alongside existing fields).",
+        "type": "gen"
+      },
+      {
+        "text": "[CONFIRM] [y/N] > y",
+        "type": "gen"
+      },
+      {
+        "text": "[CREATE] context.md",
+        "type": "gen"
+      },
+      {
+        "text": "[CREATE] conventions.md",
+        "type": "gen"
+      },
+      {
+        "text": "[EDIT] package.json (wbc: block added)",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Agentic layer scaffolded. Other areas (i18n, dev-gate) preserved",
+        "type": "ok"
+      },
+      {
+        "text": "as you set them up.",
+        "type": "gen"
+      }
+    ],
+    "note": "The user has already manually set up i18n and dev-gating; they only want the agentic layer:",
+    "noteType": "info"
+  },
+  {
+    "title": "The \"already bootstrapped\" gate",
+    "cmd": "/wbSetup core2/packages/wb-core/",
+    "logs": [
+      {
+        "text": "[SYSTEM] Target: core2/packages/wb-core/",
+        "type": "sys"
+      },
+      {
+        "text": "[CHECK] Already bootstrapped:",
+        "type": "gen"
+      },
+      {
+        "text": "- .agents/workflows/context.md exists (modified 6 days ago).",
+        "type": "gen"
+      },
+      {
+        "text": "- .agents/workflows/conventions.md exists.",
+        "type": "gen"
+      },
+      {
+        "text": "- i18n/en.json exists.",
+        "type": "gen"
+      },
+      {
+        "text": "- package.json has wbc: block.",
+        "type": "gen"
+      },
+      {
+        "text": "[NOTICE] This package is already set up. /wbSetup is one-time-per-package",
+        "type": "gen"
+      },
+      {
+        "text": "by design.",
+        "type": "gen"
+      },
+      {
+        "text": "[OPTIONS]",
+        "type": "gen"
+      },
+      {
+        "text": "(a) Refresh context only: /wbContext core2/packages/wb-core/ --refresh",
+        "type": "gen"
+      },
+      {
+        "text": "[NO MUTATION] Halted.",
+        "type": "gen"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  },
+  {
+    "title": "Free-text refusal",
+    "cmd": "/wbSetup \"a new authentication library\"",
+    "logs": [
+      {
+        "text": "[REFUSE] Setup is path-required. Intent without a target is a",
+        "type": "error"
+      },
+      {
+        "text": "planning conversation.",
+        "type": "gen"
+      },
+      {
+        "text": "[SUGGEST]",
+        "type": "gen"
+      },
+      {
+        "text": "- Create the package first: pnpm create or manual mkdir + pnpm init.",
+        "type": "gen"
+      },
+      {
+        "text": "- Then: /wbSetup core2/packages/<name>/",
+        "type": "gen"
+      },
+      {
+        "text": "- Or: /wbVision \"auth library\" if you want to brainstorm the feature",
+        "type": "gen"
+      },
+      {
+        "text": "before committing to a package.",
+        "type": "gen"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbSetup" titleSuffix="Exhaustive Simulation" :pipelines="wbSetupSimPipelines" />
+
+
+### 💠 Pipeline Bootstrapping a new package
+
+A user has just created `core2/packages/new-feature/` with a `package.json` and an empty `src/`. They want the agentic layer set up:
+
+
+### 💠 Pipeline `--focus="agent-context"` only
+
+The user has already manually set up i18n and dev-gating; they only want the agentic layer:
+
+
+### 💠 Pipeline The "already bootstrapped" gate
+
+
+### 💠 Pipeline Free-text refusal
+
+---
+
+## 5. Edge cases & refusals
+
+| Trigger | What `/wbSetup` does |
+|---|---|
+| No target | Halt. |
+| Free-text target | Halt — path required. |
+| Target is not a directory | Halt. |
+| Target has no `package.json` | Halt — `/wbSetup` operates on package-shape directories. |
+| Already bootstrapped | Notice + suggest `/wbContext --refresh`. |
+| `--focus="<unknown-area>"` | Halt. Lists the supported areas. |
+| Memory contradicts the setup (e.g., a refusal rule missing for a UI-bearing package) | Surface the contradiction; let user decide whether to inherit the convention. |
+| Target is in `node_modules/` or a vendored path | Halt — setup is for owned packages. |
+| `--scope="global"` | Permitted but rare; warns about repo-wide effect. |
+
+The pattern: **`/wbSetup` is the one-time bootstrap for the agentic layer.** It refuses re-runs without explicit override, refuses non-package targets, refuses free-text intent. It inherits conventions from memory + sibling packages, and produces a package that's ready for `/wbContext`/`/wbPlan`/`/wbWork` to operate on. The next-steps section in the output is part of the contract — setup is the *start* of a workflow, and the agent makes that workflow visible.

@@ -1,53 +1,74 @@
-# Practical Guide: /wbValid
+# /wbValid — Practical
 
-## What is `/wbValid`?
-`/wbValid` is the Quality Assurance (QA) counterpart to `/wbWork`. While `/wbWork` executes tasks, `/wbValid` audits that execution to ensure it matches the original plan perfectly. It casts the AI in the role of the Validator.
+## The forms
 
-## How to Use It
-
-### 1. State & Sanity Check
-```bash
-/wbValid plan_core2_20260503.md
 ```
-With no execution flags (like `--id`), it acts as a status check. It reads the specific plan you linked and lists tasks that are marked `✅ Done` but are not yet `✅ Validated`. It **will not** perform validation in this mode.
-
-### 2. Validate Specific Tasks
-Use the `--id` (or `-i`) flag to target specific tasks from the plan's table.
-```bash
-/wbValid plan_core2_20260503.md --id=2           # Validate Task 2
-/wbValid plan_core2_20260503.md --id=1,2,3       # Validate Tasks 1, 2, and 3
-/wbValid plan_core2_20260503.md --id>2&&--id<=5  # Validate Tasks 3, 4, and 5 (AND logic)
-/wbValid plan_core2_20260503.md --id<2||--id>5   # Validate Tasks 1, 6, 7... (OR logic)
+/wbValid <plan-file> # status check (no validation)
+/wbValid <plan-file> --id=2 # validate task 2
+/wbValid <plan-file> --id=1,2,3 # validate tasks 1, 2, 3
+/wbValid <plan-file> * # validate all "Done but not Valid" tasks
+/wbValid <plan-file> --id>2&&--id<=5 # AND logic: tasks 3, 4, 5
+/wbValid <plan-file> --id<2||--id>5 # OR logic
 ```
 
-### 3. Validate Everything Pending
-```bash
-/wbValid plan_core2_20260503.md *
-```
-Validates all tasks that are currently marked `✅ Done` but `⬜ Valid`.
+## When to run
 
-## What Happens During Validation?
-1. The AI reads the worker's execution report in `tasks/task_<ID>/`.
-2. The AI inspects the codebase to see if the work actually matches what the worker *claimed* they did.
-3. The AI appends its findings (PASS/FAIL) to the **bottom** of the worker's existing report.
-4. If it PASSES, the AI updates the main plan file, turning `☐ Valid` into `✅<br>ModelName`.
-5. If it FAILS, the AI resets the plan's `☐ Done` column to `⬜` and instructs you to run `/wbWork` again.
+- **Right after `/wbWork`** finished a batch. Validation should be the next thing — never let `Done`-but-not-`Valid` rows pile up.
+- **Before merging a branch.** Any unvalidated row is a known-untested change.
+- **Before `/wbRelease`.** A package with `Done`-but-not-`Valid` rows is not release-ready.
 
-## Recommended Flow
-`/wbValid` should be run using a high-reasoning "thinker" model (like Claude 3 Opus or Gemini 1.5 Pro). This prevents the "echo chamber" effect where a fast coding model rubber-stamps its own sloppy work.
+## When *not* to run
 
+- With the same model that ran `/wbWork`. This is the **single most important rule** — see the verdict section below.
+- On a task whose `Done` cell is still `⬜`. There's nothing to validate. Run `/wbWork` first.
+- On a task whose `Valid` cell is already `✅`. It's frozen; re-validating wastes the call.
 
+## What it does, in order
 
-## Scenario: Verifying Setup
+1. **Locates the plan** (same lookup as `/wbWork`).
+2. **Parses intent.**
+ - No flags → status check: lists tasks that are `✅ Done` but `⬜ Valid`. No mutations.
+ - With `--id` or `*` → validation mode.
+3. **For each target task:**
+ - Reads `tasks/task_<ID>/task_<ID>_report_<TARGET>_<YYYYMMDD>.md` — the worker's claim.
+ - Inspects the actual codebase to verify the claim.
+ - Appends a PASS or FAIL section to the **bottom** of the worker's report (does not overwrite).
+4. **Updates the plan:**
+ - PASS → `☐ Valid` becomes `✅<br>ValidatorModelName`.
+ - FAIL → `Done` cell resets to `⬜`, `Valid` stays `⬜`. The user is told to re-run `/wbWork --id=<ID>`.
+5. **Tells you what's next** — usually `/wbRelease` if all rows now pass, or specific failed IDs if some didn't.
 
-After running `wbSetup`, always run `wbValid --quick` to verify everything is configured correctly. Then run `wbValid --fix` to auto-correct any common issues.
+## What you get back
 
-## Tips
+For each validated task:
 
-- Run `wbValid` before filing bug reports to confirm your setup is correct
-- Use `--quick` for a fast pre-flight check (skips deep validation)
-- Use `--fix` for auto-correction of common issues like missing directories
+- **PASS** → an appended `## ✅ Validation by <model>` section in the worker's report. Plan row gets the green check.
+- **FAIL** → an appended `## ❌ Validation by <model>` section explaining what was wrong. Plan row's `Done` resets; the failure history is preserved at the bottom of the worker's report.
+
+## What `/wbValid` will refuse to do
+
+- **Re-validate a `✅ Valid` task.** Validated work is frozen. Reset the plan manually if you really want a re-run.
+- **Validate a task with no worker report.** No artifact = nothing to validate. Run `/wbWork` first.
+- **Modify the worker's report mid-document.** Validation always appends to the bottom; the worker's claim and the validator's verdict stay separated.
+
+<!-- FLAGS_SHORTCUTS_START -->
+## Flags & shortcuts
+
+| Long form | Shortcut |
+|---|---|
+| `--id` | `-i` |
+
+`--id` accepts: comma lists (`--id=1,2,3`), comparators (`--id>2`, `--id<=5`, `--id!=4`), boolean composition (`&&`, `||`), and the wildcard token `*` (no flag — bare `*` arg = "all done-but-not-valid tasks"). Universal: `-h` / `--help` / `--h` print this manual.
+<!-- FLAGS_SHORTCUTS_END -->
+
+## The mistake to avoid
+
+Running `/wbValid` with the same model that ran `/wbWork`. This is the **echo chamber**: the model sees its own report, recognizes its own writing, and validates by familiarity instead of by inspection. The whole point of the Plan→Work→Valid split is to introduce an adversarial second opinion. Skip the second model and you've just re-run the worker twice.
+
+The corollary: when the plan was generated by the same model that's about to validate it, the chain breaks at the planning step instead of the validation step. Same fix: rotate models across the three phases.
+
+**Recommended pairing**:
+- `/wbWork` → the agent the AI agent (precise worker)
+- `/wbValid` → the AI agent or the AI agent (different model, deep reasoning)
 
 ---
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

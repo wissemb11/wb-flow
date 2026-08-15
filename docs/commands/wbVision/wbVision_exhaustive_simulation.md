@@ -1,90 +1,146 @@
-# wb-flow Protocol: /wbVision Execution & Simulation Specification
+# /wbVision — Exhaustive Simulation ()
 
-This document defines the **exhaustive behavior matrix** for the `/wbVision` command. It serves as the definitive reference for how the agent maps code architectures, visualizes database schemas, and generates interactive Mermaid.js diagrams.
+`/wbVision` is the systems cartographer. It transforms code structures (class hierarchies, component trees, API routes, dependency graphs) into visual architectural representations — primarily Mermaid.js diagrams. The hard constraint: **structural accuracy.** If two files don't explicitly import each other, no edge can be drawn between them. The agent traces real `import`/`require` statements, not inferred relationships.
+
+Read this if you want to know which diagram types are supported, what `--depth` controls about the graph size, and why there's a 50-node hard limit.
 
 ---
 
-## 1. Role & Definition Matrix
-**Role:** The Systems Architect & Cartographer
-**Target:** Transforms complex code structures (class hierarchies, component trees, API routing) into visual architectural representations.
-**Core Protocol:** Strict "Structural Accuracy". The agent must never hallucinate relationships. If two files do not explicitly import each other, no edge can be drawn between them in the resulting diagram.
+## 1. Role & target
 
-| Scenario | System Behavior |
+| Aspect | Behavior |
 |---|---|
-| Target is Directory | **[PROCEED]** Analyzes ASTs of all files. Generates a Mermaid class/flow diagram showing the dependency graph. |
-| Target is Database Schema | **[PROCEED]** Parses ORM models (Prisma/Mongoose/Sequelize) and outputs an Entity-Relationship (ER) diagram. |
-| Codebase Too Large | **[HALT]** Protocol forbids rendering > 50 nodes in a single diagram to prevent browser crashing. Prompts user to reduce scope. |
+| **Role** | The Architect & Cartographer. Produces visual maps of code structure. |
+| **Target** | Source directories, individual files, or ORM model files. |
+| **Cell scope** | None. `/wbVision` is read-only. |
+| **Side effects allowed** | Writing Mermaid markdown files. |
+| **Side effects forbidden** | Modifying code, editing plans, altering imports. |
+
+The "no inferred relationships" rule is what separates `/wbVision` from documentation tools that guess connections. If `WBC.core.js` doesn't explicitly import from `tierEnforcement.js`, no edge appears between them — even if they're in the same folder and logically related. The diagram shows what the code *declares*, not what a human might *assume*.
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix
-`/wbVision` dynamically scales its rendering based on the directory depth provided.
+## 2. Argument resolution
 
-| Argument Type | Example | Parsing Logic | Simulated Output Profile |
-|---|---|---|---|
-| Specific Logic File | `Command: /wbVision src/WBC.js` | Locks onto file. | Generates a flowchart of the internal methods and control flow within the monolith. |
-| Directory Path | `Command: /wbVision packages/wb-core` | Analyzes all file imports. | Generates a Component Tree diagram showing how `wb-core` files relate to each other. |
-| Comma-Separated | `Command: /wbVision apps/ui,packages/core` | Correlates two scopes. | Visualizes the boundary crossing between the consumer UI and the core library. |
-| Wildcard Glob | `Command: /wbVision src/**/*.js` | Extracts massive AST data. | Compiles a highly detailed architectural map of the entire source folder. |
-
----
-
-## 3. Flag Processing Matrix (Isolated Capabilities)
-
-| Flag | Shortcut | Purpose | Example | Simulated Output Impact |
-|---|---|---|---|---|
-| `--type="<format>"`| `-t` | Forces the diagram type (`flowchart`, `er`, `sequence`, `class`). | `Command: /wbVision src/api/ -t="sequence"` | `[TYPE] Rendering an API request sequence diagram.` |
-| `--output="<path>"`| `-o` | Saves the raw Mermaid markup to a specific markdown file. | `Command: /wbVision src/ -o="arch.md"` | `[OUTPUT] Generated mermaid block and saved to arch.md.` |
-| `--render` | `-r` | Attempts to compile the Mermaid string into a local `.svg` or `.png` file. | `Command: /wbVision src/ -r` | `[RENDER] Compiled graph. Saved to architecture.svg.` |
-| `--depth="<N>"` | `-d` | Limits the recursive AST parsing to `N` levels deep to simplify the graph. | `Command: /wbVision apps/ -d="2"` | `[DEPTH] Stopped tracing dependencies at level 2.` |
-
----
-
-## 4. Omni-Channel Execution Pipeline (Flag Chaining)
-
-### 💠 The "Massive API Sequence Map" (`src/api -t="sequence" -o="api_spec.md"`)
-**Context:** A new developer is confused about how the authentication flow works. The lead asks the agent to draw a sequence diagram mapping the backend routes.
-**Command Executed:** `/wbVision src/api -t="sequence" -o="api_spec.md"`
-**Simulated Protocol Chain:**
-1. Parses AST for all controllers in `src/api`.
-2. Traces execution from `POST /login` -> `AuthService` -> `Database`.
-3. Engages Mermaid.js Sequence formatter (`-t`).
-4. Writes output securely to the specified markdown file (`-o`).
-**Simulated Output:**
-```markdown
-> Command: /wbVision src/api -t="sequence" -o="api_spec.md"
-
-[SYSTEM] Initiating Architectural Vision...
-[AST] Traced execution path for 14 API routes.
-[TYPE] Formatting as Mermaid Sequence Diagram.
-[OUTPUT] Writing 120 lines of markup to api_spec.md.
-[SUCCESS] Architecture successfully mapped.
-```
-
-### 💠 The "High-Level Monorepo ERD" (`packages/wb-core -t="class" -r -d="1"`)
-**Context:** Creating a presentation for stakeholders. Need a high-level, simplified class diagram of the core library saved as an image.
-**Command Executed:** `/wbVision packages/wb-core -t="class" -r -d="1"`
-**Simulated Output:**
-```markdown
-> Command: /wbVision packages/wb-core -t="class" -r -d="1"
-
-[SYSTEM] Extracting High-Level Architecture (Depth 1)...
-[AST] Parsed top-level exports only.
-[TYPE] Formatting as Mermaid Class Diagram.
-[RENDER] Compiling diagram via local headless browser...
-[SUCCESS] Generated `architecture.svg`.
-```
-
----
-
-## 5. Operational Edge Cases & Protocol Faults
-
-| Fault Trigger | System Detection | Resolution / Output |
+| Form | Example | What `/wbVision` does |
 |---|---|---|
-| Node Overload | AST identifies 400+ distinct files/classes. | `❌ Error: Graph too complex (>50 nodes). Use -d flag to reduce depth.` |
-| Render Failure | System lacks the headless browser required to compile `.svg`. | `⚠️ Warning: Local SVG render failed. Outputting raw Markdown instead.` |
-| Unlinked Files | User scopes a folder where files do not import each other. | `⚠️ Warning: Graph contains orphaned nodes. No architectural relationships found.` |
+| Specific file | `Command: /wbVision src/WBC.js` | Internal flowchart: methods, control flow, branching within the monolith. |
+| Directory path | `Command: /wbVision packages/wb-core` | Component tree: how files in wb-core relate to each other via imports. |
+| Comma-separated | `Command: /wbVision apps/demo,packages/wb-core` | Cross-boundary diagram: visualizes the consumer → library interface. |
+| Wildcard glob | `Command: /wbVision src/**/*.js` | Full architectural map of the source directory. |
+
+The comma-separated form is the highest-value use case. Visualizing `apps/demo,packages/wb-core` shows exactly which exports from wb-core are consumed by the demo app — the boundary crossing is the diagram's subject.
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 3. Flag matrix
+
+| Flag | Shortcut | Purpose |
+|---|---|---|
+| `--type="<format>"` | `-t` | Forces diagram type: `flowchart`, `er`, `sequence`, `class`. |
+| `--depth="<N>"` | `-d` | Limits recursive import tracing to N levels deep. |
+
+**`--type` auto-detection.** Without `--type`, the diagram format is inferred from the target:
+- Source directory → `flowchart` (dependency graph)
+- ORM models → `er` (entity-relationship)
+- API routes → `sequence` (request flow)
+- Single class file → `class` (UML class diagram)
+
+**`--depth` and the 50-node limit.** The hard limit exists to prevent browser-crashing diagrams. A monorepo with 200+ files produces a graph that's unreadable even if it renders. `--depth=2` is the sweet spot for most use cases — it shows the target and its immediate + second-degree dependencies without drowning in transitive imports.
+
+---
+
+## 4. Pipelines (the agent-native scenarios)
+
+<script setup>
+const wbVisionSimPipelines = [
+  {
+    "title": "wb-core dependency graph after decomposition",
+    "cmd": "/wbVision core2/packages/wb-core/src/ -d=\"2\" -o=\"arch_wb-core.md\"",
+    "logs": [
+      {
+        "text": "[SYSTEM] Tracing imports (depth: 2)...",
+        "type": "sys"
+      },
+      {
+        "text": "[AST] 18 files parsed. 14 import relationships found.",
+        "type": "gen"
+      },
+      {
+        "text": "[GENERATE]",
+        "type": "gen"
+      }
+    ],
+    "note": "After the WBC.js decomposition, visualize how the new modules connect:",
+    "noteType": "info"
+  },
+  {
+    "title": "Consumer-library boundary crossing",
+    "cmd": "/wbVision apps/demo.wbc-ui.com,packages/wb-core -t=\"flowchart\"",
+    "logs": [
+      {
+        "text": "[SYSTEM] Cross-boundary analysis...",
+        "type": "sys"
+      },
+      {
+        "text": "[AST] demo: 12 files. wb-core: 18 files.",
+        "type": "gen"
+      },
+      {
+        "text": "[FILTER] Only showing edges that cross the boundary.",
+        "type": "gen"
+      }
+    ],
+    "note": "Visualize what demo.wbc-ui.com actually uses from wb-core:",
+    "noteType": "info"
+  },
+  {
+    "title": "API sequence diagram for the auth flow",
+    "cmd": "/wbVision core2/packages/wb-core/src/tierEnforcement.js -t=\"sequence\"",
+    "logs": [
+      {
+        "text": "[SYSTEM] Generating sequence diagram for tierEnforcement.js...",
+        "type": "sys"
+      },
+      {
+        "text": "[AST] 3 exported functions. Tracing call chains.",
+        "type": "gen"
+      }
+    ],
+    "note": "Visualize the request lifecycle for authentication:",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbVision" titleSuffix="Exhaustive Simulation" :pipelines="wbVisionSimPipelines" />
+
+
+### 💠 Pipeline wb-core dependency graph after decomposition
+
+After the WBC.js decomposition, visualize how the new modules connect:
+
+
+### 💠 Pipeline Consumer-library boundary crossing
+
+Visualize what demo.wbc-ui.com actually uses from wb-core:
+
+
+### 💠 Pipeline API sequence diagram for the auth flow
+
+Visualize the request lifecycle for authentication:
+
+---
+
+## 5. Edge cases & refusals
+
+| Trigger | What `/wbVision` does |
+|---|---|
+| AST identifies >50 nodes | `❌ Graph too complex (N nodes). Use --depth to reduce. Recommended: -d="2".` |
+| Render fails (no headless browser) | `⚠️ SVG render failed. Outputting raw Mermaid markdown instead.` |
+| Files in scope don't import each other | `⚠️ Graph contains orphaned nodes. No import relationships found between these files.` |
+| Single file with no exports | Produces an internal flowchart of the file's control flow (if/else, loops, returns). |
+| `-t="er"` on non-ORM files | `⚠️ No ORM models detected. ER diagram requires Prisma/Mongoose/Sequelize schemas. Falling back to flowchart.` |
+| Circular imports detected | Renders the cycle with a highlighted edge: `A -->|circular| B`. Warns but doesn't halt. |
+
+The unifying principle: **`/wbVision` draws what the code declares.** Every edge in the diagram traces to a real `import`/`require` statement or a real function call. No inferred, assumed, or hallucinated relationships. If the diagram looks sparse, it's because the code's coupling is actually sparse — and that's information worth having.

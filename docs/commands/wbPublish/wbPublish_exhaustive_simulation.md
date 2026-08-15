@@ -1,93 +1,372 @@
-# wb-flow Protocol: /wbPublish Execution & Simulation Specification
+# /wbPublish — Exhaustive Simulation ()
 
-This document defines the **exhaustive behavior matrix** for the `/wbPublish` command. It serves as the definitive reference for how the agent compiles packages, orchestrates NPM registry pushes, and manages `@latest` vs `@beta` distribution tags.
+`/wbPublish` is the shipper of **packages** to npm. Its job is the narrow segment between "tagged release" and "consumers can install it": run the build, validate the manifest, push to the registry, verify the published version is reachable. It does not coordinate versions (that's `/wbRelease`) and does not deploy apps (that's `/wbDeploy`).
+
+Read this if you want to know what the four flags do, why `--all` is dangerous-by-default, and how the publish step interacts with the dist-folder mismatch parked in this workspace's memory.
 
 ---
 
-## 1. Role & Definition Matrix
-**Role:** The Package Distributor & NPM Publisher
-**Target:** Pushes compiled libraries and utility packages to public or private NPM registries.
-**Core Protocol:** Differs from `/wbDeploy` (which pushes *apps* to the cloud). `/wbPublish` distributes *reusable code packages*. It enforces strict pre-publish compilation (`npm run build`).
+## 1. Role & target
 
-| Scenario | System Behavior |
+| Aspect | Behavior |
 |---|---|
-| Target is Library Package | **[PROCEED]** Compiles `/dist`. Validates `package.json` exports. Pushes to NPM registry. |
-| Target is App (Next/Vite) | **[HALT]** Protocol forbids publishing consumer apps to NPM. Suggests `/wbDeploy` instead. |
-| Missing Authentication | **[HALT]** If `npm whoami` fails, execution halts to prevent silent pipeline drops. |
+| **Role** | The Shipper — pushes packages to npm. |
+| **Target** | A specific package (default: the one whose tag was most recently created) or `--all` for every package with a current tag awaiting publish. |
+| **Cell scope** | None directly. |
+| **Side effects allowed** | Running `npm publish` (or pnpm equivalent); reading the registry to verify post-publish; warning on dist-folder mismatches. |
+| **Side effects forbidden** | Modifying source code; bumping versions (already done by `/wbRelease`); creating tags; deploying apps. |
+
+The "narrow segment" framing is the design center. The full ship flow has three commands — `/wbRelease` produces the version state, `/wbPublish` puts the package on npm, `/wbDeploy` puts apps on the web. Each command's failure mode is independent: a publish failure doesn't mean rollback the version; a deploy failure doesn't mean unpublish. The seams hold.
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix
-`/wbPublish` requires exact scoping to prevent accidental publication of internal/private workspace tools.
+## 2. Argument resolution matrix
 
-| Argument Type | Example | Parsing Logic | Simulated Output Profile |
-|---|---|---|---|
-| Specific Package | `Command: /wbPublish packages/wb-core` | Locks onto `wb-core`. | Executes `npm publish` specifically within the `wb-core` directory. |
-| Current Directory | `Command: /wbPublish .` | Checks `package.json` in CWD. | Executes localized publish logic. |
-| Comma-Separated | `Command: /wbPublish packages/core,packages/utils` | Parses multiple scopes. | Compiles and publishes both packages sequentially to respect dependency trees. |
-| Workspace Glob | `Command: /wbPublish packages/*` | Extracts all public packages. Filters out `"private": true`. | Massive sweep pushing all updated libraries to the registry. |
-
----
-
-## 3. Flag Processing Matrix (Isolated Capabilities)
-
-| Flag | Shortcut | Purpose | Example | Simulated Output Impact |
-|---|---|---|---|---|
-| `--tag="<name>"` | `-t` | Appends an NPM distribution tag (`latest`, `beta`, `next`). | `Command: /wbPublish . -t="beta"` | `[TAG] Pushing package under the @beta dist-tag.` |
-| `--access="<scope>"`| `-a` | Sets the package visibility (`public`, `restricted`). | `Command: /wbPublish . -a="public"` | `[ACCESS] Enforcing public visibility for scoped package.` |
-| `--skip-build` | `-s` | Bypasses the pre-publish compilation step (dangerous, use for hotfixes). | `Command: /wbPublish . -s` | `[BUILD] Bypassed. Pushing current /dist folder as-is.` |
-| `--dry-run` | `-d` | Simulates the NPM tarball generation and output without contacting the registry. | `Command: /wbPublish . -d` | `[DRY-RUN] Tarball size: 24KB. Includes 14 files. Registry untouched.` |
-
----
-
-## 4. Omni-Channel Execution Pipeline (Flag Chaining)
-
-### 💠 The "Massive Registry Push" (`packages/* -t="latest" -a="public"`)
-**Context:** An epic affecting multiple core libraries is complete. The user wants to compile and publish all of them to the public registry simultaneously.
-**Command Executed:** `/wbPublish packages/* -t="latest" -a="public"`
-**Simulated Protocol Chain:**
-1. Validates NPM registry authentication.
-2. Glob resolves. Ignores `packages/internal-tools` because `"private": true`.
-3. Compiles `wb-core` -> Publishes to NPM `@latest`.
-4. Compiles `wb-dataviewer` -> Publishes to NPM `@latest`.
-**Simulated Output:**
-```markdown
-> Command: /wbPublish packages/* -t="latest" -a="public"
-
-[SYSTEM] Initiating Massive Registry Push...
-[AUTH] Confirmed logged in as @wbc-ui2.
-[BUILD] Compiling wb-core... Done.
-[PUBLISH] Pushed @wbc-ui2/wb-core@4.6.0 (Tag: latest, Access: public).
-[BUILD] Compiling wb-dataviewer... Done.
-[PUBLISH] Pushed @wbc-ui2/wb-dataviewer@2.1.0.
-[SUCCESS] All public packages synced to NPM.
-```
-
-### 💠 The "Beta Dry-Run" (`. -t="beta" -d`)
-**Context:** Developer wants to see exactly what files will be included in the NPM tarball for a new beta release before committing to it.
-**Command Executed:** `/wbPublish . -t="beta" -d`
-**Simulated Output:**
-```markdown
-> Command: /wbPublish . -t="beta" -d
-
-[SYSTEM] Executing NPM dry-run...
-[BUILD] Compiling current state...
-[DRY-RUN] Tarball generated.
-[DRY-RUN] Included files: `dist/index.js`, `package.json`, `README.md`.
-[DRY-RUN] Skipped files: `src/`, `.env`, `tests/`.
-[SUCCESS] Dry-run complete. Run without -d to publish to @beta.
-```
-
----
-
-## 5. Operational Edge Cases & Protocol Faults
-
-| Fault Trigger | System Detection | Resolution / Output |
+| Form | Example | What `/wbPublish` does |
 |---|---|---|
-| Private Package | User attempts to publish a package marked `"private": true`. | `❌ Error: Package is marked private. Remove flag in package.json to proceed.` |
-| Version Conflict | The version in `package.json` already exists on the registry. | `❌ Error: EPUBLISHCONFLICT. Run /wbRelease to bump the version first.` |
-| Build Failure | `npm run build` fails during pre-publish hook. | `❌ Error: Compilation failed. Tarball generation aborted.` |
+| No argument | `Command: /wbPublish` | Publishes the package whose latest tag was most recently created and not yet on the registry. |
+| Specific package | `Command: /wbPublish core2/packages/wb-core` | Publishes that one package. Most explicit. |
+| `--all` | `Command: /wbPublish --all` | Publishes every package whose current version isn't on the registry. Sequential; halts on first failure. |
+| Free-text | `Command: /wbPublish "the auth package"` | Refused — path required. |
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 3. Flag matrix
+
+| Flag | Shortcut | Purpose |
+|---|---|---|
+| `--all` | `-A` | Publishes every package in the monorepo whose tag-version isn't already on the registry. |
+| `--dry-run` | `-d` | Validates manifest, runs build, reports what *would* publish. Does not call npm. |
+| `--prerelease` | `-p` | Publishes with the `next` (or pre-release) dist-tag instead of `latest`. Required for pre-release versions like `1.4.0-beta.0`. |
+| `--restore` | `-r` | Re-publishes a previously-failed publish attempt (same version) using the same artifacts. Useful when a registry hiccup caused the first attempt to fail mid-upload. |
+
+### Why `--all` is dangerous-by-default
+
+Publishing everything in one command means: if the registry is having issues partway through, you might be left with packages 1-3 published and packages 4-6 not — a half-shipped state. The agent treats `--all` as needing extra caution:
+
+| Without `--all` | With `--all` |
+|---|---|
+| Single package; one decision. | Multi-package; cascading decisions. |
+| Failure stops one publish. | Failure stops the chain at whatever point. |
+| Confirmation prompt: 1 | Confirmation prompts: per-package + summary. |
+| Rollback: `--restore` re-runs the failed publish. | Rollback: `--restore` per failed publish. |
+
+The agent always recommends *not* using `--all` unless the user is intentionally publishing a coordinated multi-package release.
+
+### How `--dry-run` validates
+
+| Step | Live | Dry-run |
+|---|---|---|
+| Read package.json + check version is tagged | Yes | Yes |
+| Build (if needed) | Yes | Yes |
+| Validate manifest (files field, main field, exports field) | Yes | Yes |
+| Check dist-folder reality (does the file `main` points at exist?) | Yes | Yes |
+| Pack tarball | Yes | Yes (cached locally) |
+| Push to registry | Yes | Skipped; logs what would push |
+| Verify post-push | Yes | Skipped |
+
+The manifest validation is where the dist-folder mismatch surfaces. If `main` points at `dist/index.js` but the build wrote to `dist-dev/index.js`, dry-run catches it before any registry call.
+
+---
+
+## 4. Pipelines (the agent-native scenarios)
+
+<script setup>
+const wbPublishSimPipelines = [
+  {
+    "title": "The dry-run that catches the dist-folder mismatch",
+    "cmd": "/wbPublish core2/packages/wbc-ui2-cdn --dry-run",
+    "logs": [
+      {
+        "text": "[SYSTEM] Dry run.",
+        "type": "sys"
+      },
+      {
+        "text": "[CHECK] Reading package.json...",
+        "type": "gen"
+      },
+      {
+        "text": "name: @wbc-ui2/wbc-ui2-cdn",
+        "type": "gen"
+      },
+      {
+        "text": "version: 1.0.0",
+        "type": "gen"
+      },
+      {
+        "text": "main: ./dist/index.js",
+        "type": "gen"
+      },
+      {
+        "text": "[CHECK] Tag for v1.0.0 exists? Yes.",
+        "type": "gen"
+      },
+      {
+        "text": "[BUILD] Running build...",
+        "type": "gen"
+      },
+      {
+        "text": "Output: dist-dev/index.js (vite outDir = dist-dev)",
+        "type": "gen"
+      },
+      {
+        "text": "[VALIDATE] Manifest sanity:",
+        "type": "gen"
+      },
+      {
+        "text": "- main: ./dist/index.js",
+        "type": "gen"
+      },
+      {
+        "text": "- dist/ exists? **NO**",
+        "type": "gen"
+      },
+      {
+        "text": "- dist-dev/index.js exists? Yes.",
+        "type": "gen"
+      },
+      {
+        "text": "[**FAIL**] Manifest claims main is at ./dist/index.js but the file",
+        "type": "gen"
+      },
+      {
+        "text": "does not exist at that path.",
+        "type": "gen"
+      },
+      {
+        "text": "[CONTEXT] Memory: project_pkg_dist_mismatch.md records this as",
+        "type": "ctx"
+      },
+      {
+        "text": "parked tech debt \u2014 both candidate fixes (update main, or",
+        "type": "gen"
+      },
+      {
+        "text": "reconfigure vite) have unresolved trade-offs.",
+        "type": "gen"
+      },
+      {
+        "text": "[REFUSE] /wbPublish will not publish a package whose `main` field",
+        "type": "error"
+      },
+      {
+        "text": "points at a non-existent file. Consumers would resolve the",
+        "type": "gen"
+      },
+      {
+        "text": "module and find nothing.",
+        "type": "gen"
+      },
+      {
+        "text": "[NEXT STEPS]",
+        "type": "gen"
+      },
+      {
+        "text": "Option A: Decide the parked dist-folder question first.",
+        "type": "gen"
+      },
+      {
+        "text": "Open the architecture conversation; pick one of the two fixes;",
+        "type": "gen"
+      },
+      {
+        "text": "then re-run /wbPublish.",
+        "type": "gen"
+      },
+      {
+        "text": "Option B: Manual workaround for an emergency publish:",
+        "type": "gen"
+      },
+      {
+        "text": "pnpm --filter wbc-ui2-cdn build (writes to dist/ via different path)",
+        "type": "gen"
+      },
+      {
+        "text": "Then re-run /wbPublish --dry-run to verify before publish.",
+        "type": "gen"
+      },
+      {
+        "text": "[NO REGISTRY CALL] Dry-run halted at validation.",
+        "type": "gen"
+      }
+    ],
+    "note": "A real situation in this workspace: `core2/packages/wbc-ui2-cdn/` has a parked dist-folder mismatch (per `project_pkg_dist_mismatch.md`). What happens when someone tries to publish it?",
+    "noteType": "info"
+  },
+  {
+    "title": "A clean single-package publish",
+    "cmd": "/wbPublish core2/packages/wb-core --dry-run",
+    "logs": [
+      {
+        "text": "[SYSTEM] Dry run.",
+        "type": "sys"
+      },
+      {
+        "text": "[CHECK] package.json: @wbc-ui2/wb-core@1.3.0",
+        "type": "gen"
+      },
+      {
+        "text": "[CHECK] Tag wb-core@v1.3.0 exists? Yes.",
+        "type": "gen"
+      },
+      {
+        "text": "[CHECK] Already on registry? No.",
+        "type": "gen"
+      },
+      {
+        "text": "[BUILD] pnpm --filter wb-core build... success. dist/index.js (47KB).",
+        "type": "gen"
+      },
+      {
+        "text": "[VALIDATE] main: dist/index.js \u2192 exists. exports map \u2192 all targets exist.",
+        "type": "gen"
+      },
+      {
+        "text": "[PACK] Tarball: 28KB.",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Dry-run passes. Live publish would succeed.",
+        "type": "ok"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  },
+  {
+    "title": "`--all` with a partial failure",
+    "cmd": "/wbPublish --all",
+    "logs": [
+      {
+        "text": "[SYSTEM] Multi-package publish.",
+        "type": "sys"
+      },
+      {
+        "text": "[SCAN] Packages with tag-versions not yet on registry:",
+        "type": "gen"
+      },
+      {
+        "text": "- @wbc-ui2/wb-core@1.3.0",
+        "type": "gen"
+      },
+      {
+        "text": "- @wbc-ui2/wb-dataviewer@1.2.1",
+        "type": "gen"
+      },
+      {
+        "text": "- @wbc-ui2/wbc-ui2-cdn@1.0.0 (parked dist mismatch \u2014 dry-run would fail)",
+        "type": "gen"
+      },
+      {
+        "text": "[STRONG SUGGESTION] Run --dry-run first. /wbPublish --all without",
+        "type": "gen"
+      },
+      {
+        "text": "a dry-run is risky \u2014 multi-package failures are",
+        "type": "gen"
+      },
+      {
+        "text": "harder to recover from than single failures.",
+        "type": "gen"
+      },
+      {
+        "text": "[CONFIRM 1/N] Proceed without dry-run? [y/N] >",
+        "type": "gen"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  },
+  {
+    "title": "The pre-release path",
+    "cmd": "/wbPublish core2/packages/wb-core --prerelease",
+    "logs": [
+      {
+        "text": "[SYSTEM] Pre-release publish.",
+        "type": "sys"
+      },
+      {
+        "text": "[CHECK] package.json: @wbc-ui2/wb-core@1.4.0-beta.0",
+        "type": "gen"
+      },
+      {
+        "text": "[CHECK] Tag wb-core@v1.4.0-beta.0 exists? Yes.",
+        "type": "gen"
+      },
+      {
+        "text": "[CHECK] Already on registry? No.",
+        "type": "gen"
+      },
+      {
+        "text": "[VALIDATE] Manifest OK.",
+        "type": "gen"
+      },
+      {
+        "text": "[CONFIRM] Publish @wbc-ui2/wb-core@1.4.0-beta.0 with dist-tag `next`?",
+        "type": "gen"
+      },
+      {
+        "text": "[y/N] > y",
+        "type": "gen"
+      },
+      {
+        "text": "[PUBLISH] npm publish --tag=next... success.",
+        "type": "gen"
+      },
+      {
+        "text": "[VERIFY] Registry shows 1.4.0-beta.0 under `next` dist-tag.",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Pre-release published.",
+        "type": "ok"
+      },
+      {
+        "text": "[NOTE] Default `latest` dist-tag still points at 1.3.0. Consumers",
+        "type": "gen"
+      },
+      {
+        "text": "need to opt in: pnpm add @wbc-ui2/wb-core@next",
+        "type": "gen"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbPublish" titleSuffix="Exhaustive Simulation" :pipelines="wbPublishSimPipelines" />
+
+
+### 💠 Pipeline The dry-run that catches the dist-folder mismatch
+
+A real situation in this workspace: `core2/packages/wbc-ui2-cdn/` has a parked dist-folder mismatch (per `project_pkg_dist_mismatch.md`). What happens when someone tries to publish it?
+
+
+### 💠 Pipeline A clean single-package publish
+
+
+### 💠 Pipeline `--all` with a partial failure
+
+
+### 💠 Pipeline The pre-release path
+
+---
+
+## 5. Edge cases & refusals
+
+| Trigger | What `/wbPublish` does |
+|---|---|
+| No tag for the version | Halt. Says "run /wbRelease first." |
+| Already on registry | Halt. Says "this version is published. Bump first." |
+| Dirty working tree | Halt. Same as `/wbRelease` — clean tree required. |
+| Manifest mismatch (main file doesn't exist) | Halt. Suggests the parked-decision conversation if memory flags it. |
+| `--dry-run` + `--all` | Permitted and recommended pattern. |
+| `--restore` for a publish that succeeded | Honest "already on registry; nothing to restore." |
+| Free-text target | Halt. |
+| `--prerelease` for a non-prerelease version (no `-beta`/`-rc` suffix) | Halt. The flag and the version must agree. |
+| Network/registry failure mid-publish | Reports clearly. `--restore` re-attempts using the same packed tarball. |
+| User asks to *unpublish* | Refuse. Unpublish is a destructive npm op with policy implications; not in `/wbPublish`'s lane. Tells the user to use `npm unpublish` directly with full understanding. |
+
+The pattern: **`/wbPublish` is the npm registry interface — narrow, manifest-validating, dist-folder-aware.** It refuses to publish bad manifests, refuses to bypass the parked-decision conversation, refuses to silently overwrite `latest` with pre-releases. The dry-run is the recommended first step, especially for `--all` which is dangerous-by-default. Memory awareness shows up most clearly here: the dist-folder mismatch parked in `project_pkg_dist_mismatch.md` is a publish-blocker, and `/wbPublish` won't paper over it.

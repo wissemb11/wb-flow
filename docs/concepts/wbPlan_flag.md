@@ -1,121 +1,167 @@
-# `/wbPlan` Flags — Complete Reference
+---
+title: "`--wbPlan` — Cross-Command Flag Reference"
+description: "Single source of truth for the --wbPlan flag across all commands, covering semantics, output structure, and examples."
+---
 
-The `/wbPlan` command accepts two families of flags: **Universal (Super) Flags** that apply to all 30 commands, and **Column Filter & State Override Flags** specific to `/wbPlan`'s table-driven workflow.
+# `--wbPlan` — Cross-Command Flag Reference
 
-## 1. Universal (Super) Flags
-
-| Long | Short | Behavior |
-|---|---|---|
-| `--help` | `-h` | Print usage block and stop |
-| `--stat` | `-st` | Display raw token count for the turn |
-| `--stat-p` | `-sp` | Display token usage as % of context window |
-| `--fresh` | `-cl` | Clear previous session history |
-| `--no-ki` | `-nk` | Ignore global Knowledge Items |
-| `--mem-sync` | `-ms` | Sync result to permanent Knowledge Base |
-| `--budget <N>` | `-bt` | Hard-stop if `<N>` tokens exceeded |
-| `--budget-p <N>` | `-bp` | Hard-stop if `<N>%` of window exceeded |
-
-These are identical across all commands. See [flags_and_shortcuts_part1.md](flags_and_shortcuts_part1.md) for the full cross-command map.
-
-## 2. Plan-Specific Flags
-
-### Column Filter Flags
-
-These filter rows in the plan's task table by matching against column values. Combine freely with `&&` and `||`.
-
-| Long | Short | Target Column | Example |
-|---|---|---|---|
-| `--id` | `-i` | `#` (Task Number) | `--id=1,2,3` or `--id>=5` |
-| `--p` | _(none)_ | `P` (Priority) | `--p=P1` or `--p<=P2` |
-| `--est` | _(none)_ | `Est. Time (mins)` | `--est<=30` or `--est>60` |
-| `--dep` | _(none)_ | `Dep` (Dependencies) | `--dep!=—` (only blocked tasks) |
-| `--worker` | _(none)_ | `Worker (Suggested)` | `--worker=Gemini*` |
-| `--validator` | _(none)_ | `Validator (Suggested)` | `--validator=*Pro` |
-| `--done` | _(none)_ | `☐ Done` | `--done=false` (open tasks) or `--done=✅*` |
-| `--valid` | _(none)_ | `☐ Valid` | `--valid=true` (validated tasks) or `--valid=⬜` |
-
-### State Override Flags
-
-When combined with a filter, these override the matched task's **`☐ Done`** AND **`☐ Valid`** columns simultaneously (unlike `/wbWork` which only touches `☐ Done`, and `/wbValid` which only touches `☐ Valid`).
-
-| Long | Short | Target State | Sets Columns To |
-|---|---|---|---|
-| `--open` | `-o` | Reopen | `⬜` (both `☐ Done` and `☐ Valid`) |
-| `--def` | `-d` | Defer | `⏸️ Deferred` (both) |
-| `--can` | `-c` | Cancel | `🚫 Cancelled` (both) |
-
-### Resume / Scope Flags
-
-| Long | Short | Purpose |
-|---|---|---|
-| `--resume` | `-r` | Resume work from an existing plan file instead of generating a fresh one |
-| `--scope` | `-s` | Limit the plan's generation scope to a specific sub-folder or file |
-| `--task` | `-t` | Seed the plan with a specific task description string |
-
-## 3. Usage Patterns
-
-### Filter by Priority
-
-```bash
-/wbPlan plan_core2_20260503.md --p=P1           # All P1 tasks
-/wbPlan plan_core2_20260503.md --p=P1&&P2        # P1 and P2 tasks
-```
-
-### Filter by Estimated Time
-
-```bash
-/wbPlan plan_core2_20260503.md --est<=30         # Quick wins (≤30 min)
-/wbPlan plan_core2_20260503.md --est>60           # Large tasks only
-```
-
-### Combined Filters
-
-```bash
-/wbPlan plan_core2_20260503.md --p=P1 --est<=30   # High-priority quick wins
-/wbPlan plan_core2_20260503.md --done=false --p=P1 # Open P1 tasks
-```
-
-### State Manipulation
-
-```bash
-/wbPlan plan_core2_20260503.md --id=3 --def       # Defer task 3
-/wbPlan plan_core2_20260503.md --id=1 --open      # Reopen completed task 1
-/wbPlan plan_core2_20260503.md --id>=5 --can       # Cancel tasks 5 and above
-```
-
-### Recursive Task Expansion
-
-When `--id` targets a parent recursive task, `/wbPlan` automatically expands it into numbered sub-tasks (5.1, 5.2, 5.3, etc.) and appends a `## 🔄 Sub-plan for Task #N` section to the plan file.
-
-```bash
-/wbPlan plan_core2_20260503.md --id=5             # Expand task 5 into sub-tasks
-```
-
-## 4. Resolution Chain
-
-1. **Help Gate:** Check for `--help`/`-h`/`--h` — if present, print and stop.
-2. **Flag Normalization:** Short forms (`-i`, `-o`, `-d`, `-c`, `-r`, `-s`, `-t`) → long forms.
-3. **State Overrides First:** If `--open`/`--def`/`--can` present, apply state changes and stop (no execution).
-4. **Column Filters:** Match rows against filter criteria.
-5. **Plan Generation / Execution:** Generate the plan (or resume from existing), then expand/execute matching tasks.
-
-## 5. Difference from `/wbWork` and `/wbValid`
-
-| Command | Column Scope | Default Mode | State Override Behavior |
-|---|---|---|---|
-| `/wbPlan` | ALL columns (generates + filters + executes + state) | Generate new plan OR filter existing | Modifies **both** `☐ Done` and `☐ Valid` |
-| `/wbWork` | ALL columns (filters + executes only) | Execute tasks matching filter | Modifies **only** `☐ Done` |
-| `/wbValid` | ALL columns (filters + validates only) | Validate tasks matching filter | Modifies **only** `☐ Valid` |
-
-> **Rule of thumb:** Use `/wbPlan` to create/expand/state-manage plans. Use `/wbWork` to execute. Use `/wbValid` to peer-review. State overrides via `/wbWork` and `/wbValid` are scoped to their respective columns.
+> **Single source of truth** for the `--wbPlan` flag. The flag exists on multiple commands; this is the one place that documents the full surface — semantics, output structure, flag matrix, and the 4 mini-examples (one per command that accepts it).
+>
+> **Per-command examples files are not duplicates of this** — they only document each command's local handling. For the cross-command picture, read here.
 
 ---
 
+## 1. What `--wbPlan` does (in one sentence)
 
-## 🔗 Sister Edition
+When a command produces a markdown report (audit, review, standup, action-walkthrough), `--wbPlan` also appends a **plan entry** to `<target>/.agents/workflows/reports/<date>/plans/plan_<name>_<date>.md` — one universal daily plan file, with each model's contribution as a numbered Entry #N containing one section per 🔵 finding, each with a worker/validator task table.
 
-> The [Claude edition (`flow.wbc-ui.com`)](../../flow.wbc-ui.com/src/concepts/) <!-- [CROSS-EDITION] Phase=A --> covers the same concept in a self-help, opinionated register.
+The flag is **independent and composable** with `--act`. Both flags route through the same `/wbActOn` engine internally.
 
 ---
 
-← [Concepts Hub](README.md) · [Home](../README.md)
+## 2. Flag matrix (every command × every flag combination)
+
+| Command | (no flag) | `--act` | `--wbPlan` | `--act --wbPlan` |
+|---|---|---|---|---|
+| `/wbAudit <pkg>` | audit only | audit + action file | audit + plan file | audit + action + plan (chain of 3) |
+| `/wbReview <pkg>` | review only | review + action file | review + plan file | review + action + plan |
+| `/wbStandup <pkg>` | standup only | standup + action file | standup + plan file | standup + action + plan |
+| `/wbActOn <file>` | action file only | n/a (always acts) | action file + plan file | n/a |
+| `/wbPlan <pkg>` | plan only | re-ranked plan | **error: no-op** | error: no-op (the `--act` portion still runs) |
+
+**Why `/wbPlan --wbPlan` errors:** the output of `/wbPlan` is already a plan; chaining `--wbPlan` on top would be recursive. Use `--act` alone to re-rank an existing plan with the active model's judgment.
+
+**Other `/wb*` commands don't accept these flags** because they either *do* the work directly (`/wbDebug`, `/wbDeploy`, `/wbRefactor`, `/wbTest`, `/wbClean`, `/wbGit`) or describe state without producing actionable findings (`/wbContext`, `/wbSetup`, `/wbVision`). For those, run `/wbActOn` standalone after the fact if you want triage.
+
+---
+
+## 3. Plan file structure (always identical, regardless of source command)
+
+Every `--wbPlan` invocation produces **one plan file** with this skeleton:
+
+```markdown
+# Plan — <Short Name> (recommended by <ModelName>)
+
+> **Source action file:** <path>
+> **Planner identity:** <ModelName>
+> **Scope:** all 🔵 /wbPlan-class findings from the source. Inline 🟢, debug 🔴, refactor 🟡, and strategic 🣣 items are not in this plan — they execute outside the planning loop.
+
+## Plan Index
+
+| # | 🔵 Source Finding | Source Rank in §0 | Recommended Model | Estimated Effort |
+|---|---|---|---|---|
+| 1 | <finding name> | <rank N> | <model> | <hours/days> |
+| ... |
+
+## Plan §1 — <Finding 1 name>
+
+**From source rank:** <N> · **Recommended model:** <model> · **Estimated effort:** <X>
+
+| Task # | Task | Worker Model | Validator Model | ☐ Done | ☐ Valid |
+|---|---|---|---|---|---|
+| 1 | <atomic step> | <model> | <model> | ⬜ | ⬜ |
+| ... |
+
+**Goal:** <1-sentence>
+**Constraints:** <bullets>
+**Out of scope:** <bullets>
+
+## Plan §2, §3, ... (one section per 🔵 finding from the source)
+```
+
+**Key design choices:**
+- **One file, N sections.** Not N files — readers see all `--wbPlan` work for one source in a single document.
+- **Worker/validator per task.** Different models = independent perspectives; mirrors the existing `wb-press2_wbdataviewer2` smartprompt convention.
+- **Source rank is preserved.** Each plan section cross-links back to its rank in the action file's §0 — readers can navigate from "rank 11 — escape syntax" → "Plan §1 (escape syntax)" → individual tasks.
+- **Recommended model column** in the plan index is the *task complexity recommendation*, not the planner's identity (which is in the filename).
+
+---
+
+## 4. Output paths (v2 — Universal Daily File)
+
+```
+<target>/.agents/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_<short_name>_<YYYYMMDD>.md
+```
+
+> **No `<model>/` subfolder.** All models contribute to ONE file per day.
+> **Create-or-Append:** If the file exists, append your plan as the next Entry #N, tagged `*(ModelName — HH:MM)*`.
+
+**Where:**
+- `<short_name>` = source basename minus type prefix and timestamp (e.g., `wb-core`, not `audit_wb-core_202604260500`)
+- `<target>` = the original source's package/app folder; for non-`/wb*` sources outside any target, anchored at monorepo root (`.agents/workflows/reports/`)
+- Model identity is in the Entry #N header, not the filename
+
+**Outputs never go to `docs/ai_reference/`** — that folder is canon-only.
+
+---
+
+## 5. Mini-examples (one per command that accepts `--wbPlan`)
+
+### `/wbAudit packages/wb-core/ --wbPlan`
+
+```text
+[AI] Phase 1-N: standard /wbAudit produces audit_wb-core_<ts>_claude_opus_4_7.md
+[AI] Phase N+1 (--wbPlan): scanning audit for 🔵 findings...
+[AI] Found 3 🔵 findings:
+[AI] §3, §7 #7 → "pipe-| escape syntax design" → Plan §1
+[AI] §7 #9 → "API reference docs (typedoc)" → Plan §2
+[AI] §6, §7 #8 → "Vue 3 migration" → Plan §3 (DEFERRED — pre-req)
+[AI] Output: packages/wb-core/.agents/workflows/reports/20260429/plans/plan_wb-core_20260429.md
+[AI] (Entry #1 by the AI agent)
+```
+
+### `/wbReview <PR> --wbPlan`
+
+```text
+[AI] Standard /wbReview produces review_<PR>_<ts>_claude_opus_4_7.md
+[AI] --wbPlan: 2 🔵 findings (a multi-file refactor request, a deps cleanup)
+[AI] Output: <target>/.agents/workflows/reports/<date>/plans/plan_<PR>_<date>.md
+[AI] (Entry #N by the AI agent)
+[AI] 2 plan sections, each with 3-5 tasks (worker = Qwen3 Coder, validator = the agent the agent)
+```
+
+### `/wbStandup core2/ --wbPlan`
+
+```text
+[AI] Standard /wbStandup finds 1 open ticket (Task 10: publish wb-press2 to npm)
+[AI] --wbPlan: 1 🔵 finding (the open ticket itself, since "publish" needs sub-tasks)
+[AI] Output: core2/.agents/workflows/reports/<date>/plans/plan_core2_<date>.md
+[AI] (Entry #N by the AI agent)
+[AI] 1 plan section with 5 tasks: pre-flight dist/ check, package.json prep, README, .npmignore, dry-run
+```
+
+### `/wbActOn <existing_audit> --wbPlan`
+
+```text
+[AI] /wbActOn produces action_audit_<name>_<ts>_<model>.md
+[AI] --wbPlan: same engine extracts 🔵 findings → plan file
+[AI] Same output structure as /wbAudit --wbPlan above. The chain order (--act before --wbPlan)
+[AI] is invisible to the user — both files appear at the end.
+```
+
+---
+
+## 6. When NOT to use `--wbPlan`
+
+- The source has zero 🔵 findings → no plan to generate; the flag is a silent no-op (or warns).
+- You only want triage, not a planning artifact → use `--act` alone.
+- The source is itself a plan (`/wbPlan --wbPlan`) → the flag errors with "no-op" message.
+- The work is genuinely 🟢 inline → do it; don't plan it. Plan files for one-line edits are bureaucracy.
+
+The bar for `--wbPlan` is "this finding is multi-step, multi-file, coordinated work" — same bar as the 🔵 color in the `/wbActOn` decision tree. If the source has only 🟢/🔴/🟡/🟣 findings, `--act` is the right flag and `--wbPlan` adds noise.
+
+---
+
+## 7. Cross-references
+
+For per-command details, see each command's own examples files:
+
+- [`wbAudit/wbAudit_examples`](../commands/wbAudit/wbAudit_examples)
+- [`wbReview/wbReview_examples`](../commands/wbReview/wbReview_examples)
+- [`wbStandup/wbStandup_examples`](../commands/wbStandup/wbStandup_examples)
+- [`wbActOn/wbActOn_examples`](../commands/wbActOn/wbActOn_examples) — the engine; deepest treatment of `--wbPlan`
+- [`wbPlan/wbPlan_examples`](../commands/wbPlan/wbPlan_examples) — explains why `/wbPlan --wbPlan` errors
+
+For the `--act` companion flag, see [Command Classification](command_classification) (Sibling Actions section).
+
+---

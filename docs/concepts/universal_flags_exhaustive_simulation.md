@@ -1,3 +1,7 @@
+---
+title: "wb-flow Protocol: Universal Super-Flags Exhaustive Simulation"
+description: "Defines the exhaustive behavior matrix for Universal Super-Flags that control AI memory, tokens, and context allocation."
+---
 # wb-flow Protocol: Universal Super-Flags Exhaustive Simulation
 
 This document defines the **exhaustive behavior matrix** for the Universal Super-Flags (Global AI Orchestration). These flags control the AI's "Brain" (memory, tokens, and context) and are reserved across all 30 `/wb*` commands.
@@ -103,7 +107,7 @@ This document defines the **exhaustive behavior matrix** for the Universal Super
 
 ## 🔗 Sister Edition
 
-> The [Claude edition (`flow.wbc-ui.com`)](../../flow.wbc-ui.com/src/concepts/) <!-- [CROSS-EDITION] Phase=A --> covers the same concept in a self-help, opinionated register.
+> The Claude edition (`flow.wbc-ui.com`) <!-- [CROSS-EDITION] Phase=A --> covers the same concept in a self-help, opinionated register.
 
 ---
 

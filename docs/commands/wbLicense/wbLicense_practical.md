@@ -1,55 +1,71 @@
-# wbLicense — Practical Walkthrough
+# /wbLicense — Practical
 
-> How to check license compliance and generate attribution files.
+## Two modes
 
----
-
-## 1. Check Compliance
-
-```bash
-/wbLicense packages/my-lib
+```
+/wbLicense <file> # inject __WBC_PRO__ gate + emit pro-required event
+/wbLicense <folder> # audit package for tier leaks and pattern drift
 ```
 
-```text
-[AI] License: MIT (from package.json)
-[AI] LICENSE file: ✓ exists, matches
-[AI]
-[AI] Dependencies (12):
-[AI]   11 MIT, 1 Apache-2.0
-[AI]   ✓ All compatible with MIT
+## When to run each
+
+**File mode:** immediately after shipping a new premium feature. Before `/wbGit`. Before any consumer imports the unguarded export.
+
+**Folder mode:** periodically (monthly is fine) and always before `/wbRelease` on packages that have Pro features.
+
+## The gate pattern this project uses
+
+```js
+if (typeof __WBC_PRO__ === 'undefined' || !__WBC_PRO__) {
+ this.$emit('pro-required', { feature: '<name>' });
+ return;
+}
+// premium logic here
 ```
 
----
+Always `typeof` check first — `__WBC_PRO__` is undefined in dev without the define plugin, and ReferenceError kills the flow. The `pro-required` event is the project's convention for surfacing upgrade CTAs to the parent.
 
-## 2. Generate LICENSE File
+If you find a different pattern in existing code (global `window.__WBC_PRO__`, env var `VITE_WBC_PRO`, silent fallback), it's drift. Audit mode flags this.
 
-```bash
-/wbLicense packages/my-lib --generate
-```
+## The security caveat
 
-Creates a LICENSE file matching the license field in package.json.
+`__WBC_PRO__` is **client-side**. Anyone with DevTools can flip it. This is by design — the wbc-ui2 model is:
 
----
+- **Client gate** (`__WBC_PRO__`) = convenience barrier. Stops honest users from wandering into Pro features by accident.
+- **Server gate** (in your API) = actual security. Stops adversarial users.
 
-## 3. Attribution Report
+`/wbLicense` handles the first. `/wbSecure` + your backend handle the second. Don't confuse them.
 
-```bash
-/wbLicense packages/my-lib --notice
-```
+## Reading the audit output
 
-Generates NOTICE.md listing all dependencies requiring attribution.
+Three finding classes, ranked:
 
----
+- **LEAK** = Pro code runs for Free users. High priority.
+- **INCONSISTENT** = gate works but pattern differs from convention. Medium priority.
+- **OK** = correctly gated. Just reassurance.
 
-## 4. Common Patterns
+Every audit also names what it didn't check (notably: runtime bypass, server-side enforcement, business logic).
 
-| Pattern | Command |
+## The one mistake to avoid
+
+**Treating `/wbLicense` as security.** It's not. If someone bypasses the gate and accesses a Pro feature, the worst case should be: they use a nice-to-have for free. The *data* should never be at risk because the server should enforce the same tier check independently. If your Pro feature leaks sensitive data when the client gate is bypassed, the feature is designed wrong, not the gate.
+
+## When /wbLicense is the wrong command
+
+- Pure security / vulnerability scan → `/wbSecure`.
+- Generic code quality review → `/wbAudit`.
+- Finding leaks in existing ungated code you haven't tier-decided yet → `/wbVision` first (what's Pro?), then `/wbLicense`.
+
+<!-- FLAGS_SHORTCUTS_START -->
+## Flags & shortcuts
+
+Long-form and short-form are equivalent — `/wbLicense --execute` and `/wbLicense -e` produce the same behavior.
+
+| Long form | Shortcut |
 |---|---|
-| Quick check | `/wbLicense .` |
-| Generate LICENSE | `/wbLicense . --generate` |
-| Attribution | `/wbLicense . --notice` |
-| Pre-release | `/wbLicense .` then `/wbRelease .` |
+| `--scope` | `-s` |
+
+`-h`, `--h`, and `--help` are accepted on **every** `/wb*` command and print the manual instead of executing.
+<!-- FLAGS_SHORTCUTS_END -->
 
 ---
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

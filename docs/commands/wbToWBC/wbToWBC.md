@@ -1,3 +1,7 @@
+---
+title: "wbToWBC — Convert code to WBC component format"
+description: "## Overview"
+---
 # /wbToWBC — Convert code to WBC component format
 
 ## Overview
@@ -27,16 +31,11 @@
 - ❌ Does not validate the result — use `/wbValid` after conversion.
 - ❌ Does not audit quality — use `/wbAudit` for that.
 
-## 🔗 Sister Edition
-
-> The [Claude edition (`flow.wbc-ui.com`)](../../../../apps/wb-flow/flow.wbc-ui.com/src/commands/wbToWBC/) <!-- [CROSS-EDITION] Phase=A --> covers the same command in a self-help, opinionated register.
-
 ## What's Next?
 
 After reading this hub, either:
 - Pick a **layer file** above for deep reading
 - Run `/wbNext` to see what commands naturally follow `/wbToWBC` in a workflow
-
 
 ## How It Works
 
@@ -44,8 +43,8 @@ Detects framework automatically, generates loaders, plugins, and optimization co
 
 ## Key Options
 
---from <bundler> for migration assist, --diff to compare configs
+Converts a bundler config to its WBC equivalent.
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

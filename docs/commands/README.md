@@ -1,86 +1,123 @@
 # Commands
 
-<div style="max-width:650px;margin:16px auto">
+> Per-command deep-dives. 33 commands × 7 reading files = the reference body of this documentation.
 
-```mermaid
-flowchart LR
-  classDef plan fill:#161b22,stroke:#d2a8ff,color:#c9d1d9
-  classDef work fill:#161b22,stroke:#58a6ff,color:#c9d1d9
-  classDef valid fill:#161b22,stroke:#3fb950,color:#c9d1d9
+Each command lives in its own folder (`wbSetup/`, `wbContext/`, …, `wbStopTrack/`). Inside each folder you'll find seven files: a hub summary (`wbX.md`) and six layer files.
 
-  P["📋 Plan<br/>Task table with costs"]:::plan --> W["⚡ Work<br/>Execute & edit files"]:::work
-  W --> V["✅ Valid<br/>Score against criteria"]:::valid
-  V -. "FAIL →" .-> P
+<PlanWorkValid/>
+
+---
+
+## The seven files per command
+
+| File | Length | Read when |
+|---|---|---|
+| **hub** (`wbX.md`) | 1 page | You want a quick overview: purpose, invocation, what happens |
+| **eli5** | 1–2 paragraphs | You want a one-line mental model |
+| **practical** | ~1 page | You're about to run the command and need the trade-offs |
+| **expert** | 2–3 pages | You're considering modifying the command's runtime template |
+| **examples** | 3–5 pages | You forgot what the command's output actually looks like |
+| **exhaustive_simulation** | Full transcript | Complete behavior matrix for every input scenario |
+| **live_demo** | Interactive | Real-time walkthrough of the command applied to an actual workspace |
+
+---
+
+## Folder layout
+
+```
+commands/
+├── wbSetup/     ─┐
+├── wbContext/     │
+├── wbPlan/        │  Each folder contains:
+├── wbAudit/       │    <cmd>.md           (hub summary)
+├── wbReview/      │    <cmd>_eli5.md
+├── ...            │    <cmd>_practical.md
+├── wbModel/       │    <cmd>_expert.md
+├── wbStopTrack/   │    <cmd>_examples.md
+├── wbTrack/       │    <cmd>_exhaustive_simulation.md
+├── wbNext/       ─┘    <cmd>_live_demo.md
+│
+└── wb_commands_reference.json  ← machine-readable command catalog
 ```
 
-</div>
-
-The 33 `/wb*` agentic commands are organized into **eight functional families**. Each family covers a distinct phase of the software lifecycle — from understanding context to shipping production code.
-
 ---
 
-## Family Overview
+## Quick lookup — which command for which job?
 
-| Family | Commands | What They Do |
+| You want to... | Command | Folder |
 |---|---|---|
-| **Context Builders** | `/wbSetup`, `/wbContext` | Initialize agent identity and scan project state |
-| **Planners** | `/wbPlan`, `/wbAudit`, `/wbReview` | Break goals into tasks, audit quality, and review changes |
-| **Workers** | `/wbWork`, `/wbRefactor`, `/wbDoc`, `/wbDebug` | Execute tasks, restructure code, generate docs, and diagnose errors |
-| **Critics** | `/wbTest`, `/wbValid`, `/wbCheck` | Verify correctness through tests, validation, and pre-flight checks |
-| **Surgeons** | `/wbClean`, `/wbLicense`, `/wbSecure`, `/wbTranslate` | Remove dead code, license compliance, scan vulnerabilities, and internationalize |
-| **Shippers** | `/wbRelease`, `/wbPublish`, `/wbDeploy` | Bump versions, publish packages, and deploy to hosts |
-| **Archivists** | `/wbTrack`, `/wbStopTrack`, `/wbLog`, `/wbStandup` | Session tracking, finalization, logging, and cross-project status |
-| **Strategists** | `/wbVision`, `/wbIdea`, `/wbNext`, `/wbExplain`, `/wbBroadcast`, `/wbHelp`, `/wbMonetize`, `/wbActOn`, `/wbGit`, `/wbToWBC` | Roadmap planning, idea capture, next-step prediction, explanations, announcements, help, monetization, action ranking, commit messages, and code conversion |
+| Bootstrap a new package's `context.md` + `dev.md` | `/wbSetup` | [wbSetup/](wbSetup/) |
+| Sync the AI's understanding of a package | `/wbContext` | [wbContext/](wbContext/) |
+| Monorepo-wide scan: what's in-flight? | `/wbStandup` | [wbStandup/](wbStandup/) |
+| Break a goal into a worker/validator task plan | `/wbPlan` | [wbPlan/](wbPlan/) |
+| Brainstorm features when the queue is empty | `/wbVision` | [wbVision/](wbVision/) |
+| Capture and score speculative ideas | `/wbIdea` | [wbIdea/](wbIdea/) |
+| Pick the next optimal command based on repo state | `/wbNext` | [wbNext/](wbNext/) |
+| Print the command catalog or per-command help | `/wbHelp` | [wbHelp/](wbHelp/) |
+| Triage a diagnostic doc into ranked actions | `/wbActOn` | [wbActOn/](wbActOn/) |
+| Generate a persistent explanation of code or a task | `/wbExplain` | [wbExplain/](wbExplain/) |
+| Execute tasks defined in a plan file | `/wbWork` | [wbWork/](wbWork/) |
+| Validate `/wbWork` output against the plan | `/wbValid` | [wbValid/](wbValid/) |
+| Get a brutal review of code quality | `/wbAudit` | [wbAudit/](wbAudit/) |
+| PR-style review of a specific change vs. its plan | `/wbReview` | [wbReview/](wbReview/) |
+| Run tests and triage failures | `/wbTest` | [wbTest/](wbTest/) |
+| Pre-flight quiz to verify the AI understands the code | `/wbCheck` | [wbCheck/](wbCheck/) |
+| Find dead code and forgotten `console.log` | `/wbClean` | [wbClean/](wbClean/) |
+| Restructure code without changing behavior | `/wbRefactor` | [wbRefactor/](wbRefactor/) |
+| Hypothesize then investigate an error | `/wbDebug` | [wbDebug/](wbDebug/) |
+| Generate JSDoc + READMEs from code | `/wbDoc` | [wbDoc/](wbDoc/) |
+| Bump versions, unpick `workspace:*` | `/wbRelease` | [wbRelease/](wbRelease/) |
+| Push a package to npm | `/wbPublish` | [wbPublish/](wbPublish/) |
+| Deploy an app to a web host | `/wbDeploy` | [wbDeploy/](wbDeploy/) |
+| Inject premium gating | `/wbLicense` | [wbLicense/](wbLicense/) |
+| Generate release announcement kit | `/wbBroadcast` | [wbBroadcast/](wbBroadcast/) |
+| Bootstrap Free/Pro/Dev tier plumbing | `/wbMonetize` | [wbMonetize/](wbMonetize/) |
+| Commit code with Conventional Commits | `/wbGit` | [wbGit/](wbGit/) |
+| Set or show the active model roster | `/wbModel` | [wbModel/](wbModel/) |
+| Red-team scan: secrets, XSS, insecure deps | `/wbSecure` | [wbSecure/](wbSecure/) |
+| Pull hardcoded strings to i18n keys | `/wbTranslate` | [wbTranslate/](wbTranslate/) |
+| Rewrite legacy/Vuetify into wbc-ui2 | `/wbToWBC` | [wbToWBC/](wbToWBC/) |
+| Toggle session-wide logging of `/wb*` invocations | `/wbTrack` | [wbTrack/](wbTrack/) |
+| Finalize a session and archive the tracker | `/wbStopTrack` | [wbStopTrack/](wbStopTrack/) |
 
 ---
 
-## Command Directory
+## How to navigate to a command's docs
 
-| # | Command | Family | Hub |
-|---|---|---|---|
-| 01 | [`/wbSetup`](wbSetup/README.md) | Context Builders | [Hub](wbSetup/README.md) |
-| 02 | [`/wbContext`](wbContext/README.md) | Context Builders | [Hub](wbContext/README.md) |
-| 03 | [`/wbPlan`](wbPlan/README.md) | Planners | [Hub](wbPlan/README.md) |
-| 04 | [`/wbAudit`](wbAudit/README.md) | Planners | [Hub](wbAudit/README.md) |
-| 05 | [`/wbReview`](wbReview/README.md) | Planners | [Hub](wbReview/README.md) |
-| 06 | [`/wbWork`](wbWork/README.md) | Workers | [Hub](wbWork/README.md) |
-| 07 | [`/wbRefactor`](wbRefactor/README.md) | Workers | [Hub](wbRefactor/README.md) |
-| 08 | [`/wbDoc`](wbDoc/README.md) | Workers | [Hub](wbDoc/README.md) |
-| 09 | [`/wbDebug`](wbDebug/README.md) | Workers | [Hub](wbDebug/README.md) |
-| 10 | [`/wbTest`](wbTest/README.md) | Critics | [Hub](wbTest/README.md) |
-| 11 | [`/wbValid`](wbValid/README.md) | Critics | [Hub](wbValid/README.md) |
-| 12 | [`/wbCheck`](wbCheck/README.md) | Critics | [Hub](wbCheck/README.md) |
-| 13 | [`/wbClean`](wbClean/README.md) | Surgeons | [Hub](wbClean/README.md) |
-| 14 | [`/wbLicense`](wbLicense/README.md) | Surgeons | [Hub](wbLicense/README.md) |
-| 15 | [`/wbSecure`](wbSecure/README.md) | Surgeons | [Hub](wbSecure/README.md) |
-| 16 | [`/wbTranslate`](wbTranslate/README.md) | Surgeons | [Hub](wbTranslate/README.md) |
-| 17 | [`/wbRelease`](wbRelease/README.md) | Shippers | [Hub](wbRelease/README.md) |
-| 18 | [`/wbPublish`](wbPublish/README.md) | Shippers | [Hub](wbPublish/README.md) |
-| 19 | [`/wbDeploy`](wbDeploy/README.md) | Shippers | [Hub](wbDeploy/README.md) |
-| 20 | [`/wbTrack`](wbTrack/README.md) | Archivists | [Hub](wbTrack/README.md) |
-| 21 | [`/wbStopTrack`](wbStopTrack/README.md) | Archivists | [Hub](wbStopTrack/README.md) |
-| 22 | [`/wbLog`](wbLog/README.md) | Archivists | [Hub](wbLog/README.md) |
-| 23 | [`/wbStandup`](wbStandup/README.md) | Archivists | [Hub](wbStandup/README.md) |
-| 24 | [`/wbVision`](wbVision/README.md) | Strategists | [Hub](wbVision/README.md) |
-| 25 | [`/wbIdea`](wbIdea/README.md) | Strategists | [Hub](wbIdea/README.md) |
-| 26 | [`/wbNext`](wbNext/README.md) | Strategists | [Hub](wbNext/README.md) |
-| 27 | [`/wbExplain`](wbExplain/README.md) | Strategists | [Hub](wbExplain/README.md) |
-| 28 | [`/wbBroadcast`](wbBroadcast/README.md) | Strategists | [Hub](wbBroadcast/README.md) |
-| 29 | [`/wbHelp`](wbHelp/wbHelp.md) | Strategists | [Hub](wbHelp/wbHelp.md) |
-| 30 | [`/wbMonetize`](wbMonetize/README.md) | Strategists | [Hub](wbMonetize/README.md) |
-| 31 | [`/wbActOn`](wbActOn/README.md) | Strategists | [Hub](wbActOn/README.md) |
-| 32 | [`/wbGit`](wbGit/wbGit.md) | Strategists | [Hub](wbGit/wbGit.md) |
-| 33 | [`/wbToWBC`](wbToWBC/README.md) | Strategists | [Hub](wbToWBC/README.md) |
+Two patterns:
+
+```
+# By question (most common — daily use)
+daily_use/README.md → scenario table → command name → commands/<cmd>/<cmd>_practical.md
+
+# By concept (when you want to understand mechanics first)
+concepts/README.md → overview file → command name → commands/<cmd>/<cmd>_expert.md
+```
+
+If you're already in a command's folder and want to switch layers (e.g., you read `practical` and want examples), the files are siblings — no navigation needed.
 
 ---
 
-## How to Navigate
+## Recommended reading order for first-time encounters
 
-- **New to the system?** Start with [`/wbSetup`](wbSetup/README.md) and the [Start Here](../start_here/README.md) guide.
-- **Need to plan work?** See the [Planners](#planners) family or read [`/wbPlan`](wbPlan/README.md) directly.
-- **Looking for daily workflows?** Visit [Daily Use](../daily_use/README.md).
-- **Session management?** Read [Session Lifecycle](../session_lifecycle/README.md).
+When you're about to run a command for the first time:
+
+```
+hub (wbX.md) → eli5 → practical → (run it once) → examples → (run it again)
+```
+
+Skip `expert` unless you're modifying the command's runtime template.
 
 ---
 
-← [Home](../README.md) · [Concepts](../concepts/README.md) · [Install](../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## The machine-readable catalog
+
+[`wb_commands_reference.json`](wb_commands_reference.json) is the same 33-command catalog in JSON form, suitable for tooling that needs to introspect the command surface programmatically.
+
+---
+
+## What this folder is NOT
+
+- Not a tutorial. For first-time onboarding, go to [`../start_here/`](../start_here/).
+- Not a daily playbook. For "what to run at 10am vs. 4pm," go to [`../daily_use/`](../daily_use/).
+- Not the runtime templates. The source-of-truth `_template.md` files that define what each command actually does live in `packages/wb-flow/templates/commands/`. This folder documents *how to use* them.

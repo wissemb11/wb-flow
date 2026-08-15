@@ -1,5 +1,4 @@
 node_modules/
 docs/.wb/
-flow.wbc-ui.com/
-flowVuepress.wbc-ui.com/
 .wb/
+_deploy_/

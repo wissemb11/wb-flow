@@ -1,89 +1,54 @@
-# wbRelease — Expert Architecture
+# /wbRelease — Expert
 
-> How `/wbRelease` orchestrates version bumps, changelog generation, and tag creation.
+## What `/wbRelease` architecturally is
 
----
+A **workspace-protocol translator + version coordinator** that solves the structural mismatch between monorepo development (`workspace:*`) and npm publishing (semver). It computes a release plan (which packages change, what versions, what dep updates propagate), unpicks workspace protocols, and leaves the tree ready for `/wbPublish`.
 
-## 1. System Role
+The hard problem it solves: if you publish `wb-dataviewer` while its `package.json` says `"@wbc/wb-core": "workspace:*"`, npm consumers get a broken install. They can't resolve `workspace:*`. The release command handles the translation, then `--restore` flips it back after publish succeeds.
 
-`/wbRelease` is a **release orchestrator**. It coordinates the version bump, changelog update, and git tag creation into a single deterministic workflow.
+## The structural tension, precisely
 
-| Property | Value |
-|---|---|
-| **Role** | 🔨 Worker (multi-step) |
-| **Input** | Folder path + version strategy |
-| **Output** | Release report in `reports/YYYY/MM/DD/releases/` |
-| **Mutates files** | Yes — `package.json` (version), `CHANGELOG.md` |
+- pnpm/yarn/npm workspaces use `workspace:*` to mean "the local version in this monorepo."
+- The npm registry has no concept of `workspace:*`. Published manifests must use semver.
+- Without a release-time translation, you either publish broken packages (workspace refs in public manifest) or you give up workspaces (pin versions everywhere in dev).
 
----
+`/wbRelease` picks the third option: live with workspaces in dev, translate at release time.
 
-## 2. Release Pipeline
+## Three design decisions worth naming
 
-```
-Scope → Pre-flight checks → Version bump → Changelog generation → Tag text → Report
-```
+### 1. Monorepo-wide scope, not per-package
+The scope is forced because dependency graph reasoning is inherently cross-package. Releasing wb-dataviewer without updating its reference to wb-core (if wb-core also bumped) would ship broken deps. Per-package release cannot coordinate; monorepo-wide can.
 
-| Stage | Action |
-|---|---|
-| **Pre-flight** | Verify clean git state, no TODOs, tests pass |
-| **Version bump** | Update `package.json` version field |
-| **Changelog** | Generate entry from commits since last tag |
-| **Tag text** | Produce `git tag -a` command (user runs manually) |
-| **Report** | Write release report with all artifacts |
+### 2. Unpick + restore as separate steps
+Unpicking and restoring are not fused into `/wbPublish`. They're flanking operations. Rationale: `/wbPublish` can fail partway. If unpick-publish-restore were atomic, a partial failure could leave the tree in an unrecoverable state. Keeping them separate means `--restore` is idempotent and can be run explicitly once you've confirmed publish succeeded.
 
----
+### 3. Gate on /wbTest + /wbAudit reports
+Release refuses if recent tests failed or recent audits have unresolved blockers. This binds release quality to the closed-loop reports rather than re-running tests itself. The command trusts `reports/` as truth. Stale reports (>24h) trigger a warning; very stale (>7d) trigger a refusal.
 
-## 3. Version Strategies
+## Conventional commits as the bump source
 
-| Strategy | Flag | Example |
-|---|---|---|
-| **Patch** | `--patch` | 1.0.0 → 1.0.1 |
-| **Minor** | `--minor` | 1.0.0 → 1.1.0 |
-| **Major** | `--major` | 1.0.0 → 2.0.0 |
-| **Pre-release** | `--pre=beta` | 1.0.0 → 1.1.0-beta.0 |
-| **Explicit** | `--version=1.2.3` | Any → 1.2.3 |
+Version bumps are driven by commit message prefixes (`fix:`, `feat:`, `feat!:`). Not by AI guessing.
 
----
+Trade-off: this requires discipline in commit writing. The upside is deterministic version bumps — same commits produce same bumps every time. An AI-inferred bump would be non-deterministic and could disagree with your intent.
 
-## 4. Changelog Format
+If commits don't follow the convention, the AI asks rather than inferring. Correct posture.
 
-```markdown
-## [1.1.0] — 2026-05-11
+## Where the command leaks
 
-### Added
-- feat(core): new validation engine (#45)
+1. **Atomicity is partial.** Unpick writes changes to disk; if the session dies between unpick and restore, the tree is in an intermediate state. `--restore` can fix it, but the user has to remember to run it.
 
-### Fixed
-- fix(ui): dropdown alignment on mobile (#42)
+2. **No lockfile handling.** pnpm/yarn lockfiles reference workspace protocols. After unpick, the lockfile is temporarily inconsistent. `/wbPublish` works anyway because it uses the package.json directly, but `pnpm install` during this window does weird things.
 
-### Changed
-- refactor(api): simplify auth flow (#41)
-```
+3. **Cross-package dep updates are computed, not validated.** If wb-core bumps from 1.4.2 to 1.4.3, wb-dataviewer's manifest gets `^1.4.3`. Nothing verifies that wb-dataviewer's code actually works with wb-core 1.4.3 — the assumption is that testing caught that. For breaking changes, this assumption is fragile.
 
-Entries are categorized by conventional commit prefix (`feat:`, `fix:`, `refactor:`, etc.).
+4. **No release notes generation.** The command bumps versions but doesn't write CHANGELOG entries. If your convention is conventional-commits-to-changelog, you need a separate step.
+
+5. **Prerelease tags are flag-driven, not automated.** You specify `--prerelease=beta`. Forgetting to specify re-uses the normal release channel. Error-prone for teams that frequently do prereleases.
+
+What `wb-flow-docs`'s playbook gets wrong about `/wbRelease`: treating it as version bumping only, when the actual scope includes workspace:* dependency unpicking, changelog generation from conventional commits, and the pre-release audit checklist. Bumping versions is the easy part — dependency resolution is where the risk lives.
+
+## One-paragraph verdict
+
+A workspace-protocol translator whose architectural contribution is correctly separating the three phases (gate-check, version-compute, workspace-unpick) and not fusing them with `/wbPublish`. The separation is what makes the system recoverable from partial failures. Version computation via conventional commits is the right discipline — deterministic, auditable, resistant to AI hallucination. Weakest in lockfile coherence during the unpick window, cross-package compatibility validation, and changelog generation. The monorepo-wide scope is correct and should not be weakened to per-package for "convenience." Correct for solo monorepo work; would need stronger atomicity guarantees and lockfile-aware tooling for team-scale.
 
 ---
-
-## 5. Pre-Flight Checks
-
-| Check | Failure Action |
-|---|---|
-| Uncommitted changes | `Error: working tree not clean` |
-| Failing tests | `Warning: tests not passing` |
-| TODO markers in src/ | `Warning: N TODOs found` |
-| Missing CHANGELOG.md | Auto-create with initial entry |
-
----
-
-## 6. What wbRelease Does NOT Do
-
-| Action | Use Instead |
-|---|---|
-| Run `git tag` | User runs manually (no git commands policy) |
-| Publish to npm | `/wbPublish` |
-| Deploy to servers | `/wbDeploy` |
-| Run tests | `/wbTest` (pre-flight only warns) |
-
----
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

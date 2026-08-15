@@ -1,3 +1,8 @@
+---
+title: "wbStopTrack — Command Hub"
+description: "---"
+---
+
 # /wbStopTrack — Command Hub
 
 > ⚠️ **Planned — no runtime template yet.** This command is documented for future implementation. The behavior described below reflects the intended design; the actual `/wbStopTrack` command is not available in the current `wb-flow` runtime.
@@ -52,12 +57,6 @@ Use `/wbStopTrack` when you are done with a work session and want to:
 
 Result: `track_core2_20260512.md` is sealed, summarized, and archived.
 
-## 🔗 Sister Edition
-
-> The [Claude edition (`flow.wbc-ui.com`)](../../../../apps/wb-flow/flow.wbc-ui.com/src/commands/wbStopTrack/) <!-- [CROSS-EDITION] Phase=A --> covers the same command in a self-help, opinionated register.
-
----
-
 ## Layer Files
 
 - [ELI5](wbStopTrack_eli5.md) — What `/wbStopTrack` does in one sentence
@@ -68,4 +67,4 @@ Result: `track_core2_20260512.md` is sealed, summarized, and archived.
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

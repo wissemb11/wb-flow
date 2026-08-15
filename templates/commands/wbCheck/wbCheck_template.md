@@ -1,5 +1,7 @@
 # /wbCheck — Pre-Flight Context Quiz
 
+> Conforms to output_conventions v1.12 · template v1.0
+
 
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
@@ -65,7 +67,7 @@ The script knows which topics matter for each command:
 
 Don't quiz a model you've already verified on this package with no code changes since. Don't quiz Opus/Antigravity (it has persistent context). Only quiz new or cheap models on unfamiliar packages.
 
-> For deeper reading: [`docs_claude/commands/wbCheck/wbCheck_practical_claude.md`](../../docs/docs_claude/commands/wbCheck/wbCheck_practical_claude.md) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+> For deeper reading: [`wbCheck_practical.md`](https://flow.wbc-ui.com/commands/wbCheck/wbCheck_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
 <!-- HELP_GATE_END -->
 
 > **Command #24** in the `/wb*` suite
@@ -159,7 +161,7 @@ After I respond to your quiz answers with my verdict:
   └── contains questions + answers embedded in the script
 
 ~/Allprojects/wb-labs/         ← WORKSPACE (workers can read everything here)
-  └── frontEnd/wbc-ui/core2/   ← worker reads code here to answer questions
+  └── <monorepo-root>/   ← worker reads code here to answer questions
 ```
 
 The worker **cannot see the answer key**. It can only prove understanding by reading the actual source code.
@@ -299,16 +301,16 @@ Format required:
 ### 📚 Base Reference Files
 | Type | File | Description |
 |---|---|---|
-| Foundational | [context.md](../../../../../context.md) | Permanent Identity and Architecture (Source of Truth) |
+| Foundational | [context.md](../../../../../../../context.md) | Permanent Identity and Architecture (Source of Truth) |
 | Snapshot | [context_<scope>_<date>.md](../contexts/context_<scope>_<date>.md) | Daily snapshot used for current session context |
-| Foundational | [dev.md](../../../../../dev.md) | Permanent Development Commands and Status |
+| Foundational | [dev.md](../../../../../../../dev.md) | Permanent Development Commands and Status |
 
-### Global Files (`core2/` monorepo root)
+### Global Files (`<monorepo-root>/` monorepo root)
 | Category | File | Source Command |
 |---|---|---|
-| Reports | [audit_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_core2_<date>.md) | `/wbAudit core2/` |
-| Reports | [plan_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_core2_<date>.md) | `/wbPlan core2/` |
-| Tracks | [track_core2_<date>.md](../../../../../../../../../../.wb/workflows/tracks/<YYYY>/<MM>/<DD>/track_core2_<date>.md) | `/wbTrack core2/` |
+| Reports | [audit_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_core2_<date>.md) | `/wbAudit <monorepo-root>/` |
+| Reports | [plan_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_core2_<date>.md) | `/wbPlan <monorepo-root>/` |
+| Tracks | [track_core2_<date>.md](../../../../../../../../../../.wb/workflows/tracks/<YYYY>/<MM>/<DD>/track_core2_<date>.md) | `/wbTrack <monorepo-root>/` |
 
 <details>
   <summary>📂 Sub-Package: [Active Package Name]</summary>

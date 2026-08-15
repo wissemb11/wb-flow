@@ -1,0 +1,82 @@
+{
+  "providers": [
+    {
+      "provider": "anthropic",
+      "pool": "claude-pro",
+      "models": [
+        "anthropic/claude-opus-5",
+        "anthropic/claude-sonnet-5",
+        "anthropic/claude-fable-5",
+        "anthropic/claude-sonnet-4-6",
+        "anthropic/claude-haiku-4-5-20251001",
+        "Claude (auto)"
+      ]
+    },
+    {
+      "provider": "openai",
+      "pool": "chatgpt",
+      "models": [
+        "openai/gpt-5.6-sol",
+        "openai/gpt-5.6-terra",
+        "openai/gpt-5.6-luna",
+        "openai/gpt-5.5",
+        "openai/gpt-5.3-codex",
+        "Codex (auto)"
+      ]
+    },
+    {
+      "provider": "openrouter",
+      "pool": "openrouter",
+      "models": [
+        "openrouter/openai/gpt-4o",
+        "openrouter/deepseek/deepseek-r1",
+        "openrouter/deepseek/deepseek-chat",
+        "openrouter/meta-llama/llama-3.3-70b-instruct",
+        "openrouter/qwen/qwen-2.5-coder-32b-instruct"
+      ]
+    },
+    {
+      "provider": "opencode-go",
+      "pool": "opencode-go",
+      "models": [
+        "opencode-go/deepseek-v4-pro",
+        "opencode-go/kimi-k3",
+        "opencode-go/kimi-k2.7-code",
+        "opencode-go/qwen3.7-plus",
+        "opencode-go/qwen3.7-max"
+      ]
+    },
+    {
+      "provider": "opencode-zen",
+      "pool": "opencode-zen",
+      "models": [
+        "opencode/gemini-3.1-pro",
+        "opencode/deepseek-v4-pro"
+      ]
+    },
+    {
+      "provider": "antigravity",
+      "pool": "google-one",
+      "models": [
+        "gemini-3.6-flash-high",
+        "gemini-3.6-flash-medium",
+        "gemini-3.6-flash-low",
+        "gemini-3.5-flash-high",
+        "gemini-3.5-flash-medium",
+        "gemini-3.5-flash-low",
+        "gemini-3.1-pro-high",
+        "gemini-3.1-pro-low",
+        "claude-opus-4-6-thinking",
+        "gpt-oss-120b-medium",
+        "Antigravity (auto)"
+      ]
+    },
+    {
+      "provider": "github-copilot",
+      "pool": "github-copilot",
+      "models": [
+        "github-copilot/auto"
+      ]
+    }
+  ]
+}

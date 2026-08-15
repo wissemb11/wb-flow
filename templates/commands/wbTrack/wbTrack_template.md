@@ -1,5 +1,7 @@
 # /wbTrack — Session Tracking (v2: Universal Daily Session)
 
+> Conforms to output_conventions v1.12 · template v2.0
+
 
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
@@ -49,7 +51,7 @@ When tracking is OFF, only the report is created.
 | You type | Session file lives at | §0 reads |
 |---|---|---|
 | `/wbTrack packages/wb-core` | `wb-core/.wb/workflows/walkthroughs/<date>/session_wb-core_<date>.md` | wb-core code + reports |
-| `/wbTrack` | `core2/.wb/workflows/walkthroughs/<date>/session_core2_<date>.md` | All packages |
+| `/wbTrack` | `<monorepo-root>/.wb/workflows/walkthroughs/<date>/session_core2_<date>.md` | All packages |
 
 ## Common Mistakes
 
@@ -64,7 +66,7 @@ When tracking is OFF, only the report is created.
 - Commands you've run dozens of times
 - When you don't need commentary (just the facts)
 
-> For deeper reading: [`docs_claude/commands/wbTrack/wbTrack_practical_claude.md`](../../docs/docs_claude/commands/wbTrack/wbTrack_practical_claude.md) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+> For deeper reading: [`wbTrack_practical.md`](https://flow.wbc-ui.com/commands/wbTrack/wbTrack_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
 
 <!-- FLAGS_TABLE_START -->
 ## Flags & shortcuts
@@ -75,6 +77,8 @@ Both forms are equivalent — pass either:
 |---|---|
 | `--finalize` | `-f` |
 | `--scope` | `-s` |
+| `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
+| `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
 
 `-h` / `--help` / `--h` (any command) prints this help block instead of executing.
 ## Self-correct mode (dual-mode invocation)
@@ -85,6 +89,7 @@ Both forms are equivalent — pass either:
 ```
 
 When the first arg is an existing output file from a prior `/wbTrack` run (detected by its first H1 — see this template's **Detection** section), the command runs in **verify-and-repair** mode: gap-fills missing fields, normalizes links, ticks done/valid checkboxes whose reports exist, never rewrites authored content. See [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §3.
+
 
 <!-- FLAGS_TABLE_END -->
 <!-- HELP_GATE_END -->
@@ -240,7 +245,7 @@ But each model can only track **one scope at a time**. Model A tracking `core2` 
 
 Different models tracking different scopes write to **different files** — this is fine:
 ```
-Model A tracks core2:    → core2/.wb/workflows/tracks/20260429/track_core2_20260429.md
+Model A tracks core2:    → <monorepo-root>/.wb/workflows/tracks/20260429/track_core2_20260429.md
 Model B tracks wb-core:  → packages/wb-core/.wb/workflows/tracks/20260429/track_wb-core_20260429.md
 ```
 
@@ -284,7 +289,7 @@ From this point forward, you are in session tracking mode.
 
    # Track: __TARGET_NAME__ — __TODAY__
 
-   > **Target:** Monorepo root (`frontEnd/wbc-ui/__TARGET_PATH__/`)
+   > **Target:** Monorepo root (`<monorepo-root>/__TARGET_PATH__/`)
    > **Created by:** __YOUR_MODEL_NAME__ via __YOUR_CLIENT__
    > **Started:** __TODAY__ __CURRENT_TIME__
    > **Status:** 🟢 ACTIVE
@@ -432,16 +437,16 @@ Format required:
 ### 📚 Base Reference Files
 | Type | File | Description |
 |---|---|---|
-| Foundational | [context.md](../../../../../context.md) | Permanent Identity and Architecture (Source of Truth) |
+| Foundational | [context.md](../../../../../../../context.md) | Permanent Identity and Architecture (Source of Truth) |
 | Snapshot | [context_<scope>_<date>.md](../contexts/context_<scope>_<date>.md) | Daily snapshot used for current session context |
-| Foundational | [dev.md](../../../../../dev.md) | Permanent Development Commands and Status |
+| Foundational | [dev.md](../../../../../../../dev.md) | Permanent Development Commands and Status |
 
-### Global Files (`core2/` monorepo root)
+### Global Files (`<monorepo-root>/` monorepo root)
 | Category | File | Source Command |
 |---|---|---|
-| Reports | [audit_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_core2_<date>.md) | `/wbAudit core2/` |
-| Reports | [plan_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_core2_<date>.md) | `/wbPlan core2/` |
-| Tracks | [track_core2_<date>.md](../../../../../../../../../../.wb/workflows/tracks/<YYYY>/<MM>/<DD>/track_core2_<date>.md) | `/wbTrack core2/` |
+| Reports | [audit_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/audits/audit_core2_<date>.md) | `/wbAudit <monorepo-root>/` |
+| Reports | [plan_core2_<date>.md](../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/plan_core2_<date>.md) | `/wbPlan <monorepo-root>/` |
+| Tracks | [track_core2_<date>.md](../../../../../../../../../../.wb/workflows/tracks/<YYYY>/<MM>/<DD>/track_core2_<date>.md) | `/wbTrack <monorepo-root>/` |
 
 <details>
   <summary>📂 Sub-Package: [Active Package Name]</summary>

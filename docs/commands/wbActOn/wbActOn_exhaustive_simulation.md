@@ -1,89 +1,328 @@
-# wb-flow Protocol: /wbActOn Execution & Simulation Specification
+# /wbActOn — Exhaustive Simulation ()
 
-This document defines the **exhaustive behavior matrix** for the `/wbActOn` command. It serves as the definitive reference for initiating fully autonomous, multi-step agent chains based on specific triggers, webhooks, or natural language prompts.
+`/wbActOn` is the triage officer. It takes a diagnostic document (an audit, plan, review, standup, or any structured markdown) and converts it into a ranked execution order. The central design principle: **annotate, never author.** `/wbActOn` doesn't invent findings — it reads the source, applies a 5-color decision tree to every section, and produces an ordered thread of what to do first.
+
+Read this if you want to know how the 5-color system works, why the `--wbPlan` flag exists separately from `/wbPlan`, and what "Smart Merge" means when multiple models triage the same source.
 
 ---
 
-## 1. Role & Definition Matrix
-**Role:** The Trigger Operator & Autonomous Initiator
-**Target:** Accepts raw inputs (Jira tickets, Slack webhooks, error logs) and converts them into a sequence of agentic commands.
-**Core Protocol:** Strict "Chain of Thought". The agent parses the input, determines the required sequence of commands (e.g., `/wbContext` -> `/wbPlan` -> `/wbWork`), and executes them iteratively without human intervention.
+## 1. Role & target
 
-| Scenario | System Behavior |
+| Aspect | Behavior |
 |---|---|
-| Target is a Bug Ticket | **[PROCEED]** Analyzes ticket. Executes `/wbDebug` -> `/wbPlan -a` -> `/wbWork` -> `/wbValid`. |
-| Target is a Feature Request | **[PROCEED]** Analyzes request. Executes `/wbContext` -> `/wbPlan` -> `/wbWork`. |
-| Target is Ambiguous | **[HALT]** Protocol forbids executing destructive chains based on vague inputs. Prompts user for clarification. |
+| **Role** | The Triage Officer. Ranks and annotates; never invents. |
+| **Target** | Any markdown file — typically a `/wb*` report output, but works on third-party docs, design memos, competitor analyses. |
+| **Cell scope** | None. `/wbActOn` never touches plan cells or source code. |
+| **Side effects allowed** | Writing the action file. With `--wbPlan`: also writing a companion plan file. |
+| **Side effects forbidden** | Modifying the source document. Editing code. Mutating plan state. |
+
+The "annotate, never author" rule is the hardest constraint. When the source says "there's a caching bug," `/wbActOn` annotates it with `🔴 /wbDebug "apiResponse_ cache invalidation"` — it doesn't describe the bug itself, and it doesn't propose a fix. It points to the command that *would* fix it. The user decides whether to follow.
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix
-`/wbActOn` acts as a universal router, parsing external context formats.
+## 2. Argument resolution
 
-| Argument Type | Example | Parsing Logic | Simulated Output Profile |
-|---|---|---|---|
-| Natural Language String | `Command: /wbActOn "Update the footer to 2026"` | Parses string into actionable intent. | Generates a micro-plan and immediately updates the footer code. |
-| External URL (Jira/GitHub) | `Command: /wbActOn "https://github.com/issue/42"` | Fetches issue payload (Title, Description). | Translates issue requirements into a `plan_*.md` and begins work. |
-| File Path (Logs/JSON) | `Command: /wbActOn crash_report.json` | Parses structured data. | Extracts stack trace, triggers `/wbDebug -t="<trace>" -a`. |
-
----
-
-## 3. Flag Processing Matrix (Isolated Capabilities)
-
-| Flag | Shortcut | Purpose | Example | Simulated Output Impact |
-|---|---|---|---|---|
-| `--chain="<cmds>"`| `-c` | Hardcodes the exact sequence of commands the agent should run. | `Command: /wbActOn "Fix CSS" -c="wbWork,wbValid"` | `[CHAIN] Bypassing inference. Forcing /wbWork then /wbValid.` |
-| `--supervisor` | `-s` | Runs in supervised mode. Halts and asks for human approval between every command in the chain. | `Command: /wbActOn "Refactor API" -s` | `[SUPERVISOR] /wbPlan generated. Do you approve before I run /wbWork? [Y/n]` |
-| `--timeout="<min>"`| `-t` | Enforces a strict time limit on the autonomous chain to prevent infinite loops. | `Command: /wbActOn "Build App" -t="30"` | `[TIMEOUT] Setting 30m hard limit on autonomous execution.` |
-
----
-
-## 4. Omni-Channel Execution Pipeline (Flag Chaining)
-
-### 💠 The "Autonomous Bug Resolution" (`<url> -c="wbDebug,wbWork,wbValid,wbGit"`)
-**Context:** A critical bug was reported on GitHub. The tech lead pastes the issue URL and demands the agent fix it, validate it, and commit it autonomously.
-**Command Executed:** `/wbActOn "https://github.com/wbc-ui2/issues/402" -c="wbDebug,wbWork,wbValid,wbGit"`
-**Simulated Protocol Chain:**
-1. Fetches issue #402: "Login button disappears on mobile."
-2. Runs `/wbDebug` to find the CSS media query fault.
-3. Runs `/wbWork` to implement the fix.
-4. Runs `/wbValid` to ensure no visual regressions.
-5. Runs `/wbGit` to generate the commit message "Fix: Mobile login button visibility (#402)".
-**Simulated Output:**
-```markdown
-> Command: /wbActOn "https://github.com/wbc-ui2/issues/402" -c="wbDebug,wbWork,wbValid,wbGit"
-
-[SYSTEM] Initiating Autonomous Chain for Issue #402...
-[CHAIN 1/4] Executing /wbDebug... Found fault in auth.css.
-[CHAIN 2/4] Executing /wbWork... Applied flexbox fix.
-[CHAIN 3/4] Executing /wbValid... VRT passed.
-[CHAIN 4/4] Executing /wbGit... Commit generated.
-[SUCCESS] Chain complete. Issue #402 resolved.
-```
-
-### 💠 The "Supervised Feature Extraction" (`<file> -s`)
-**Context:** A product manager uploads a raw spec document (`feature.txt`). They want the agent to handle it but want to review the plan before code is written.
-**Command Executed:** `/wbActOn spec.txt -s`
-**Simulated Output:**
-```markdown
-> Command: /wbActOn spec.txt -s
-
-[SYSTEM] Parsing spec.txt...
-[INFERENCE] Deduced optimal chain: /wbPlan -> /wbWork -> /wbExplain.
-[CHAIN 1/3] Executing /wbPlan... Generated 4 tasks.
-[SUPERVISOR] Halting. Do you approve plan_feature_2026.md before proceeding to /wbWork? [Y/n]
-```
-
----
-
-## 5. Operational Edge Cases & Protocol Faults
-
-| Fault Trigger | System Detection | Resolution / Output |
+| Form | Example | What `/wbActOn` does |
 |---|---|---|
-| Infinite Loop | Agent fails validation 3 times in a row during an autonomous chain. | `❌ Error: Autonomous loop detected. Aborting chain to prevent token exhaustion.` |
-| URL Fetch Failed | Provided GitHub/Jira link is private or returns 404. | `❌ Error: Cannot fetch external context. Please provide a raw text string.` |
-| Chain Break | `wbWork` fails due to syntax error. | `⚠️ Warning: Chain broken at step 2. Execution halted. Manual intervention required.` |
+| File path (under reports/) | `Command: /wbActOn audit_wb-core_20260504.md` | **Mirror mode.** Reads the audit, writes action file to the same target's `reports/<date>/actions/`. |
+| File path (elsewhere) | `Command: /wbActOn competitor_analysis.md` | **Side-car mode.** Anchors to monorepo root: `core2/.agents/workflows/reports/<date>/actions/`. |
+| Folder path | `Command: /wbActOn packages/wb-core` | **Pick mode.** Lists recent `*.md` under the folder's `reports/`, asks which to process. If only one exists, proceeds without asking. |
+
+The three modes are detected from input type, not from a flag. File → process directly. Folder → pick from candidates. This keeps the invocation simple while handling the common case (act on the latest audit) and the edge case (act on an arbitrary document).
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 3. Flag matrix
+
+| Flag | Shortcut | Purpose |
+|---|---|---|
+| `--act` | `-a` | On upstream commands (`/wbAudit`, `/wbReview`, `/wbStandup`): chain the command's output through `/wbActOn` automatically. |
+| `--wbPlan` | `-P` | Also produce a companion plan file with one task table per 🔵 finding. |
+
+The flags are **independent and composable**:
+
+| Combination | Result |
+|---|---|
+| `/wbAudit packages/wb-core` | Audit only |
+| `/wbAudit packages/wb-core --act` | Audit + action file |
+| `/wbAudit packages/wb-core --wbPlan` | Audit + plan file |
+| `/wbAudit packages/wb-core --act --wbPlan` | Audit + action + plan (chain of three) |
+
+Why both flags instead of one? `--act` alone is the cheap path — triage without committing to a multi-section plan. `--wbPlan` alone skips triage when you already know what needs planning. Together is the full chain. The separation matches how work actually flows: sometimes you just want to prioritize, sometimes you want a plan, sometimes both.
+
+---
+
+## 4. The 5-color decision tree
+
+This is the core engine. For every finding in the source, `/wbActOn` walks this tree:
+
+| Decision | Color | Output |
+|---|---|---|
+| Console is red? (error, failing build) | 🔴 | `/wbDebug "<exact error message>"` |
+| Work fits one sentence? | 🟢 | Exact one-shot prompt to paste |
+| File-level mess? (>1000 LOC, dead code) | 🟡 | `/wbClean <pkg>` then `/wbRefactor <file>` |
+| Strategic/business decision? | 🟣 | No command. Human decides; agent advises. |
+| Multi-step coordinated work? | 🔵 | `/wbPlan <target>` with goal/constraints/scope |
+
+Each color also carries a **recommended model**:
+
+| Color | Default model | Why |
+|---|---|---|
+| 🟢 (simple) | the agent 4 / Qwen3 Coder | Fast, cheap, sufficient |
+| 🟢 (subtle) | the agent 4 | Correctness on tricky one-liners |
+| 🔴 | the agent 4 | Root-cause analysis needs reasoning |
+| 🟡 (sweep) | Qwen3 Coder / the agent Flash | Repetitive, high-throughput |
+| 🟡 (refactor) | the agent 4 | Cross-file judgment |
+| 🟣 | the agent 4 / the AI agent | Long-form synthesis |
+| 🔵 | the agent 4 | Coordination + dependency reasoning |
+
+The recommendation is advisory — the user can override. But it's always stated explicitly. "You decide" is not acceptable.
+
+---
+
+## 5. Pipelines (the agent-native scenarios)
+
+<script setup>
+const wbActOnSimPipelines = [
+  {
+    "title": "Post-audit triage on wb-core",
+    "cmd": "/wbActOn audit_wb-core_20260504.md",
+    "logs": [
+      {
+        "text": "[SYSTEM] Ingesting audit_wb-core_20260504.md...",
+        "type": "sys"
+      },
+      {
+        "text": "[TYPE] Detected: audit (from filename + headers).",
+        "type": "gen"
+      },
+      {
+        "text": "[INVENTORY] 23 findings across 8 sections. 4 tables, 12 prose blocks.",
+        "type": "gen"
+      },
+      {
+        "text": "# 7. If I Were At Your Place \u2014 Action Walkthrough for wb-core",
+        "type": "gen"
+      },
+      {
+        "text": "## \ud83d\udea6 \u00a70 \u2014 If I Were You: The Execution Order",
+        "type": "sys"
+      },
+      {
+        "text": "| Rank | Finding | Color | Time Window | Recommended Model |",
+        "type": "sys"
+      },
+      {
+        "text": "|---|---|---|---|---|",
+        "type": "sys"
+      },
+      {
+        "text": "| 1\ufe0f\u20e3 | tierEnforcement.js \u2014 `alg: \"none\"` bypass | \ud83d\udd34 | TODAY | the agent 4 |",
+        "type": "sys"
+      },
+      {
+        "text": "| 2\ufe0f\u20e3 | renderString XSS vector | \ud83d\udd34 | TODAY | the agent 4 |",
+        "type": "sys"
+      },
+      {
+        "text": "| 3\ufe0f\u20e3 | Dead handlers in WBC.js | \ud83d\udfe1 | THIS WEEK | Qwen3 Coder |",
+        "type": "sys"
+      },
+      {
+        "text": "| 4\ufe0f\u20e3 | dist-folder mismatch in wbc-ui2-cdn | \ud83d\udd35 | THIS WEEK | the agent 4 |",
+        "type": "sys"
+      },
+      {
+        "text": "| 5\ufe0f\u20e3 | apiResponse_ cache scope review | \ud83d\udfe3 | THIS MONTH | the agent 4 |",
+        "type": "sys"
+      },
+      {
+        "text": "...",
+        "type": "gen"
+      },
+      {
+        "text": "### What I would NOT touch",
+        "type": "gen"
+      },
+      {
+        "text": "- wb-press2 VuePress integration (explicitly accepted as-is)",
+        "type": "gen"
+      },
+      {
+        "text": "- __WBC_DEV__ 3-mode gating (working, no symptoms)",
+        "type": "gen"
+      },
+      {
+        "text": "### 60-second mental model",
+        "type": "gen"
+      },
+      {
+        "text": "Rank 1-2 (today) \u2192 STOP THE BLEEDING \u2192 ~3 hours",
+        "type": "gen"
+      },
+      {
+        "text": "Rank 3-4 (this week) \u2192 CLEAR THE TABLE \u2192 ~6 hours",
+        "type": "gen"
+      },
+      {
+        "text": "Rank 5 (this month) \u2192 ONE BIG THING \u2192 pick one",
+        "type": "gen"
+      },
+      {
+        "text": "Rank 6-23 (later) \u2192 ONLY IF AHEAD OF PLAN \u2192 defer freely",
+        "type": "gen"
+      }
+    ],
+    "note": "The canonical use case. `/wbAudit` produced 23 findings. Now rank them:",
+    "noteType": "info"
+  },
+  {
+    "title": "Chained audit with plan generation",
+    "cmd": "/wbAudit packages/wb-core --act --wbPlan",
+    "logs": [
+      {
+        "text": "[CHAIN 1/3] /wbAudit... audit_wb-core_20260505.md created.",
+        "type": "gen"
+      },
+      {
+        "text": "[CHAIN 2/3] /wbActOn... action_wb-core_20260505.md created.",
+        "type": "gen"
+      },
+      {
+        "text": "[CHAIN 3/3] --wbPlan... Extracting \ud83d\udd35 findings...",
+        "type": "gen"
+      },
+      {
+        "text": "# Plan \u2014 wb-core (recommended by the AI agent)",
+        "type": "gen"
+      },
+      {
+        "text": "## Plan \u00a71 \u2014 dist-folder mismatch resolution",
+        "type": "sys"
+      },
+      {
+        "text": "| Task # | Task | Worker Model | Validator Model | \u2610 Done | \u2610 Valid |",
+        "type": "sys"
+      },
+      {
+        "text": "|---|---|---|---|---|---|",
+        "type": "sys"
+      },
+      {
+        "text": "| 1 | Audit current dist/ structure | the agent 4 | the agent Flash | \u2b1c | \u2b1c |",
+        "type": "sys"
+      },
+      {
+        "text": "| 2 | Align package.json \"files\" field | the agent 4 | the agent 4 | \u2b1c | \u2b1c |",
+        "type": "sys"
+      },
+      {
+        "text": "| 3 | Verify CDN consumers post-fix | the agent Flash | the agent 4 | \u2b1c | \u2b1c |",
+        "type": "sys"
+      }
+    ],
+    "note": "The full chain: audit \u2192 triage \u2192 plan, in one invocation:",
+    "noteType": "info"
+  },
+  {
+    "title": "Multi-model Smart Merge",
+    "cmd": "/wbActOn audit_wb-core_20260505.md",
+    "logs": [
+      {
+        "text": "(run by the AI agent, 4 hours after the AI agent)",
+        "type": "gen"
+      },
+      {
+        "text": "[SYSTEM] action_wb-core_20260505.md already exists (Entry #1 by the AI agent).",
+        "type": "sys"
+      },
+      {
+        "text": "[MERGE] Reading existing entries...",
+        "type": "gen"
+      },
+      {
+        "text": "[MERGE] Matching findings:",
+        "type": "gen"
+      },
+      {
+        "text": "- \"tierEnforcement.js bypass\" \u2192 match (same file, same function)",
+        "type": "gen"
+      },
+      {
+        "text": "- \"dist-folder mismatch\" \u2192 match (same package ref)",
+        "type": "gen"
+      },
+      {
+        "text": "- \"apiResponse_ cache scope\" \u2192 match (token overlap 85%)",
+        "type": "gen"
+      },
+      {
+        "text": "- NEW: \"docs edition gap\" \u2192 no match, adding.",
+        "type": "gen"
+      },
+      {
+        "text": "[CONSENSUS TABLE]",
+        "type": "gen"
+      },
+      {
+        "text": "| # | Finding | Confidence | Models | Consensus Color |",
+        "type": "sys"
+      },
+      {
+        "text": "|---|---|---|---|---|",
+        "type": "sys"
+      },
+      {
+        "text": "| 1 | tierEnforcement.js bypass | \ud83d\udfe2 2/2 | the AI agent, the AI agent | \ud83d\udd34 |",
+        "type": "sys"
+      },
+      {
+        "text": "| 2 | dist-folder mismatch | \ud83d\udfe1 1/2 | the agent: \ud83d\udd35, the agent: \ud83d\udfe1 | \ud83d\udd35 (more actionable wins) |",
+        "type": "sys"
+      },
+      {
+        "text": "| 3 | docs edition gap | \u2014 | the agent only | \ud83d\udfe2 |",
+        "type": "sys"
+      },
+      {
+        "text": "> *Merged by the AI agent \u2014 18:30 \u2014 3 duplicates enriched, 1 new finding added*",
+        "type": "gen"
+      }
+    ],
+    "note": "Two models triage the same source. The second model's run triggers Smart Merge:",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbActOn" titleSuffix="Exhaustive Simulation" :pipelines="wbActOnSimPipelines" />
+
+
+### 💠 Pipeline Post-audit triage on wb-core
+
+The canonical use case. `/wbAudit` produced 23 findings. Now rank them:
+
+
+### 💠 Pipeline Chained audit with plan generation
+
+The full chain: audit → triage → plan, in one invocation:
+
+
+### 💠 Pipeline Multi-model Smart Merge
+
+Two models triage the same source. The second model's run triggers Smart Merge:
+
+---
+
+## 6. Edge cases & refusals
+
+| Trigger | What `/wbActOn` does |
+|---|---|
+| Source has no structure (free-form notes) | Halt. `❌ Cannot triage unstructured content. Fix the source — /wbActOn needs sections, tables, or numbered items.` |
+| Source has no actionable findings (pure state report) | §0 says: `ℹ️ No actions — this is a state snapshot. Use it as input to a future command.` |
+| `--wbPlan` but zero 🔵 findings | `ℹ️ No multi-step findings to plan. All actions are inline (🟢) or immediate (🔴/🟡).` |
+| Callout says "you should refactor this" without the command | Self-correction: always include the exact prompt or `/wb*` command. A callout without a pasteable command violates the hard rules. |
+| Source explicitly says something is working and shouldn't be touched | "What I would NOT touch" section lists it. Prevents reactive over-refactoring. |
+| `/wbActOn plan_wb-core_20260504.md --wbPlan` | `❌ Error: source is already a plan. Use --act alone to re-rank it.` |
+
+The unifying principle: **`/wbActOn` is the theory-to-practice bridge.** It takes a diagnostic document and produces an execution order. It never invents findings, never modifies the source, always justifies the rank, and always states which model should do the work. The user acts on the output — the triage officer just sets the priorities.

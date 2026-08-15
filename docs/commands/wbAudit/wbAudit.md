@@ -1,3 +1,8 @@
+---
+title: "wbAudit — Deep code-based technical audit"
+description: "## Overview"
+---
+
 # /wbAudit — Deep code-based technical audit
 
 ## Overview
@@ -24,10 +29,6 @@
 - ❌ Does not fix any issues — it only describes reality.
 - ❌ Does not run tests — use `/wbTest` for runtime verification.
 - ❌ Does not check security adversarially — use `/wbSecure`.
-
-## 🔗 Sister Edition
-
-> The [Claude edition (`flow.wbc-ui.com`)](../../../../apps/wb-flow/flow.wbc-ui.com/src/commands/wbAudit/) <!-- [CROSS-EDITION] Phase=A --> covers the same command in a self-help, opinionated register.
 
 ## What's Next?
 
@@ -69,17 +70,22 @@ If `context.md` contains an open architectural decision, the audit surfaces it (
 
 Default LLM agreeableness produces audits that say "looks good, minor issues." This is always wrong for non-trivial packages. The template includes a counter-prompt: *"Assume a paying customer who hates this codebase is about to file a bug report."*
 
-## Key Options
+## Flags & Shortcuts
 
-| Flag | Description |
+Both forms are equivalent — pass either:
+| Long form | Shortcut |
 |---|---|
-| `--profile` / `-p` | Performance profile — reads runtime data, not just code |
-| `--scope` / `-s` | Scoped audit — limit to a specific area (e.g., `--scope=README`) |
-| `--security` / `-S` | Adversarial security check — deeper than default |
-| `--act` / `-a` | After audit, run the /wbActOn engine to triage findings |
-| `--wbPlan` / `-P` | After audit, generate a plan from findings |
-| `--ideas` / `-I` | Route P3 findings to idea pipeline instead of discarding |
-| `--help` / `-h` | Print help block |
+| `--profile` | `-p` |
+| `--scope` | `-s` |
+| `--security` | `-S` |
+| `--act` | `-a` |
+| `--wbPlan` | `-P` |
+| `--ideas` | `-I` | Routes P3/cosmetic findings as ideas to `idea_*.md` instead of discarding them. |
+| `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
+| `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
+
+`-h` / `--help` / `--h` (any command) prints this help block instead of executing.
+
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

@@ -1,5 +1,7 @@
 # /wbHelp: Catalog & Per-Command Help
 
+> Conforms to output_conventions v1.12 · template v1.0
+
 `/wbHelp` is a META-command. It does NOT generate a report. It prints help text and stops.
 
 ---
@@ -62,7 +64,7 @@ Inspect `$ARGUMENTS` and pick exactly one mode:
 ---
 
 **Need details on one command?** Run `/wbHelp <command>` (or `/<command> -h`).
-**Model picks per command:** see [`flow.wbc-ui.com/concepts/model_recommendations_claude.md`](../../../../../apps/wb-flow/flow.wbc-ui.com/concepts/model_recommendations_claude.md).
+**Model picks per command:** see [`model_recommendations.md`](../model_recommendations.md).
 ```
 
 4. The `#` column uses the catalog's natural order (1, 2, 3 …) — read the JSON keys in their order of appearance and number sequentially. Don't invent positional numbers.
@@ -96,6 +98,6 @@ This is functionally identical to running `/<target> -h`. Same content, differen
 
 ## When `/wbHelp` is the wrong command
 
-- You want the model-pick recommendations → `model_recommendations_claude.md`, not here.
+- You want the model-pick recommendations → `model_recommendations.md`, not here.
 - You want to actually execute a command → drop the `wbHelp` prefix, just run `/wbX <args>`.
-- You want the full prose docs → `docs_claude/commands/<wbX>/<wbX>_practical_claude.md`.
+- You want the full prose docs → `https://flow.wbc-ui.com/commands/<wbX>/<wbX>_practical`.

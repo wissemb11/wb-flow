@@ -1,6 +1,6 @@
 {
   "name": "wb-flow",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Zero-dependency CLI that bootstraps an agentic AI workflow system into any repo. Universal — works with Vue, React, Python, or any codebase. Compatible with Claude Code, OpenCode, Gemini CLI, Cursor, and other AI coding assistants.",
   "bin": {
     "wb-flow": "./bin/install.js"
@@ -11,11 +11,14 @@
     "assets/demo.gif",
     "README.md",
     "LICENSE",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "!templates/commands/model_reference_manual.md",
+    "!bin/gen_cli_matrix.js"
   ],
   "scripts": {
-    "test": "node test/smoke.js && node bin/verify-wrappers.js",
-    "prepublishOnly": "npm test"
+    "test": "node bin/gen_cli_matrix.js --check && node test/model_routing.js && node test/probe_targets.js && node test/roster_freshness.js && node test/probe_defaults.js && node test/wave_modules.js && node test/smoke.js && node test/wave_gates.js && node test/watch.js && node test/archive.js && node test/docs_repair_invariants.js && node bin/verify-wrappers.js && node bin/verify-roster.js",
+    "test:coverage": "c8 --reporter=text npm test",
+    "prepublishOnly": "npm test && node bin/verify-roster.js"
   },
   "keywords": [
     "ai",
@@ -27,12 +30,16 @@
     "gemini",
     "opencode",
     "cursor",
+    "cursor-rules",
     "cli",
     "sop",
     "developer-tools",
     "templates",
     "scaffolding",
-    "zero-dependency"
+    "zero-dependency",
+    "prompt-engineering",
+    "ai-coding",
+    "llm-cli"
   ],
   "repository": {
     "type": "git",
@@ -52,5 +59,8 @@
     "url": "https://github.com/wissemb11"
   },
   "license": "MIT",
-  "type": "commonjs"
+  "type": "commonjs",
+  "devDependencies": {
+    "c8": "^10.1.2"
+  }
 }

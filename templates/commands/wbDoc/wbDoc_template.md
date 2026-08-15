@@ -1,5 +1,7 @@
 # /wbDoc: Execution Template
 
+> Conforms to output_conventions v1.12 · template v1.0
+
 
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
@@ -61,7 +63,7 @@ After `/wbDoc`, check that `context.md` API section matches what you just docume
 - Understanding how something works → read the code or `/wbContext --focus=<x>`.
 - Writing user-facing marketing copy → `/wbBroadcast`, not `/wbDoc`.
 
-> For deeper reading: [`docs_claude/commands/wbDoc/wbDoc_practical_claude.md`](../../docs/docs_claude/commands/wbDoc/wbDoc_practical_claude.md) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+> For deeper reading: [`wbDoc_practical.md`](https://flow.wbc-ui.com/commands/wbDoc/wbDoc_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
 
 <!-- FLAGS_TABLE_START -->
 ## Flags & shortcuts
@@ -71,6 +73,8 @@ Both forms are equivalent — pass either:
 | Long form | Shortcut |
 |---|---|
 | `--focus` | `-f` |
+| `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
+| `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
 
 `-h` / `--help` / `--h` (any command) prints this help block instead of executing.
 ## Self-correct mode (dual-mode invocation)
@@ -81,6 +85,7 @@ Both forms are equivalent — pass either:
 ```
 
 When the first arg is an existing output file from a prior `/wbDoc` run (detected by its first H1 — see this template's **Detection** section), the command runs in **verify-and-repair** mode: gap-fills missing fields, normalizes links, ticks done/valid checkboxes whose reports exist, never rewrites authored content. See [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §3.
+
 
 <!-- FLAGS_TABLE_END -->
 <!-- HELP_GATE_END -->

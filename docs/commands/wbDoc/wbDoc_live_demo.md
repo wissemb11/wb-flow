@@ -1,84 +1,264 @@
-# wb-flow Protocol: /wbDoc Live Workspace Demo
+# /wbDoc — Live Demo ()
 
-This document is the **Real-Time Execution Log** of the `/wbDoc` command. It applies the exact structural matrix from the Exhaustive Simulation to the *current, live state* of the `wb-labs` workspace as of 2026-05-04.
+This is what `/wbDoc` actually does on `wb-labs` as the workspace stands today (2026-05-05). The matrix below mirrors the [exhaustive simulation](./wbDoc_exhaustive_simulation), but every cell is filled from the *live* state of the repo.
 
 ---
 
-## 1. Role & Definition Matrix (Live Application)
-**Target:** `wb-labs/frontEnd/wbc-ui/core2/packages/wb-core`
-**Live State Evaluated:** 
-*   Active Directory: `packages/wb-core`
-*   Status: `WBC.js` lacks comprehensive JSDoc strings for its massive monolith structure. `src/utils/` files are undocumented.
+<CommandLiveDemoAnimation command="wbDoc" />
 
-| Scenario | Live System Behavior (wb-labs) |
+## 1. Live target
+
+| Field | Live value |
 |---|---|
-| Target is Logic File | **[ACTIVE]** System is primed to inject JSDoc into `WBC.js` and `tierEnforcement.js`. |
-| Target is Directory | **[ACTIVE]** Ready to aggregate exported types to generate `wb-core/README.md`. |
-| Target is API Route | **[INACTIVE]** `wb-core` does not contain Express/Fastify routes for Swagger generation. |
+| Target package | `core2/packages/wb-core` |
+| Key files needing docs | `src/WBC.js` (1200-line monolith — pre-decomposition), `src/tierEnforcement.js`, `src/renderString.js` |
+| Existing JSDoc coverage | Partial — `tierEnforcement.js` has outdated `@param` names from a rename |
+| README.md status | Exists but references the pre-decomposition file structure |
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix (Live Application)
-| Argument Type | Input Executed | Live Parsed State (wb-labs) | Live Output Generation |
-|---|---|---|---|
-| Specific Logic File | `Command: /wbDoc src/tierEnforcement.js` | Locks onto file. | `[PROCEED] Injecting JSDoc above JWT validation methods.` |
-| Directory Path | `Command: /wbDoc .` | Analyzes `wb-core` exports. | `[PROCEED] Rewriting packages/wb-core/README.md with active types.` |
-| Comma-Separated | `Command: /wbDoc src/WBC.js,src/utils/renderString.js` | Correlates both files. | `[PROCEED] Documenting monolith and utility cross-references.` |
-| Wildcard Glob | `Command: /wbDoc src/**/*.js` | Sweeps all 14 files. | `[PROCEED] Massive JSDoc boilerplate injection.` |
+## 2. What each argument resolves to today
+
+| Argument | Live resolution |
+|---|---|
+| `/wbDoc core2/packages/wb-core/src/tierEnforcement.js` | Injects/updates JSDoc for 3 exported functions. Fixes stale `userId` → `uuid` param. |
+| `/wbDoc core2/packages/wb-core` | Updates `README.md` to reflect current exports. |
+| `/wbDoc core2/packages/wb-core/src/WBC.js -S` | Sync: detects 5 functions with outdated JSDoc, updates params without touching descriptions. |
+| `/wbDoc core2/packages/wb-core/src/*.js -s` | Strict: would fail on `renderString.js` (missing `@returns` on `escapeHTML`). |
 
 ---
 
-## 3. Flag Processing Matrix (Isolated Live Runs)
+## 3. Per-flag behavior, applied live
 
-| Flag | Live Executed Command | Live Output Impact |
-|---|---|---|
-| `--format="<type>"`| `Command: /wbDoc src/ -f="readme"` | `[FORMAT] Skipping JSDoc injection. Outputting only README.md.` |
-| `--strict` | `Command: /wbDoc src/utils/renderString.js -s` | `[STRICT] Failed. regex match output type is loosely defined.` |
-| `--dry-run` | `Command: /wbDoc src/WBC.js -d` | `[DRY-RUN] Proposed 150 lines of JSDoc. Disk untouched.` |
-| `--sync` | `Command: /wbDoc src/tierEnforcement.js -S` | `[SYNC] JSDoc matches AST perfectly. No changes made.` |
-
----
-
-## 4. Omni-Channel Execution Pipeline (Live Chaining)
-
-### 💠 The "Massive Directory Documentation" (`src/**/*.js -f="readme" -S`)
-**Live Context:** A developer wants to update the `wb-core` `README.md` to reflect the new JWT and Regex logic without touching the actual source code files.
-**Command Executed:** `/wbDoc src/**/*.js -f="readme" -S`
-**Live Output:**
-```text
-> Command: /wbDoc src/**/*.js -f="readme" -S
-
-[SYSTEM] Initiating Directory Documentation Sync...
-[AST] Parsed exports for 14 files in wb-core.
-[FORMAT] Engaging Markdown extraction matrix.
-[SYNC] Detected 2 new exports (JWT, renderString).
-[SUCCESS] Updated packages/wb-core/README.md with new API table.
-```
-
-### 💠 The "Strict Boilerplate Injector" (`src/utils/*.js -f="jsdoc" -s`)
-**Live Context:** Running this *right now* to ensure the utilities folder meets the team's strict TypeScript/JSDoc standards before a PR merge.
-**Command Executed:** `/wbDoc src/utils/*.js -f="jsdoc" -s`
-**Live Output:**
-```text
-> Command: /wbDoc src/utils/*.js -f="jsdoc" -s
-
-[SYSTEM] Scanning utility files in wb-core for missing JSDoc...
-[FORMAT] Injecting JSDoc boilerplate into renderString.js...
-[STRICT] Analyzing type inferences...
-[ERROR] Strict Mode Failed in renderString.js line 45.
-[REMEDY] AST cannot confidently infer return type of custom regex wrapper. Explicit cast required.
-```
+| Flag | If invoked now |
+|---|---|
+| `/wbDoc src/tierEnforcement.js` | Overwrites existing JSDoc with fresh AST-derived blocks. |
+| `/wbDoc src/tierEnforcement.js -S` | Sync: updates only changed params. Preserves hand-written `@description`. |
+| `/wbDoc src/*.js -s` | `❌ Strict failed: renderString.js:escapeHTML() lacks @returns.` |
+| `/wbDoc src/*.js -d` | Dry-run: previews all JSDoc changes without writing. |
+| `/wbDoc packages/wb-core -f="readme"` | Forces README generation even though the directory has `.js` files. |
 
 ---
 
-## 5. Operational Edge Cases (Live Workspace Check)
+## 4. Pipelines
 
-| Fault Trigger | Live System State | Live Resolution |
-|---|---|---|
-| Comment Collision | **[PASS]** Legacy `WBC.js` comments detected. | `-S` flag triggers safe merge instead of overwrite. |
-| Unparseable Logic | **[PASS]** `wb-core` uses standard ES6 modules. No dynamic `eval()` detected. | AST parses cleanly. |
-| Bad Format | **[TRIGGERED]** If user attempts `-f="swagger"` on `wb-core`. | `⚠️ Warning: No HTTP routes detected. Swagger generation aborted.` |
+<script setup>
+const wbDocPipelines = [
+  {
+    "title": "Document the post-decomposition modules",
+    "cmd": "/wbDoc core2/packages/wb-core/src/WBC.core.js,src/WBC.events.js",
+    "logs": [
+      {
+        "text": "[SYSTEM] Targeting 2 files.",
+        "type": "sys"
+      },
+      {
+        "text": "[AST] WBC.core.js: initWBC(), configureRuntime(), getWBCVersion(), WBCInstance class.",
+        "type": "gen"
+      },
+      {
+        "text": "[AST] WBC.events.js: delegateEvent(), removeDelegate(), getEventDelegates().",
+        "type": "gen"
+      },
+      {
+        "text": "[INJECT] WBC.core.js \u2014 4 JSDoc blocks:",
+        "type": "gen"
+      },
+      {
+        "text": "/**",
+        "type": "gen"
+      },
+      {
+        "text": "* Initializes the WBC runtime. Called once per page load.",
+        "type": "gen"
+      },
+      {
+        "text": "* @param {WBCConfig} config",
+        "type": "gen"
+      },
+      {
+        "text": "* @returns {WBCInstance}",
+        "type": "gen"
+      },
+      {
+        "text": "*/",
+        "type": "gen"
+      },
+      {
+        "text": "export function initWBC(config) { ... }",
+        "type": "gen"
+      },
+      {
+        "text": "[INJECT] WBC.events.js \u2014 3 JSDoc blocks.",
+        "type": "gen"
+      },
+      {
+        "text": "[CROSS-LINK] Shared type WBCInstance referenced in both files.",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] 7 functions documented across 2 files.",
+        "type": "ok"
+      }
+    ],
+    "note": "After row 3 (WBC.js decomposition) is complete, the new modules need documentation:",
+    "noteType": "info"
+  },
+  {
+    "title": "Sync stale docs after a rename",
+    "cmd": "/wbDoc core2/packages/wb-core/src/tierEnforcement.js -S",
+    "logs": [
+      {
+        "text": "[SYSTEM] Sync mode: comparing JSDoc vs AST.",
+        "type": "sys"
+      },
+      {
+        "text": "[DIFF]",
+        "type": "gen"
+      },
+      {
+        "text": "validateJWT():",
+        "type": "gen"
+      },
+      {
+        "text": "@param userId \u2192 @param uuid (renamed in code)",
+        "type": "gen"
+      },
+      {
+        "text": "@description preserved: \"Validates JWT token integrity...\"",
+        "type": "gen"
+      },
+      {
+        "text": "enforceTokenScope():",
+        "type": "gen"
+      },
+      {
+        "text": "No changes \u2014 JSDoc matches AST.",
+        "type": "gen"
+      },
+      {
+        "text": "checkAlgorithm():",
+        "type": "gen"
+      },
+      {
+        "text": "NEW function \u2014 no JSDoc exists. Injecting fresh block.",
+        "type": "gen"
+      },
+      {
+        "text": "[SYNC] 2 changes:",
+        "type": "gen"
+      },
+      {
+        "text": "1. validateJWT() @param renamed",
+        "type": "gen"
+      },
+      {
+        "text": "2. checkAlgorithm() JSDoc block added",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Existing descriptions preserved. Only structural changes applied.",
+        "type": "ok"
+      }
+    ],
+    "note": "The `tierEnforcement.js` file had a parameter rename (`userId` \u2192 `uuid`) but the JSDoc wasn't updated:",
+    "noteType": "info"
+  },
+  {
+    "title": "README generation for the package",
+    "cmd": "/wbDoc core2/packages/wb-core -f=\"readme\"",
+    "logs": [
+      {
+        "text": "[SYSTEM] Generating README.md from package exports.",
+        "type": "sys"
+      },
+      {
+        "text": "[READ] package.json: name=\"@wbc-ui2/wb-core\", version, main, exports.",
+        "type": "gen"
+      },
+      {
+        "text": "[READ] src/index.js: re-exports from WBC.core.js, WBC.events.js, tierEnforcement.js, renderString.js.",
+        "type": "gen"
+      },
+      {
+        "text": "# @wbc-ui2/wb-core",
+        "type": "gen"
+      },
+      {
+        "text": "> Core runtime library for the wbc-ui2 ecosystem.",
+        "type": "gen"
+      },
+      {
+        "text": "## Exports",
+        "type": "sys"
+      },
+      {
+        "text": "| Module | Functions | Purpose |",
+        "type": "gen"
+      },
+      {
+        "text": "|---|---|---|",
+        "type": "gen"
+      },
+      {
+        "text": "| WBC.core | initWBC, configureRuntime, getWBCVersion | Runtime initialization |",
+        "type": "gen"
+      },
+      {
+        "text": "| WBC.events | delegateEvent, removeDelegate | Event delegation layer |",
+        "type": "gen"
+      },
+      {
+        "text": "| tierEnforcement | validateJWT, enforceTokenScope, checkAlgorithm | Access control |",
+        "type": "gen"
+      },
+      {
+        "text": "| renderString | escapeHTML, renderTemplate | Template rendering |",
+        "type": "gen"
+      },
+      {
+        "text": "## Usage",
+        "type": "sys"
+      },
+      {
+        "text": "...",
+        "type": "gen"
+      },
+      {
+        "text": "[WROTE] core2/packages/wb-core/README.md (updated)",
+        "type": "gen"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbDoc" :pipelines="wbDocPipelines" />
+
+
+### 💠 Pipeline Document the post-decomposition modules
+
+After row 3 (WBC.js decomposition) is complete, the new modules need documentation:
+
+
+### 💠 Pipeline Sync stale docs after a rename
+
+The `tierEnforcement.js` file had a parameter rename (`userId` → `uuid`) but the JSDoc wasn't updated:
+
+
+### 💠 Pipeline README generation for the package
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 5. What would refuse today
+
+| Trigger | Live response |
+|---|---|
+| `/wbDoc package.json` | `⚠️ Cannot inject comments into JSON. Skipping.` |
+| `/wbDoc src/*.js -s` | `❌ Strict failed. renderString.js:escapeHTML() has implicit return type.` |
+| `/wbDoc src/WBC.js -f="swagger"` | `⚠️ WBC.js is not an API route file. Swagger format requires express/fastify routes. Falling back to jsdoc.` |
+| `/wbDoc src/legacy/eval_loader.js` | `❌ AST cannot resolve dynamic exports (eval detected). Manual docs required.` |
+
+The pattern: `/wbDoc` writes documentation **with the code's permission** — it reads the AST, respects what it finds, and injects or generates accordingly. It never guesses types, never hallucinates exports, and never modifies execution logic.

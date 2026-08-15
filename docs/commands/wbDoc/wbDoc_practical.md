@@ -1,72 +1,62 @@
-# wbDoc — Practical Walkthrough
+# /wbDoc — Practical
 
-> How to generate and update project documentation.
+## Two forms
 
----
-
-## 1. Generate a README
-
-```bash
-/wbDoc packages/my-lib
+```
+/wbDoc <file> # JSDoc on functions + inline comments
+/wbDoc <folder> # README + JSDoc across the folder
 ```
 
-```text
-[AI] Reading package.json...
-[AI] Scanning src/ (12 exports found)...
-[AI]
-[AI] Generated: README.md
-[AI]   - Installation section
-[AI]   - Usage examples (3)
-[AI]   - API reference (12 functions)
-[AI]   - Development scripts
-```
+## When to run
 
----
+- Before `/wbRelease` + `/wbPublish` — so npm users get current docs.
+- When adding a new public export (document it immediately, before consumers depend on undocumented behavior).
+- When `/wbAudit` flags missing JSDoc.
+- Monthly-ish on actively-edited packages — docs drift fast.
 
-## 2. Generate API Documentation
+## When *not* to run
 
-```bash
-/wbDoc packages/my-lib --type=api
-```
+- On a file that `/wbAudit` flagged for refactor — docs will be stale in a week.
+- On internal helpers that aren't exported — documenting private is noise.
+- On boilerplate — `package.json`, `vite.config.js`, etc. don't need generated docs.
 
-Creates `API.md` with detailed function signatures, parameters, return types, and usage examples.
+## What good output looks like
 
----
+- JSDoc with `@param`, `@returns`, `@example`, and `@remarks` for gotchas.
+- Examples drawn from actual call sites, not invented.
+- Explicit mention of open architectural decisions when relevant.
+- Conventions from `dev.md` surfaced in the README (the `:wbCode="false"` rule, the `apiResponse_` cache, the `__WBC_PRO__` gate).
 
-## 3. Update Existing README
+## What bad output looks like
 
-```bash
-/wbDoc packages/my-lib   # README.md already exists
-```
+- "This function takes a parameter" — restatement.
+- "Use this carefully" — vague warning without specifics.
+- Invented examples that don't match any real usage.
+- Examples missing the `:wbCode="false"` you always apply.
 
-```text
-[AI] Updating README.md...
-[AI]   ✓ Preserved: badges, description
-[AI]   ✓ Updated: API section (2 new exports)
-[AI]   ✓ Updated: Installation (new peer dep)
-```
+If you see any of these, re-prompt: *"ground examples in actual call sites. Name the project-specific conventions. Drop generic prose."*
 
----
+## The context.md sync
 
-## 4. After New Features
+After `/wbDoc`, check that `context.md` API section matches what you just documented. If they disagree, pick one and fix the other — they should always agree.
 
-```bash
-/wbWork plan_*.md --task=5      # implement feature
-/wbDoc packages/my-lib          # update docs
-/wbGit .                        # commit both
-```
+## When /wbDoc is the wrong command
 
----
+- Code review → `/wbAudit`.
+- Finding dead code → `/wbClean`.
+- Understanding how something works → read the code or `/wbContext --focus=<x>`.
+- Writing user-facing marketing copy → `/wbBroadcast`, not `/wbDoc`.
 
-## 5. Common Patterns
+<!-- FLAGS_SHORTCUTS_START -->
+## Flags & shortcuts
 
-| Pattern | Command |
+Long-form and short-form are equivalent — `/wbDoc --execute` and `/wbDoc -e` produce the same behavior.
+
+| Long form | Shortcut |
 |---|---|
-| New project README | `/wbDoc .` |
-| API reference | `/wbDoc . --type=api` |
-| Update after changes | `/wbDoc .` (preserves manual edits) |
-| Usage guide | `/wbDoc . --type=usage` |
+| `--focus` | `-f` |
+
+`-h`, `--h`, and `--help` are accepted on **every** `/wb*` command and print the manual instead of executing.
+<!-- FLAGS_SHORTCUTS_END -->
 
 ---
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

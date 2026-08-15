@@ -1,3 +1,7 @@
+---
+title: python-etl
+description: Minimal data-processing demo showing how /wb* commands work on a non-JavaScript stack.
+---
 # python-etl
 
 > A minimal data-processing demo showing how `/wb*` commands work on a non-JavaScript stack.
@@ -27,9 +31,9 @@ python etl.py
 
 | Command | Date | Output |
 |---|---|---|
-| `/wbSetup .` | 2026-05-12 | [setup_report](.wb/workflows/reports/2026/05/12/setup/setup_python-etl_20260512.md) |
-| `/wbAudit .` | 2026-05-12 | [audit_report](.wb/workflows/reports/2026/05/12/audits/audit_python-etl_20260512.md) |
-| `/wbPlan .` | 2026-05-12 | [plan](.wb/workflows/reports/2026/05/12/plans/plan_python-etl_20260512.md) |
+| `/wbSetup .` | 2026-05-12 | `setup_report` |
+| `/wbAudit .` | 2026-05-12 | `audit_report` |
+| `/wbPlan .` | 2026-05-12 | `plan` |
 
 
 ## Overview
@@ -48,4 +52,4 @@ For more examples, see the [my-new-app](../my-new-app/README.md) demo or the [de
 
 ---
 
-← [Demo Apps](../README.md) · [Home](../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+← [Demo Apps](../README.md) · [Home](../../README.md) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

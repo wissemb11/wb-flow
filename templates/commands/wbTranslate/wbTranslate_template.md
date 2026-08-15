@@ -1,5 +1,7 @@
 # /wbTranslate: Execution Template
 
+> Conforms to output_conventions v1.12 · template v1.0
+
 
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
@@ -68,7 +70,7 @@ If you don't speak FR/AR, defer to native speakers before shipping. AI translati
 - Server-rendered text → translate server-side.
 - A11y attributes (`aria-label` etc.) → these *are* user-facing; `/wbTranslate` should handle them. If it skips them, re-prompt.
 
-> For deeper reading: [`docs_claude/commands/wbTranslate/wbTranslate_practical_claude.md`](../../docs/docs_claude/commands/wbTranslate/wbTranslate_practical_claude.md) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+> For deeper reading: [`wbTranslate_practical.md`](https://flow.wbc-ui.com/commands/wbTranslate/wbTranslate_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
 
 <!-- FLAGS_TABLE_START -->
 ## Flags & shortcuts
@@ -78,8 +80,11 @@ Both forms are equivalent — pass either:
 | Long form | Shortcut |
 |---|---|
 | `--new-only` | `-n` |
+| `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
+| `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
 
 `-h` / `--help` / `--h` (any command) prints this help block instead of executing.
+
 <!-- FLAGS_TABLE_END -->
 <!-- HELP_GATE_END -->
 

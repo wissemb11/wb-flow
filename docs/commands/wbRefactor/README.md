@@ -1,54 +1,66 @@
+# /wbRefactor — Command Hub
 
-<!-- MERGED CONTENT FROM commands/wbRefactor/wbRefactor_examples.md -->
+`/wbRefactor` is the WB-Labs structural surgeon. It analyzes code structure and executes targeted improvements — extracting functions, splitting files, removing dead code, modernizing syntax — while preserving external behavior exactly. Unlike `/wbDebug` which fixes broken code, `/wbRefactor` improves working code without changing what it does.
 
-# wbRefactor — Canonical Examples
+## 🎯 Strategic Position
 
-Below are the optimal invocation patterns for `/wbRefactor`.
+`/wbRefactor` exists because the default failure mode of cleanup is "while I'm here" scope creep. The command enforces a strict contract: public signatures, error behavior, observable side effects, and performance characteristics are preserved; only internal structure changes. It should only run when an audit has flagged structural debt, tests exist and pass, and no debug reports are open on the target.
 
-### Refactors utils.js for performance.
+- **After an audit flags structural debt** — the audit-refactor-test-audit bracketing sequence.
+- **One file at a time** — entire package refactors in one go are dangerous. Split into file-level operations.
+- **In the polish phase** — not during feature work, not in response to a bug.
+
+## 🛠️ Operating Modes
+
+| Mode | Trigger | Output |
+|---|---|---|
+| **Refactor** | `/wbRefactor <file-or-folder>` | Structural transformation with a before/after comparison report |
+| **Self-correct** | `/wbRefactor <previous_output_file>` | Verifies and repairs a prior refactor report in place |
+
+## ✅ What a useful refactor report contains
+
+1. A **before/after comparison** — what structural changes were made, with file references.
+2. An explicit statement that the **external API remains identical** — props, emits, error behavior preserved.
+3. A list of **what was preserved** — public signatures, error behavior, side effects, performance.
+4. A list of **what was changed** — internal structure, naming, dead code, formatting.
+5. The **verification command** — typically `/wbTest <target>` to confirm tests still pass.
+
+## 🚫 What it cannot do
+
+| Not this | Use instead |
+|---|---|
+| Fix broken code or investigate bugs | [`/wbDebug`](../wbDebug/README.md) |
+| Add new features | Describe the feature directly |
+| Clean dead code without behavior context | [`/wbClean`](../wbClean/README.md) |
+| Rename a function used across the monorepo | [`/wbPlan`](../wbPlan/README.md) — coordinate the blast radius |
+| Convert Vuetify components to wbc-ui2 | [`/wbToWBC`](../wbToWBC/README.md) |
+
+## 📚 Reading Order
+
+1. **[ELI5](wbRefactor_eli5.md)** — the one-paragraph mental model.
+2. **[Practical](wbRefactor_practical.md)** — step-by-step on a real project.
+3. **[Expert](wbRefactor_expert.md)** — architecture, edge cases, and when NOT to use.
+4. **[Examples](wbRefactor_examples.md)** — annotated transcripts from actual sessions.
+5. **[Exhaustive simulation](wbRefactor_exhaustive_simulation.md)** · **[Live demo](wbRefactor_live_demo.md)**.
+
+## 🔗 Related
+
+- [`wbRefactor.md`](wbRefactor.md) — the command reference this hub orients you around.
+- [`/wbAudit`](../wbAudit/README.md) — the mandatory before-and-after gate for any refactor.
+- [`/wbDebug`](../wbDebug/README.md) — fix bugs; do not refactor buggy code.
+- [`/wbToWBC`](../wbToWBC/README.md) — specialized Vuetify-to-wbc-ui2 migration.
+- [`/wbTest`](../wbTest/README.md) — confirm behavior parity after refactor.
+- [`/wbNext`](../wbNext/README.md) — ranked next action after refactor.
+
+## Quick Reference
+
 ```bash
-/wbRefactor packages/wb-core/src/utils.js
+/wbRefactor <file-or-folder>                # restructure, preserve behavior
+
 ```
-
-### Analyzes a module with high-confidence threshold.
-```bash
-wbRefactor src/api/ --min-confidence 0.8
-```
-
-### Auto-applies safe refactorings.
-```bash
-wbRefactor src/ --auto-fix --safe-only
-```
-
-## Related Commands
-
-`wbRefactor` belongs to the **Workers** family. Sibling commands in this family:
-
-- **[WbWork](../wbWork/README.md)** — [WbWork Hub](../wbWork/README.md)
-- **[WbDoc](../wbDoc/README.md)** — [WbDoc Hub](../wbDoc/README.md)
-
-## See Also
-
-- [Commands Overview](../README.md#the-command-catalog)
-- [Concepts: Agentic Workflows](../../concepts/overview_agentic_workflows.md)
-- [Session Lifecycle](../../session_lifecycle/README.md)
-- [Start Here](../../start_here/README.md)
-
-
-## Common Workflow
-
-Run `wbRefactor`, review the plan, then `wbActOn plan.md` to apply changes.
-
-
-## Key Options
-
-Reports confidence scores per finding. Use `--auto-fix --safe-only` for automatic refactoring.
-
-- Use `--help` or `/wbHelp wbRefactor` for the full option reference
-- Combine with pipeline commands using `|` for multi-step workflows
 
 ---
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

@@ -1,23 +1,44 @@
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 const PKG_ROOT = path.resolve(__dirname, '..');
-// Note: we are currently executing inside frontEnd/wbc-ui/core2/packages/wb-flow/
-// The wrappers are 5 levels up in the project root.
-const MONOREPO_ROOT = path.resolve(PKG_ROOT, '..', '..', '..', '..', '..');
+
+function findMonorepoRoot(startDir) {
+  let current = startDir;
+  while (current !== path.dirname(current)) {
+    if (
+      fs.existsSync(path.join(current, '.claude', 'commands')) ||
+      fs.existsSync(path.join(current, '.git'))
+    ) {
+      return current;
+    }
+    current = path.dirname(current);
+  }
+  return null;
+}
+
+const MONOREPO_ROOT = findMonorepoRoot(PKG_ROOT);
+const HOME = os.homedir();
 
 const TEMPLATES_DIR = path.join(PKG_ROOT, 'templates', 'commands');
-const CLAUDE_DIR = path.join(MONOREPO_ROOT, '.claude', 'commands');
-const OPENCODE_DIR = path.join(MONOREPO_ROOT, '.config', 'opencode', 'command');
+
+const USER_CLAUDE = path.join(HOME, '.claude', 'commands');
+const USER_OPENCODE = path.join(HOME, '.config', 'opencode', 'command');
+const REPO_CLAUDE = MONOREPO_ROOT ? path.join(MONOREPO_ROOT, '.claude', 'commands') : null;
+const REPO_OPENCODE = MONOREPO_ROOT ? path.join(MONOREPO_ROOT, '.config', 'opencode', 'command') : null;
+
+const CLAUDE_DIR = fs.existsSync(USER_CLAUDE) ? USER_CLAUDE : REPO_CLAUDE;
+const OPENCODE_DIR = fs.existsSync(USER_OPENCODE) ? USER_OPENCODE : REPO_OPENCODE;
 
 if (!fs.existsSync(TEMPLATES_DIR)) {
   console.error('❌ Templates dir not found');
   process.exit(1);
 }
 
-if (!fs.existsSync(CLAUDE_DIR) || !fs.existsSync(OPENCODE_DIR)) {
-  console.log('⚠️ Skipping wrapper verification (running outside monorepo development environment).');
+if (!CLAUDE_DIR || !OPENCODE_DIR || !fs.existsSync(CLAUDE_DIR) || !fs.existsSync(OPENCODE_DIR)) {
+  console.log('⚠️ SKIPPED (not PASSED) — wrapper directories not found' + (MONOREPO_ROOT ? ' at ' + MONOREPO_ROOT + ' or ' + HOME : ' (no monorepo root or home dir found)') + '.');
   process.exit(0);
 }
 

@@ -1,85 +1,225 @@
-# wb-flow Protocol: /wbToWBC Live Workspace Demo
+# /wbToWBC — Live Demo ()
 
-This document is the **Real-Time Execution Log** of the `/wbToWBC` command. It applies the exact structural matrix from the Exhaustive Simulation to the *current, live state* of the `wb-labs` workspace as of 2026-05-04.
+This is what `/wbToWBC` actually does on `wb-labs` as the workspace stands today (2026-05-05). The matrix below mirrors the [exhaustive simulation](./wbToWBC_exhaustive_simulation), but every cell is filled from the *live* state of the repo.
 
 ---
 
-## 1. Role & Definition Matrix (Live Application)
-**Target:** `wb-labs/frontEnd/wbc-ui/core2/apps/wbc-ui.com`
-**Live State Evaluated:** 
-*   Active Directory: `apps/wbc-ui.com`
-*   Status: A junior developer pasted an open-source React component into `src/components/` that does not use the `@wbc-ui2/wb-core` libraries or proprietary tokens.
+<CommandLiveDemoAnimation command="wbToWBC" />
 
-| Scenario | Live System Behavior (wb-labs) |
+## 1. Live target
+
+| Field | Live value |
 |---|---|
-| Target is Generic Component | **[ACTIVE]** System is primed to translate `src/components/Widget.jsx` into the WBC architectural standard. |
-| Target is 3rd-Party Code | **[ACTIVE]** System will wrap the raw fetch logic with the proprietary data layer. |
-| Code is Already Compliant | **[INACTIVE]** Code is highly generic and requires translation. |
+| Target package | `core2/packages/wb-dataviewer` |
+| WBC core library | `@wbc-ui2/wb-core` — provides hooks, design tokens, tier enforcement |
+| Legacy code | `src/legacy/` — 6 files, partially migrated |
+| Design tokens | `var(--wbc-*)` system in wb-core, 42 token definitions |
+| Known blockers | Canvas API in `customCanvas.js`, native WebSocket in `socketHandler.js` |
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix (Live Application)
-| Argument Type | Input Executed | Live Parsed State (wb-labs) | Live Output Generation |
-|---|---|---|---|
-| Specific File Path | `Command: /wbToWBC src/components/Widget.jsx` | Locks onto specific file. | `[PROCEED] Transpiling generic React to WBC component.` |
-| Directory Path | `Command: /wbToWBC src/pages/` | Scans directory. | `[PROCEED] Mass-enforcing WBC tokens across all page views.` |
-| Comma-Separated | `Command: /wbToWBC src/Header.jsx,src/Footer.jsx` | Correlates files. | `[PROCEED] Migrating both layout files to the core2 standard.` |
-| Wildcard Glob | `Command: /wbToWBC src/**/*.css` | Sweeps all styles. | `[PROCEED] Stripping generic CSS; enforcing var(--wbc-*) tokens.` |
+## 2. What each argument resolves to today
+
+| Argument | Live resolution |
+|---|---|
+| `/wbToWBC packages/wb-dataviewer/src/legacy/ -d` | Dry-run: shows diff for 6 files, 4 fully migratable. |
+| `/wbToWBC packages/wb-dataviewer/src/**/*.css -c` | CSS-only: ~24 color/spacing replacements across 8 stylesheets. |
+| `/wbToWBC packages/wb-dataviewer/src/legacy/ -s` | Strict: would halt on Canvas API and WebSocket patterns. |
+| `/wbToWBC packages/wb-dataviewer/src/legacy/GenericDashboard.vue -h -c` | Full migration of one component. |
 
 ---
 
-## 3. Flag Processing Matrix (Isolated Live Runs)
+## 3. Pipelines on this exact workspace
 
-| Flag | Live Executed Command | Live Output Impact |
-|---|---|---|
-| `--css` | `Command: /wbToWBC src/Widget.jsx -c` | `[CSS] Replaced generic padding classes with 'wbc-p-4'.` |
-| `--hooks` | `Command: /wbToWBC src/Widget.jsx -h` | `[HOOKS] Swapped native fetch() with useWbcQuery().` |
-| `--dry-run` | `Command: /wbToWBC src/ -d` | `[DRY-RUN] Would rewrite 14 components. Disk untouched.` |
-| `--strict` | `Command: /wbToWBC src/legacy.jsx -s` | `[STRICT] Aborted. Legacy chart library has no WBC equivalent.` |
+<script setup>
+const wbToWBCPipelines = [
+  {
+    "title": "Migrate the dashboard component",
+    "cmd": "/wbToWBC core2/packages/wb-dataviewer/src/legacy/GenericDashboard.vue -h -c",
+    "logs": [
+      {
+        "text": "[SYSTEM] Full migration: hooks + CSS.",
+        "type": "sys"
+      },
+      {
+        "text": "[AST] 1 Vue component, 3 composables, 8 CSS rules.",
+        "type": "gen"
+      },
+      {
+        "text": "[CSS] 8 translations:",
+        "type": "gen"
+      },
+      {
+        "text": "#4CAF50 \u2192 var(--wbc-success)",
+        "type": "gen"
+      },
+      {
+        "text": "#F44336 \u2192 var(--wbc-error)",
+        "type": "gen"
+      },
+      {
+        "text": "24px \u2192 var(--wbc-spacing-lg)",
+        "type": "gen"
+      },
+      {
+        "text": "...",
+        "type": "gen"
+      },
+      {
+        "text": "[HOOKS]",
+        "type": "gen"
+      },
+      {
+        "text": "- import { ref, computed, onMounted } from 'vue'",
+        "type": "gen"
+      },
+      {
+        "text": "+ import { useWbcState, useWbcComputed, useWbcLifecycle } from '@wbc-ui2/wb-core'",
+        "type": "gen"
+      },
+      {
+        "text": "const items = ref([]) \u2192 const items = useWbcState([])",
+        "type": "gen"
+      },
+      {
+        "text": "const total = computed(() => ...) \u2192 const total = useWbcComputed(() => ...)",
+        "type": "gen"
+      },
+      {
+        "text": "onMounted(fetchData) \u2192 useWbcLifecycle('mount', fetchData)",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] GenericDashboard.vue migrated. Business logic unchanged.",
+        "type": "ok"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  },
+  {
+    "title": "CSS token sweep across wb-dataviewer",
+    "cmd": "/wbToWBC core2/packages/wb-dataviewer/src/**/*.css -c",
+    "logs": [
+      {
+        "text": "[SYSTEM] CSS-only sweep: 8 stylesheets.",
+        "type": "sys"
+      },
+      {
+        "text": "[REPORT]",
+        "type": "gen"
+      },
+      {
+        "text": "| File | Tokens Replaced | Examples |",
+        "type": "gen"
+      },
+      {
+        "text": "|---|---|---|",
+        "type": "gen"
+      },
+      {
+        "text": "| DataGrid.css | 6 | #FF0000\u2192var(--wbc-error), 8px\u2192var(--wbc-spacing-sm) |",
+        "type": "gen"
+      },
+      {
+        "text": "| ExportPanel.css | 4 | #2196F3\u2192var(--wbc-primary), 12px\u2192var(--wbc-spacing-md) |",
+        "type": "gen"
+      },
+      {
+        "text": "| ThemeToggle.css | 3 | #121212\u2192var(--wbc-bg-dark) |",
+        "type": "gen"
+      },
+      {
+        "text": "| apiResponse.css | 5 | border-radius:4px\u2192var(--wbc-radius-sm) |",
+        "type": "gen"
+      },
+      {
+        "text": "| ... | ... | ... |",
+        "type": "gen"
+      },
+      {
+        "text": "[SUMMARY] 24 replacements across 8 files. All hardcoded values now use WBC tokens.",
+        "type": "gen"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  },
+  {
+    "title": "Strict audit reveals migration blockers",
+    "cmd": "/wbToWBC core2/packages/wb-dataviewer/src/legacy/ -s -d",
+    "logs": [
+      {
+        "text": "[SYSTEM] Strict + dry-run on 6 files.",
+        "type": "sys"
+      },
+      {
+        "text": "[STRICT]",
+        "type": "gen"
+      },
+      {
+        "text": "\u2705 GenericDashboard.vue \u2014 fully migratable",
+        "type": "gen"
+      },
+      {
+        "text": "\u2705 FilterPanel.vue \u2014 fully migratable",
+        "type": "gen"
+      },
+      {
+        "text": "\u2705 DataTable.vue \u2014 fully migratable",
+        "type": "gen"
+      },
+      {
+        "text": "\u2705 SearchBar.vue \u2014 fully migratable",
+        "type": "gen"
+      },
+      {
+        "text": "\u274c customCanvas.js \u2014 Canvas API (no WBC equivalent)",
+        "type": "gen"
+      },
+      {
+        "text": "\u274c socketHandler.js \u2014 native WebSocket (WBC uses wbc-transport)",
+        "type": "gen"
+      },
+      {
+        "text": "[HALT] 4/6 files migratable. 2 require manual intervention.",
+        "type": "gen"
+      },
+      {
+        "text": "Suggestion: Migrate the 4 clean files first,",
+        "type": "gen"
+      },
+      {
+        "text": "then manually wrap Canvas and WebSocket with WBC compatibility layers.",
+        "type": "gen"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbToWBC" :pipelines="wbToWBCPipelines" />
+
+
+### 💠 Pipeline Migrate the dashboard component
+
+
+### 💠 Pipeline CSS token sweep across wb-dataviewer
+
+
+### 💠 Pipeline Strict audit reveals migration blockers
 
 ---
 
-## 4. Omni-Channel Execution Pipeline (Live Chaining)
+## 4. What would refuse today
 
-### 💠 The "Massive Component Migration" (`src/components/**/*.jsx -h -c`)
-**Live Context:** Running this *right now* to finalize a massive UI overhaul. We need to ensure every component in the consumer app adheres to the `wb-core` standards before merging.
-**Command Executed:** `/wbToWBC src/components/**/*.jsx -h -c`
-**Live Output:**
-```text
-> Command: /wbToWBC src/components/**/*.jsx -h -c
+| Trigger | Live response |
+|---|---|
+| `/wbToWBC src/WBC.js` | `ℹ️ WBC.js is already wb-core's own code. Nothing to migrate.` |
+| `/wbToWBC src/legacy/customCanvas.js -s` | `❌ Strict: Canvas API has no WBC equivalent. Manual migration required.` |
+| `/wbToWBC src/**/*.min.css -c` | `⚠️ Cannot parse minified CSS. Run a formatter first.` |
+| `/wbToWBC node_modules/**/*.js` | `❌ Cannot migrate third-party code. Migrate your source, not your dependencies.` |
 
-[SYSTEM] Initiating Massive WBC Architecture Migration...
-[IMPORTS] Parsing ASTs... Injecting `import { WbcButton } from '@wbc-ui2/wb-core'`.
-[HOOKS] Migrating native React state to WBC context layer.
-[CSS] Transpiling 42 raw hex colors to proprietary tokens.
-[SYNC] Rewriting ASTs...
-[SUCCESS] 8 generic components transformed into wbc-ui.com standards.
-```
-
-### 💠 The "Strict Architectural Audit" (`src/legacy/ -s -d`)
-**Live Context:** Checking if we can safely delete the old `legacy/` folder by migrating its contents, or if we are forced to keep it because the logic is too custom.
-**Command Executed:** `/wbToWBC src/legacy/ -s -d`
-**Live Output:**
-```text
-> Command: /wbToWBC src/legacy/ -s -d
-
-[SYSTEM] Executing Strict Architectural Audit...
-[DRY-RUN] Analyzing `src/legacy/oldDataGrid.jsx`...
-[STRICT] ALERT: Grid relies on deprecated jQuery bindings.
-[STRICT] Resolution: Cannot translate jQuery to WBC React standards autonomously.
-[SUCCESS] Dry-run complete. Automated migration blocked.
-```
-
----
-
-## 5. Operational Edge Cases (Live Workspace Check)
-
-| Fault Trigger | Live System State | Live Resolution |
-|---|---|---|
-| Unrecognized Pattern | **[PASS]** Only standard React patterns found in `Widget.jsx`. | Translation succeeds. |
-| Version Mismatch | **[PASS]** `wbc-ui.com` runs React 18. | WBC hooks inject safely. |
-| CSS Extraction Failure | **[PASS]** CSS files are unminified SCSS. | Token replacement succeeds. |
-
----
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+The pattern: **`/wbToWBC` migrates the framework layer to WBC conventions while guaranteeing behavior preservation.** It's the bridge from generic to proprietary — CSS tokens, ecosystem hooks, WBC imports — without touching the business logic that makes the component work.

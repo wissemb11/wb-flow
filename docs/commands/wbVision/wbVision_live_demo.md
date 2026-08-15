@@ -1,99 +1,107 @@
-# wb-flow Protocol: /wbVision Live Workspace Demo
+# /wbVision — Live Demo ()
 
-This document is the **Real-Time Execution Log** of the `/wbVision` command. It applies the exact structural matrix from the Exhaustive Simulation to the *current, live state* of the `wb-labs` workspace as of 2026-05-04.
+This is what `/wbVision` actually does on `wb-labs` as the workspace stands today (2026-05-05). The matrix below mirrors the [exhaustive simulation](./wbVision_exhaustive_simulation), but every cell is filled from the *live* state of the repo.
 
 ---
 
-## 1. Role & Definition Matrix (Live Application)
-**Target:** `wb-labs/frontEnd/wbc-ui/core2`
-**Live State Evaluated:** 
-*   Active Directory: `core2`
-*   Status: The developer wants to visualize how the consumer apps (`apps/wbc-ui.com`) interact with the internal dependencies (`packages/wb-core`).
+<CommandLiveDemoAnimation command="wbVision" />
 
-| Scenario | Live System Behavior (wb-labs) |
+## 1. Live target
+
+| Field | Live value |
 |---|---|
-| Target is Directory | **[ACTIVE]** System is primed to trace `import` statements across `core2`. |
-| Target is Database Schema | **[INACTIVE]** `core2` has no backend ORM (Prisma/TypeORM) files. |
-| Codebase Too Large | **[PASS]** The monorepo component count is manageable. Tracing can proceed. |
+| Target package | `core2/packages/wb-core` |
+| Source files | 18 JS files in `src/` (post WBC.js decomposition) |
+| Key modules | WBC.core.js, WBC.events.js, tierEnforcement.js, renderString.js |
+| Import graph | index.js re-exports all modules. core imports events + tier. |
+| Consumer apps | 3 apps import from wb-core: demo, md, wbc-ui |
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix (Live Application)
-| Argument Type | Input Executed | Live Parsed State (wb-labs) | Live Output Generation |
-|---|---|---|---|
-| Specific Logic File | `Command: /wbVision packages/wb-core/src/WBC.js` | Locks onto monolith. | `[PROCEED] Mapping internal flowchart of WBC class methods.` |
-| Directory Path | `Command: /wbVision apps/wbc-ui.com` | Analyzes consumer app. | `[PROCEED] Drawing component tree for main UI app.` |
-| Comma-Separated | `Command: /wbVision apps/demo,packages/wb-core` | Correlates scopes. | `[PROCEED] Generating boundary map between demo app and core lib.` |
-| Wildcard Glob | `Command: /wbVision packages/**/*.js` | Massive sweep. | `[PROCEED] Creating massive dependency graph for all local libraries.` |
+## 2. What each argument resolves to today
+
+| Argument | Live resolution |
+|---|---|
+| `/wbVision packages/wb-core/src/` | Dependency flowchart of 18 files, ~14 edges. Fits under 50-node limit. |
+| `/wbVision packages/wb-core/src/ -d="1"` | Top-level only: index.js → 4 direct imports. |
+| `/wbVision apps/demo.wbc-ui.com,packages/wb-core` | Cross-boundary: shows which wb-core exports demo actually uses. |
+| `/wbVision packages/wb-core/src/tierEnforcement.js -t="sequence"` | Auth flow sequence diagram: validateJWT → checkAlgorithm → enforceTokenScope. |
 
 ---
 
-## 3. Flag Processing Matrix (Isolated Live Runs)
+## 3. Pipelines on this exact workspace
 
-| Flag | Live Executed Command | Live Output Impact |
-|---|---|---|
-| `--type="<format>"`| `Command: /wbVision packages/wb-core -t="class"` | `[TYPE] Extracting class definitions from WBC.js and tierEnforcement.js.` |
-| `--output="<path>"`| `Command: /wbVision packages/ -o="architecture.md"` | `[OUTPUT] Appended Mermaid block to core2/architecture.md.` |
-| `--render` | `Command: /wbVision packages/wb-core -r` | `[RENDER] Failed. Headless Chrome not installed in local environment.` |
-| `--depth="<N>"` | `Command: /wbVision apps/ -d="2"` | `[DEPTH] Limiting trace to top-level app components and index pages.` |
+<script setup>
+const wbVisionPipelines = [
+  {
+    "title": "Post-decomposition architecture map",
+    "cmd": "/wbVision core2/packages/wb-core/src/ -d=\"2\" -o=\"reports/2026/05/05/vision/arch_wb-core_20260505.md\"",
+    "logs": [
+      {
+        "text": "[SYSTEM] Tracing imports (depth: 2)...",
+        "type": "sys"
+      },
+      {
+        "text": "[AST] 18 files. 14 import edges.",
+        "type": "gen"
+      }
+    ],
+    "note": "The WBC.js monolith was split into 3 modules. Verify the new structure:",
+    "noteType": "info"
+  },
+  {
+    "title": "Consumer boundary analysis",
+    "cmd": "/wbVision apps/demo.wbc-ui.com,packages/wb-core -t=\"flowchart\"",
+    "logs": [
+      {
+        "text": "[SYSTEM] Cross-boundary analysis...",
+        "type": "sys"
+      },
+      {
+        "text": "[AST] demo: 12 component files. wb-core: 18 source files.",
+        "type": "gen"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  },
+  {
+    "title": "Sequence diagram for the JWT flow",
+    "cmd": "/wbVision core2/packages/wb-core/src/tierEnforcement.js -t=\"sequence\"",
+    "logs": [
+      {
+        "text": "[SYSTEM] Sequence diagram for tierEnforcement.js...",
+        "type": "sys"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  }
+];
+</script>
 
----
+<LiveDemoAnimation command="wbVision" :pipelines="wbVisionPipelines" />
 
-## 4. Omni-Channel Execution Pipeline (Live Chaining)
 
-### 💠 The "Massive Monorepo Mapping" (`apps/,packages/ -t="flowchart" -o="docs/arch.md"`)
-**Live Context:** Running this *right now* to create a high-level dependency map of the `wb-labs` UI ecosystem for the new v4 README.
-**Command Executed:** `/wbVision apps/,packages/ -t="flowchart" -o="docs/arch.md"`
-**Live Output:**
-```text
-> Command: /wbVision apps/,packages/ -t="flowchart" -o="docs/arch.md"
+### 💠 Pipeline Post-decomposition architecture map
 
-[SYSTEM] Initiating Monorepo Architectural Map...
-[AST] Tracing imports across 4 apps and 4 packages...
-[AST] Found 142 discrete edges.
-[TYPE] Formatting as Mermaid Flowchart (TD).
-[OUTPUT] Writing graph markup to `docs/arch.md`.
-[SUCCESS] Architecture visualization generated.
-```
+The WBC.js monolith was split into 3 modules. Verify the new structure:
 
-### 💠 The "High-Level Monorepo ERD" (`packages/wb-core/src -t="sequence" -d="1"`)
-**Live Context:** A developer wants to see the exact execution sequence of what happens when `renderString` is called in `wb-core`.
-**Command Executed:** `/wbVision packages/wb-core/src -t="sequence" -d="1"`
-**Live Output:**
-```text
-> Command: /wbVision packages/wb-core/src -t="sequence" -d="1"
 
-[SYSTEM] Extracting Logic Sequence (Depth 1)...
-[AST] Tracing function calls from `renderString.js`...
-[TYPE] Generating Mermaid Sequence Diagram...
-[OUTPUT] 
-<div style="max-width:650px;margin:16px auto">
+### 💠 Pipeline Consumer boundary analysis
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant WBC
-    participant tierEnforcement
-    User->>WBC: call renderString(input)
-    WBC->>tierEnforcement: checkTier('pro')
-    tierEnforcement-->>WBC: true
-    WBC-->>User: Return Regex Sanitized String
-```
 
-</div>
-[SUCCESS] Sequence visualized.
-```
-
----
-
-## 5. Operational Edge Cases (Live Workspace Check)
-
-| Fault Trigger | Live System State | Live Resolution |
-|---|---|---|
-| Node Overload | **[PASS]** Passing `-d="1"` keeps the graph well under the 50-node limit. | Render succeeds. |
-| Render Failure | **[TRIGGERED]** User passes `-r` on minimal cloud VM. | `⚠️ Warning: Local SVG render failed. Outputting raw Markdown instead.` |
-| Unlinked Files | **[PASS]** `wb-core` exports are heavily intertwined. | Graph populated correctly. |
+### 💠 Pipeline Sequence diagram for the JWT flow
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 4. What would refuse today
+
+| Trigger | Live response |
+|---|---|
+| `/wbVision core2/` (entire monorepo) | `❌ Graph too complex (~200 nodes). Use --depth=1 or scope to a specific package.` |
+| `/wbVision packages/wb-core -t="er"` | `⚠️ No ORM models in wb-core. ER diagrams require Prisma/Mongoose schemas. Falling back to flowchart.` |
+| `/wbVision packages/wb-core -r` (render to SVG) | Depends on headless browser availability. If missing: `⚠️ SVG render failed. Outputting raw Mermaid markdown.` |
+| `/wbVision src/legacy/` where files don't import each other | `⚠️ 6 files, 0 import edges. Graph contains only orphaned nodes.` |
+
+The pattern: **`/wbVision` draws what the code declares — every edge is a real import statement.** The post-decomposition diagram above proves the architecture is clean because the graph shows it, not because someone claims it. Visual proof > verbal assurance.

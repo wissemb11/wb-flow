@@ -1,93 +1,323 @@
-# wb-flow Protocol: /wbTrack Execution & Simulation Specification
+# /wbTrack — Exhaustive Simulation ()
 
-This document defines the **exhaustive behavior matrix** for the `/wbTrack` command. It serves as the definitive reference for how the agent monitors session activity, writes to the `reports/YYYY/MM/DD` structure, and enforces the Smart Merge protocol.
+`/wbTrack` is a toggle, not a one-shot. It activates session tracking for the current model — from that point, every `/wb*` command produces its normal report **and** appends a §N narrative section to a universal daily session file. The design decision that matters most: all models share one file per day per scope. There are no `<model>/` subfolders.
+
+Read this if you want to know what "universal daily file" means in practice, why the tracks/reports split exists, and how the multi-model contribution model prevents collisions.
 
 ---
 
-## 1. Role & Definition Matrix
-**Role:** The Session Logger & Workflow Footprinter
-**Target:** Records daily AI interactions, completed tasks, and architectural decisions into the universal tracker.
-**Core Protocol:** Strict adherence to "Smart Merge". It must never overwrite an existing daily track file. It reads the existing file, deduplicates new findings, and intelligently appends them.
+## 1. Role & target
 
-| Scenario | System Behavior |
+| Aspect | Behavior |
 |---|---|
-| Target is Active Directory | **[PROCEED]** Analyzes git diffs, chat logs, and active plans to summarize recent activity. |
-| Target is Date Range | **[PROCEED]** Compiles historical track files into a macroscopic summary. |
-| Tracker Doesn't Exist | **[PROCEED]** Creates the missing `YYYY/MM/DD` folder structure and initializes `track_report.md`. |
+| **Role** | The Session Logger. Transforms scattered command outputs into a single-day narrative. |
+| **Target** | A package or the monorepo root — determines the scope of the session file. |
+| **Cell scope** | None. `/wbTrack` never touches plan cells, never writes reports. It owns `tracks/` exclusively. |
+| **Side effects allowed** | Creating the session file, appending §N sections, running `/wbStandup` as a sub-command for §0. |
+| **Side effects forbidden** | Modifying reports, editing plans, altering code, running tests. |
+
+The tracks/reports split is the core architectural decision. **Reports** are structured, machine-scannable outputs that `/wbStandup` and `/wbPlan` read. **Tracks** are human-readable narratives with commentary, model recommendations, and strategic analysis. The same `/wbTest` run produces a test report (in `reports/`) and a §N section (in `tracks/`) — two outputs, two audiences, zero overlap.
+
+Why not just add commentary to the report? Because reports need to be append-only and schema-stable for downstream consumers. Commentary is free-form and model-specific — it would pollute the scan surface.
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix
-`/wbTrack` relies on temporal logic to append and retrieve logs.
+## 2. The argument grammar
 
-| Argument Type | Example | Parsing Logic | Simulated Output Profile |
-|---|---|---|---|
-| No Argument | `Command: /wbTrack` | Defaults to today's date and current directory. | Appends the last 2 hours of work to today's track file. |
-| Specific Date | `Command: /wbTrack -d="2026-05-01"` | Locks onto a historical date. | Retrieves or retroactively writes to May 1st's track file. |
-| Directory Path | `Command: /wbTrack packages/wb-core` | Locks scope to the package. | Generates a package-specific track entry. |
-| Wildcard Glob | `Command: /wbTrack apps/*` | Aggregates logs across consumers. | Creates a massive multi-app daily summary. |
+`/wbTrack` accepts one optional positional argument: the scope.
 
----
-
-## 3. Flag Processing Matrix (Isolated Capabilities)
-
-| Flag | Shortcut | Purpose | Example | Simulated Output Impact |
-|---|---|---|---|---|
-| `--date="<YYYY-MM-DD>"`| `-d` | Targets a specific date directory instead of today. | `Command: /wbTrack -d="2026-04-29"` | `[DATE] Loading track data from reports/2026/04/29/.` |
-| `--sync` | `-s` | Forces a hard sync between the `git diff` and the `track_report.md` to capture manual user changes. | `Command: /wbTrack -s` | `[SYNC] Found 14 unlogged commits. Injecting into today's track.` |
-| `--merge` | `-m` | Explicitly triggers the Smart Merge protocol to resolve duplicated log entries. | `Command: /wbTrack -m` | `[MERGE] Deduplicated 3 redundant 'Task 1 Completed' entries.` |
-| `--dry-run` | `-D` | Generates the track summary in the console without writing to disk. | `Command: /wbTrack -D` | `[DRY-RUN] Would append 12 lines to track_report.md.` |
-
----
-
-## 4. Omni-Channel Execution Pipeline (Flag Chaining)
-
-### 💠 The "End of Day Sync" (`apps/* -s -m`)
-**Context:** The developer is logging off. They want the agent to scan all apps, merge all manual and AI changes, and write a perfectly deduplicated daily track report.
-**Command Executed:** `/wbTrack apps/* -s -m`
-**Simulated Protocol Chain:**
-1. Resolves all apps in scope.
-2. Cross-references git history and active chat memory (`-s`).
-3. Reads existing `reports/2026/05/04/track_report.md`.
-4. Executes Smart Merge (`-m`) to prevent rewriting what was tracked this morning.
-5. Appends the new afternoon block.
-**Simulated Output:**
-```markdown
-> Command: /wbTrack apps/* -s -m
-
-[SYSTEM] Initiating End of Day Sync...
-[SYNC] Extracted 4 manual commits and 2 AI task completions.
-[MERGE] Reading existing track_report.md...
-[MERGE] Stripped 1 redundant entry.
-[TRACK] Appended new block to reports/2026/05/04/track_report.md.
-[SUCCESS] Day tracked successfully.
-```
-
-### 💠 The "Historical Audit" (`-d="2026-04-29" -D`)
-**Context:** The developer wants to know exactly what happened last week without altering any files.
-**Command Executed:** `/wbTrack -d="2026-04-29" -D`
-**Simulated Output:**
-```markdown
-> Command: /wbTrack -d="2026-04-29" -D
-
-[SYSTEM] Accessing historical archive...
-[DATE] Parsed reports/2026/04/29/track_report.md.
-[DRY-RUN] Summary of 2026-04-29:
-- Completed Epic #42 (JWT Handshake)
-- Pushed 3 hotfixes to wbc-ui.com.
-[SUCCESS] Read-only execution complete.
-```
-
----
-
-## 5. Operational Edge Cases & Protocol Faults
-
-| Fault Trigger | System Detection | Resolution / Output |
+| Form | Example | Meaning |
 |---|---|---|
-| Merge Conflict | User manually edited `track_report.md` simultaneously. | `⚠️ Warning: Write conflict. Appending new data as an unsynced block.` |
-| Invalid Date Format | User runs `-d="Yesterday"`. | `❌ Error: Date must be YYYY-MM-DD format.` |
-| Missing History | User requests `-d="2020-01-01"` (Before project existed). | `⚠️ Warning: No reports directory found for 2020/01/01.` |
+| No argument | `Command: /wbTrack` | Scope = monorepo root (`core2/`). Session file at `core2/.agents/workflows/tracks/<date>/track_core2_<date>.md`. |
+| Package path | `Command: /wbTrack packages/wb-core` | Scope = wb-core. Session file at `packages/wb-core/.agents/workflows/tracks/<date>/track_wb-core_<date>.md`. |
+| App path | `Command: /wbTrack apps/demo.wbc-ui.com` | Scope = demo app. Session file in the app's own `.agents/workflows/tracks/`. |
+
+No glob, no comma-separated, no `--id`. The scope is always **one** directory. You track one thing at a time per model — this is a hard rule, not a missing feature. Parallel tracking would produce interleaved §N sections with no clear narrative order.
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 3. Flag matrix
+
+`/wbTrack` has exactly two flags. The command's value is in the toggle behavior, not in configuration.
+
+| Flag | Shortcut | Purpose |
+|---|---|---|
+| `--finalize` | `-f` | On `/wbStopTrack --finalize`: extract derivative files (tips, warnings, importants, commentaries, all_commands, resume) from the session file. Without it, `/wbStopTrack` writes only the §STOP block. |
+| `--scope` | `-s` | When the model is already tracking, reports which scope is active. No mutation. |
+
+The `-f` flag is intentionally on `/wbStopTrack`, not on `/wbTrack` itself. Extracting derivatives mid-session would produce partial summaries. The design forces you to finalize at session end — when all §N sections exist.
+
+**What `/wbTrack` doesn't have:** `--date`, `--merge`, `--dry-run`. These exist on the agent's version but are absent here. the agent's `/wbTrack` doesn't need `--date` because you can't retroactively inject yourself into a past session — that's historical fabrication. `--merge` is implicit (Smart Merge always applies when the file exists). `--dry-run` is meaningless for a toggle.
+
+---
+
+## 4. Pipelines (the agent-native scenarios)
+
+<script setup>
+const wbTrackSimPipelines = [
+  {
+    "title": "First model starts the day",
+    "cmd": "/wbTrack packages/wb-core",
+    "logs": [
+      {
+        "text": "[SYSTEM] Scope: packages/wb-core",
+        "type": "sys"
+      },
+      {
+        "text": "[CHECK] tracks/2026/05/04/track_wb-core_20260504.md \u2192 does not exist.",
+        "type": "gen"
+      },
+      {
+        "text": "[CREATE] Initializing universal daily session file.",
+        "type": "gen"
+      },
+      {
+        "text": "[SUB-COMMAND] Running /wbStandup wb-core (mandatory for \u00a70)...",
+        "type": "gen"
+      },
+      {
+        "text": "# Track: wb-core \u2014 2026-05-04",
+        "type": "gen"
+      },
+      {
+        "text": "> **Target:** packages/wb-core",
+        "type": "gen"
+      },
+      {
+        "text": "> **Created by:** the AI agent via Antigravity",
+        "type": "gen"
+      },
+      {
+        "text": "> **Started:** 2026-05-04 09:12",
+        "type": "gen"
+      },
+      {
+        "text": "> **Status:** \ud83d\udfe2 ACTIVE",
+        "type": "gen"
+      },
+      {
+        "text": "# \u00a70 \u2014 Strategic Vision *(the AI agent \u2014 09:12)*",
+        "type": "gen"
+      },
+      {
+        "text": "## Current State",
+        "type": "sys"
+      },
+      {
+        "text": "[Reads wb-core source, .agents/workflows/, past reports]",
+        "type": "gen"
+      },
+      {
+        "text": "## Past Debt: /wbStandup wb-core output",
+        "type": "sys"
+      },
+      {
+        "text": "[Full standup output pasted inline \u2014 not referenced, not summarized]",
+        "type": "gen"
+      },
+      {
+        "text": "## My Recommendation",
+        "type": "sys"
+      },
+      {
+        "text": "| Order | Command | Why | Recommended Models |",
+        "type": "sys"
+      },
+      {
+        "text": "|---|---|---|---|",
+        "type": "sys"
+      },
+      {
+        "text": "| 1 | /wbAudit packages/wb-core -P | tierEnforcement.js has parked tech debt | the agent 4 / the agent 4 |",
+        "type": "sys"
+      },
+      {
+        "text": "| 2 | /wbWork --id=\"1\" | JWT handshake is unblocked | the agent 4 |",
+        "type": "sys"
+      },
+      {
+        "text": "...",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Tracking ON. Every /wb* command will now append \u00a7N to this file.",
+        "type": "ok"
+      }
+    ],
+    "note": "Morning. the AI agent opens a session on `wb-core`. The file doesn't exist yet.",
+    "noteType": "info"
+  },
+  {
+    "title": "Second model joins the same session",
+    "cmd": "/wbTrack packages/wb-core",
+    "logs": [
+      {
+        "text": "[SYSTEM] Scope: packages/wb-core",
+        "type": "sys"
+      },
+      {
+        "text": "[CHECK] tracks/2026/05/04/track_wb-core_20260504.md \u2192 exists (3 sections).",
+        "type": "gen"
+      },
+      {
+        "text": "[APPEND] Adding contributor entry.",
+        "type": "gen"
+      },
+      {
+        "text": "# \u00a74 \u2014 Contributor Entry *(the AI agent via the agent CLI \u2014 14:30)*",
+        "type": "gen"
+      },
+      {
+        "text": "## My Assessment",
+        "type": "sys"
+      },
+      {
+        "text": "The morning session (\u00a70\u2013\u00a73) completed rows 1-2 of the plan.",
+        "type": "gen"
+      },
+      {
+        "text": "Row 3 (WBC.js decomposition) is now unblocked but was not started.",
+        "type": "gen"
+      },
+      {
+        "text": "I disagree with \u00a70's recommendation to defer row 3 \u2014 the decomposition",
+        "type": "gen"
+      },
+      {
+        "text": "is a prerequisite for next week's consumer app work.",
+        "type": "gen"
+      },
+      {
+        "text": "## Suggested Next Steps",
+        "type": "sys"
+      },
+      {
+        "text": "| Priority | Command | Why | Recommended Models |",
+        "type": "sys"
+      },
+      {
+        "text": "|---|---|---|---|",
+        "type": "sys"
+      },
+      {
+        "text": "| \ud83d\udd34 1st | /wbWork --id=\"3\" | Unblocked, prerequisite for apps | the agent 4 |",
+        "type": "sys"
+      },
+      {
+        "text": "| \ud83d\udfe1 2nd | /wbValid --id=\"1,2\" | Morning work needs validation | the agent 4 |",
+        "type": "sys"
+      },
+      {
+        "text": "[OK] Tracking ON for the AI agent.",
+        "type": "ok"
+      }
+    ],
+    "note": "Afternoon. the AI agent opens a session on the same scope. The file already exists.",
+    "noteType": "info"
+  },
+  {
+    "title": "Cross-package work during a session",
+    "cmd": "/wbTest packages/wb-dataviewer",
+    "logs": [
+      {
+        "text": "[SYSTEM] Tracking: wb-core (active).",
+        "type": "sys"
+      },
+      {
+        "text": "[REPORT] Test report \u2192 packages/wb-dataviewer/.agents/workflows/reports/2026/05/04/tests/test_wb-dataviewer_20260504.md",
+        "type": "gen"
+      },
+      {
+        "text": "[TRACK] \u00a75 \u2192 packages/wb-core/.agents/workflows/tracks/2026/05/04/track_wb-core_20260504.md",
+        "type": "gen"
+      },
+      {
+        "text": "# \u00a75 \u2014 `/wbTest packages/wb-dataviewer` *(the AI agent \u2014 15:20)*",
+        "type": "gen"
+      },
+      {
+        "text": "## What the user did",
+        "type": "sys"
+      },
+      {
+        "text": "/wbTest packages/wb-dataviewer",
+        "type": "gen"
+      },
+      {
+        "text": "## What happened",
+        "type": "sys"
+      },
+      {
+        "text": "### Files read",
+        "type": "gen"
+      },
+      {
+        "text": "- packages/wb-dataviewer/src/**/*.js",
+        "type": "gen"
+      },
+      {
+        "text": "### Files created/modified",
+        "type": "gen"
+      },
+      {
+        "text": "| File | Action | What it contains |",
+        "type": "sys"
+      },
+      {
+        "text": "|---|---|---|",
+        "type": "sys"
+      },
+      {
+        "text": "| `test_wb-dataviewer_20260504.md` | Created | Unit test results |",
+        "type": "sys"
+      },
+      {
+        "text": "## Commentary",
+        "type": "sys"
+      },
+      {
+        "text": "- **Outcome:** 14/14 tests passed. The apiResponse_ cache pattern held up.",
+        "type": "gen"
+      },
+      {
+        "text": "- **Insights:** The test suite doesn't cover the invalidation path \u2014 parked issue.",
+        "type": "gen"
+      }
+    ],
+    "note": "The model is tracking `wb-core` but runs a command on `wb-dataviewer`:",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbTrack" titleSuffix="Exhaustive Simulation" :pipelines="wbTrackSimPipelines" />
+
+
+### 💠 Pipeline First model starts the day
+
+Morning. the AI agent opens a session on `wb-core`. The file doesn't exist yet.
+
+
+### 💠 Pipeline Second model joins the same session
+
+Afternoon. the AI agent opens a session on the same scope. The file already exists.
+
+
+### 💠 Pipeline Cross-package work during a session
+
+The model is tracking `wb-core` but runs a command on `wb-dataviewer`:
+
+---
+
+## 5. Edge cases & refusals
+
+| Trigger | What `/wbTrack` does |
+|---|---|
+| `/wbTrack packages/wb-core` when already tracking `core2` | Halt. `⚠️ Already tracking: core2. Run /wbStopTrack first.` |
+| `/wbTrack` with no scope twice (same model) | Halt. Same — already tracking. |
+| `/wbStopTrack --finalize` mid-day | Proceeds but prints a warning: `⚠️ Partial session. Derivatives will be incomplete — consider waiting until end of day.` |
+| `/wbTrack packages/wb-core` when the folder doesn't have `.agents/workflows/` | Creates the directory structure. Not a refusal — `/wbTrack` is allowed to bootstrap. |
+| Two models tracking different scopes simultaneously | Fine. Model A tracks `core2`, Model B tracks `wb-core`. Different files, no collision. |
+| Same model tracking the same scope it already stopped | Fine. `/wbStopTrack` just writes §STOP — `/wbTrack` can re-open and append a new contributor entry. |
+
+The unifying principle: **`/wbTrack` is a state toggle with single-scope enforcement per model.** It doesn't have complex filter grammar because it doesn't need it — you're either tracking one thing or you're not. The complexity lives in the §N sections that accumulate during the session, not in the command's own argument parsing.

@@ -1,89 +1,288 @@
-# wb-flow Protocol: /wbExplain Execution & Simulation Specification
+# /wbExplain — Exhaustive Simulation ()
 
-This document defines the **exhaustive behavior matrix** for the `/wbExplain` command. It serves as the definitive reference for how the agent synthesizes pedagogical documentation, adapts explanation tones, and utilizes wildcards to generate massive onboarding guides.
+`/wbExplain` is the teacher and the architect. Its job is the inverse of `/wbWork`: instead of *doing* something, it *describes* something — at a level of abstraction the caller picks. It's the only command in this system that accepts free-text prose as a target, the only one with a `--as=<style>` flag, and the only one that produces no side effects whatsoever. It writes prose to stdout and stops.
+
+Read this if you want to know what the `--as` field will accept, why the same `--id="2"` gives radically different output depending on style, and where the boundary sits between "this is a job for `/wbExplain`" and "this is a job for `/wbDoc`."
 
 ---
 
-## 1. Role & Definition Matrix
-**Role:** The Technical Pedagogue & Onboarding Guide
-**Target:** Translates complex source code, architecture, or active plan tasks into human-readable documentation.
-**Core Protocol:** Explanations must be saved persistently using the Smart Merge protocol to avoid redundant generation.
+## 1. Role & target
 
-| Scenario | System Behavior |
+| Aspect | Behavior |
 |---|---|
-| Target is Code File | **[PROCEED]** Analyzes AST, exports, and logic. Generates line-by-line breakdown or conceptual summary based on flags. |
-| Target is Plan Task | **[PROCEED]** Reads the `plan_*.md` file. Translates the technical task requirement into a conceptual explanation. |
-| Missing Context | **[HALT]** If asked to explain a non-existent file or unmapped domain, protocol demands running `/wbContext` first. |
+| **Role** | The Teacher / The Architect — produces explanatory prose. |
+| **Target** | A plan row (`--id`), a file path, or a free-text concept. |
+| **Cell scope** | None. `/wbExplain` never writes to plan cells. |
+| **Side effects allowed** | Reading code, reading plans, searching the workspace by keyword. |
+| **Side effects forbidden** | Editing files, mutating plan state, running commands, calling out to external services. |
+
+The "no side effects" rule is what makes `/wbExplain` safe to invoke speculatively. You can run `/wbExplain "what does WBC.js actually do"` 50 times and the workspace is identical at the end. Compare to `/wbWork`, where one wrong invocation can mark a row `🚫 Cancelled`.
+
+`/wbExplain` is also the *only* command in the QA group that accepts natural language as a primary target. `/wbWork` and `/wbValid` both refuse fuzzy matching by design; `/wbExplain` embraces it because the cost of a wrong explanation is "wasted prose" and the cost of a wrong code edit is "broken code."
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix
-The `/wbExplain` command is highly versatile, supporting natural language, specific paths, and plan task IDs.
+## 2. Argument resolution matrix
 
-| Argument Type | Example | Parsing Logic | Simulated Output Profile |
-|---|---|---|---|
-| Single Task ID | `Command: /wbExplain -i="2"` | Locks onto Task #2 in the active plan. | Generates a conceptual breakdown of *why* Task 2 is needed. |
-| Multi-Task Array | `Command: /wbExplain -i="1,3,4"` | Parses comma-separated IDs. | Generates a unified document explaining the relationship between Tasks 1, 3, and 4. |
-| Wildcard (All Tasks) | `Command: /wbExplain -i="*"` | Extracts all tasks from the active plan. | Generates a massive "Epic Overview" explaining the entire planned feature. |
-| File Path | `Command: /wbExplain packages/wb-core/src/index.js` | Analyzes specific file architecture. | Creates `explanation_index.md`. |
-| Natural Language | `Command: /wbExplain "how does auth work"` | Fuzzy matches across `context.md` and codebase. | Synthesizes a broad architectural overview of authentication. |
-
----
-
-## 3. Flag Processing Matrix (Isolated Capabilities)
-
-| Flag | Shortcut | Purpose | Example | Simulated Output Impact |
-|---|---|---|---|---|
-| `--id="<id>"` | `-i` | Explicit task targeting (Supports singular, CSV arrays, and `*` wildcards). | `Command: /wbExplain -i="*"` | `[EXPLAIN] Wildcard detected. Generating massive overview for all planned tasks.` |
-| `--tone="<type>"` | `-t` | Adjusts the pedagogical level (`eli5`, `expert`, `business`). | `Command: /wbExplain -i="1" -t="eli5"` | `[TONE] Explaining JWT Handshake using analogies of bouncers and VIP clubs.` |
-| `--language="<lang>"`| `-l` | Outputs explanation in specific language (`en`, `fr`, `ar`). | `Command: /wbExplain -i="1" -l="fr"` | `[LANG] Generating explanation in French: "Explication de l'architecture..."` |
-| `--diagram` | `-d` | Forces the inclusion of a Mermaid.js dependency graph or sequence diagram. | `Command: /wbExplain -i="1,2" -d` | `[DIAGRAM] Injecting Mermaid.js sequence diagram showing interaction between tasks.` |
-
----
-
-## 4. Omni-Channel Execution Pipeline (Flag Chaining)
-
-### 💠 The "Massive Onboarding Guide" (`-i="*" -t="eli5" -d`)
-**Context:** A junior developer joined the team and needs a simple, diagram-heavy explanation of every single task planned for the current Epic.
-**Command Executed:** `/wbExplain -i="*" -t="eli5" -d`
-**Simulated Protocol Chain:**
-1. System reads active plan. Finds Tasks 1, 2, 3.
-2. Synthesizes a unified narrative connecting all three tasks.
-3. Applies ELI5 (Explain Like I'm 5) tone.
-4. Generates a Mermaid sequence diagram.
-**Simulated Output:**
-```markdown
-> Command: /wbExplain -i="*" -t="eli5" -d
-
-[SYSTEM] Wildcard detected. Processing all plan tasks...
-[TONE] Applying ELI5 pedagogy.
-[DIAGRAM] Rendering Mermaid sequence flow.
-[SUCCESS] Saved massive onboarding guide to plans/explanations/onboarding_epic_2026.md.
-```
-
-### 💠 The "Multilingual Deep Dive" (`packages/wb-core -t="expert" -l="ar"`)
-**Context:** Senior architect needs a highly technical breakdown of the core package, written in Arabic.
-**Command Executed:** `/wbExplain packages/wb-core -t="expert" -l="ar"`
-**Simulated Output:**
-```markdown
-> Command: /wbExplain packages/wb-core -t="expert" -l="ar"
-
-[SYSTEM] Scanning packages/wb-core...
-[TONE] Applying Expert pedagogy (AST analysis, memory pointers).
-[LANG] Translating to Arabic.
-[SUCCESS] Generated explanation_core_expert_ar.md.
-```
-
----
-
-## 5. Operational Edge Cases & Protocol Faults
-
-| Fault Trigger | System Detection | Resolution / Output |
+| Form | Example | What `/wbExplain` does |
 |---|---|---|
-| Translation Failure | Unsupported language code requested. | `⚠️ Warning: Language 'xx' unknown. Defaulting to English ('en').` |
-| Diagram Complexity | Wildcard array spans too many disconnected modules for a single diagram. | `⚠️ Warning: Graph too complex. Generating 3 separate Mermaid diagrams instead of 1.` |
-| Invalid ID | User runs `-i="99"` (Task doesn't exist). | `❌ Error: Task ID 99 not found in active plan.` |
+| Single ID | `Command: /wbExplain --id="2"` | Resolves row 2, reads its task description, follows referenced files, produces a focused explanation. |
+| CSV array | `Command: /wbExplain --id="1,3"` | Reads both rows. Synthesizes a *single* doc that explains how they relate, not two docs concatenated. |
+| Wildcard | `Command: /wbExplain --id="*"` | All rows. Produces an "epic overview" — one narrative arc covering the plan as a whole. |
+| File path | `Command: /wbExplain core2/packages/wb-core/src/WBC.js` | Reads the file, parses imports/exports, produces a contract-level summary. |
+| Directory path | `Command: /wbExplain core2/packages/wb-core/` | Higher abstraction: package-level role and architecture, not file-by-file. |
+| Free-text concept | `Command: /wbExplain "the WBCode dev gate"` | Searches the workspace for relevant code, ranks matches, picks the most likely target. |
+
+The wildcard form deserves a note. `/wbExplain --id="*"` is *not* "explain each row independently" — it's "synthesize one explanation of the whole plan." The output is a story, not a list. This matters because the use case is onboarding (new contributor reads it once) or pre-standup (lead skims the day's intent).
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 3. Flag matrix
+
+`/wbExplain` has exactly two flags. The flag surface is small on purpose — explanations are shaped more by *intent* than by *toggles*.
+
+| Flag | Shortcut | Purpose |
+|---|---|---|
+| `--id="<filter>"` | `-i` | Selects which plan rows to explain. Same filter grammar as `/wbWork` (single, CSV, wildcard, range, negation, boolean). |
+| `--as="<style>"` | `-a` | Free-text style descriptor that controls tone, format, length, vocabulary, and audience assumptions. |
+
+### How `--as` actually works
+
+The `--as` value is **not enum-locked**. There is no canonical list of supported styles. The string is read as a complete description of the target reader and the desired register, then applied across every paragraph of output.
+
+| `--as` value | What changes in the output |
+|---|---|
+| `--as="eli5"` | Analogies replace technical vocabulary. Concrete metaphors. ~200 words. |
+| `--as="senior reviewer, skeptical"` | Trade-offs surface first. Questions, not statements. Terse. |
+| `--as="conference talk, 5min"` | Narrative arc with a hook, three beats, and a takeaway. |
+| `--as="incident postmortem"` | What happened / what should have happened / contributing factors / action items. |
+| `--as="expert, fr"` | Same content, in French, with technical vocabulary preserved. No translation of code symbols. |
+| `--as="rubber duck for the author"` | Second-person, repeats the question back, names blind spots. |
+
+The agent doesn't pick from a list — it parses the string as instructions. `--as="explain it like Linus Torvalds reviewing the code"` produces a real (if uncomfortable) explanation. The flag's flexibility is the feature.
+
+### Where `--as` does *not* apply
+
+Default style (no `--as` flag) is **practical**: ~400 words, principle-first, terse, the same voice the rest of `docs/` uses. Use `--as` when you need something *other than* the default. For onboarding/pedagogy, the eli5 / new-hire-day-2 styles work well; for design review, skeptical / postmortem work well.
+
+---
+
+## 4. Pipelines (the agent-native scenarios)
+
+<script setup>
+const wbExplainSimPipelines = [
+  {
+    "title": "The wb-core onboarding doc, generated on demand",
+    "cmd": "/wbExplain --id=\"*\" --as=\"new contributor, day 2, knows JS\"",
+    "logs": [
+      {
+        "text": "[EXPLAIN] Active plan: plan_<package>_<date>.md (3 rows).",
+        "type": "gen"
+      },
+      {
+        "text": "[STYLE] new contributor, day 2, knows JS \u2014 assume JS fluency, no codebase context.",
+        "type": "gen"
+      },
+      {
+        "text": "# What we're working on this week in wb-core",
+        "type": "gen"
+      },
+      {
+        "text": "The plan has three things, in two layers. Layer 1 is independent work",
+        "type": "gen"
+      },
+      {
+        "text": "that can happen today (rows 1 and 2). Layer 2 is the architectural",
+        "type": "gen"
+      },
+      {
+        "text": "pivot that needs both done first (row 3).",
+        "type": "gen"
+      },
+      {
+        "text": "## Row 1 \u2014 JWT handshake (tierEnforcement.js)",
+        "type": "sys"
+      },
+      {
+        "text": "You don't need crypto background for this. tierEnforcement.js is the",
+        "type": "gen"
+      },
+      {
+        "text": "gatekeeper file: every privileged action runs through it first. Row 1",
+        "type": "gen"
+      },
+      {
+        "text": "adds a check that the JWT in the call has a sane shape and isn't using",
+        "type": "gen"
+      },
+      {
+        "text": "\"alg: none\" (a known footgun). The file already had a check for token",
+        "type": "gen"
+      },
+      {
+        "text": "*presence*; this row adds a check for token *content*.",
+        "type": "gen"
+      },
+      {
+        "text": "...",
+        "type": "gen"
+      }
+    ],
+    "note": "A new contributor arrives. They have access to `wb-labs` but no time to read the codebase cold. The lead runs:",
+    "noteType": "info"
+  },
+  {
+    "title": "The `apiResponse_` mystery, explained on demand",
+    "cmd": "/wbExplain \"WBDataViewer apiResponse_ cache\" --as=\"senior reviewer, skeptical\"",
+    "logs": [
+      {
+        "text": "[EXPLAIN] Resolving \"WBDataViewer apiResponse_ cache\"...",
+        "type": "gen"
+      },
+      {
+        "text": "[MATCH] Found in core2/packages/wb-dataviewer/ (apiResponse_ pattern)",
+        "type": "gen"
+      },
+      {
+        "text": "+ memory note: project_wbdataviewer_apiResponse.md.",
+        "type": "gen"
+      },
+      {
+        "text": "[STYLE] skeptical reviewer.",
+        "type": "gen"
+      },
+      {
+        "text": "The pattern is: `apiResponse_` (with the trailing underscore) caches the",
+        "type": "gen"
+      },
+      {
+        "text": "fetched data so that downstream `project` changes don't re-fire the network",
+        "type": "gen"
+      },
+      {
+        "text": "call. Three things to question before approving:",
+        "type": "gen"
+      },
+      {
+        "text": "1. Why a trailing-underscore convention rather than a clearly-named",
+        "type": "gen"
+      },
+      {
+        "text": "ref like `cachedResponse`? (Answer: prior art elsewhere in the",
+        "type": "gen"
+      },
+      {
+        "text": "codebase \u2014 investigate whether the convention is load-bearing or",
+        "type": "gen"
+      },
+      {
+        "text": "inherited.)",
+        "type": "gen"
+      },
+      {
+        "text": "2. The cache key is implicit (component instance lifetime). Is that",
+        "type": "gen"
+      },
+      {
+        "text": "the right scope? Routing changes that re-mount the component blow",
+        "type": "gen"
+      },
+      {
+        "text": "the cache; was that intentional?",
+        "type": "gen"
+      },
+      {
+        "text": "3. There's no invalidation path. Once cached, always cached for the",
+        "type": "gen"
+      },
+      {
+        "text": "instance's life. Acceptable iff \"project changes never need",
+        "type": "gen"
+      },
+      {
+        "text": "network refresh\" \u2014 verify with the original author.",
+        "type": "gen"
+      }
+    ],
+    "note": "A real situation in this workspace: the `WBDataViewer apiResponse_` cache pattern is parked in memory (`project_wbdataviewer_apiResponse.md`). A reviewer asks \"wait, why is this caching layer here?\" \u2014 and runs:",
+    "noteType": "info"
+  },
+  {
+    "title": "Multilingual, for a real student",
+    "cmd": "/wbExplain \"frontEnd/wbc-ui/core2/packages/wb-flow/templates/\" --as=\"expert, fr, IPEIM CS senior year\"",
+    "logs": [
+      {
+        "text": "[EXPLAIN] Target: frontEnd/wbc-ui/core2/packages/wb-flow/templates/ (the agentic framework root)",
+        "type": "gen"
+      },
+      {
+        "text": "[STYLE] expert FR, audience: CS senior \u2014 assume systems thinking,",
+        "type": "gen"
+      },
+      {
+        "text": "no need for \"what is an agent\" preamble.",
+        "type": "gen"
+      },
+      {
+        "text": "# Le framework wb-flow \u2014 vue d'ensemble",
+        "type": "gen"
+      },
+      {
+        "text": "Le syst\u00e8me repose sur trois invariants : (1) le plan est la source",
+        "type": "gen"
+      },
+      {
+        "text": "unique de v\u00e9rit\u00e9 de l'\u00e9tat du travail, (2) le worker et le validator",
+        "type": "gen"
+      },
+      {
+        "text": "ne peuvent jamais \u00eatre le m\u00eame mod\u00e8le sur la m\u00eame t\u00e2che, (3) chaque",
+        "type": "gen"
+      },
+      {
+        "text": "commande `/wb*` mute exactement z\u00e9ro ou une cellule du plan.",
+        "type": "gen"
+      },
+      {
+        "text": "Ces trois r\u00e8gles g\u00e9n\u00e8rent l'essentiel de l'architecture...",
+        "type": "gen"
+      }
+    ],
+    "note": "Wissem teaches at IPEIM since 2018 (per memory). A student needs the conceptual map of the agentic framework, in French, expert-level (not eli5):",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbExplain" titleSuffix="Exhaustive Simulation" :pipelines="wbExplainSimPipelines" />
+
+
+### 💠 Pipeline The wb-core onboarding doc, generated on demand
+
+A new contributor arrives. They have access to `wb-labs` but no time to read the codebase cold. The lead runs:
+
+
+### 💠 Pipeline The `apiResponse_` mystery, explained on demand
+
+A real situation in this workspace: the `WBDataViewer apiResponse_` cache pattern is parked in memory (`project_wbdataviewer_apiResponse.md`). A reviewer asks "wait, why is this caching layer here?" — and runs:
+
+
+### 💠 Pipeline Multilingual, for a real student
+
+Wissem teaches at IPEIM since 2018 (per memory). A student needs the conceptual map of the agentic framework, in French, expert-level (not eli5):
+
+---
+
+## 5. Edge cases & refusals
+
+| Trigger | What `/wbExplain` does |
+|---|---|
+| No target at all (`/wbExplain` alone) | Halt. `❌ Provide --id, a path, or a concept string.` |
+| `--id="*"` with no active plan | Halt. `❌ No active plan found. Use a path or concept instead.` |
+| Free-text target matches 5+ unrelated files | List the candidates, ask which scope. No silent guessing. |
+| `--as="..."` with a 500-word style description | Truncate to ~200 words. Style descriptions are instructions, not content. |
+| `--id="99"` when plan has 5 rows | Halt. Same error as `/wbWork` for consistency. |
+| Concept that genuinely doesn't exist in the workspace | Honest "not found" message + a suggestion of nearby concepts that *did* match. |
+| Style and ID together producing contradictory tone (e.g., `--id="*" --as="single sentence"`) | Honor the `--as` instruction; produce the requested form even when it under-serves the breadth of `*`. The user is the boss of the format. |
+
+Two patterns worth naming. First, `/wbExplain` is the **only QA-group command that accepts natural-language targets** — and that is its design center, not an exception. Second, the `--as` flag is treated as **author intent**, not as a constraint to negotiate against. If the user asks for "a haiku about the plan," the agent produces a haiku, even though haiku is a poor format for a 5-row plan. The user's chosen format wins; the agent's job is to make it as good as possible within that frame.

@@ -1,84 +1,421 @@
-# wb-flow Protocol: /wbTranslate Live Workspace Demo
+# /wbTranslate — Live Demo ()
 
-This document is the **Real-Time Execution Log** of the `/wbTranslate` command. It applies the exact structural matrix from the Exhaustive Simulation to the *current, live state* of the `wb-labs` workspace as of 2026-05-04.
+What `/wbTranslate` would actually do on `wb-labs` right now. The candidate components and locale-file state below reflect the live workspace.
 
 ---
 
-## 1. Role & Definition Matrix (Live Application)
-**Target:** `wb-labs/frontEnd/wbc-ui/core2/apps/wb-flow/wb-flow-docs/commands`
-**Live State Evaluated:** 
-*   Active Directory: `frontEnd/wbc-ui/core2/apps/wb-flow/wb-flow-docs/commands`
-*   Status: Contains massive markdown documentation in English that needs localization for international teams.
+<CommandLiveDemoAnimation command="wbTranslate" />
 
-| Scenario | Live System Behavior (wb-labs) |
+## 1. Live target
+
+| Field | Live value |
 |---|---|
-| Target is JSON/i18n File | **[INACTIVE]** No locale JSON files are currently active in the documentation folder. |
-| Target is Markdown Doc | **[ACTIVE]** System is primed to translate `wbPlan_exhaustive_simulation.md` while preserving markdown tables. |
-| Unrecognized Format | **[ACTIVE]** System will explicitly block translating Python scripts located in `/scratch/`. |
+| Components with user-facing strings | Various Vue components in `core2/packages/wb-core/src/components/` and consumer apps |
+| Existing i18n setup | None obvious in workspace — first run would bootstrap from scratch |
+| English-only convention | Per `project_docs_edition.md`: docs are english-only. UI components likely follow once i18n bootstrap happens. |
+| Untested-apps note | wbc-ui2-cdn is parked; cleanup before bootstrap there is risky |
+| Most-likely first target | `core2/packages/wb-core/src/components/WBCode.vue` or sibling — small, contained, has user-facing labels |
+
+The "no existing i18n" state means the first `/wbTranslate` run is a true bootstrap — populating en.json from scratch. The english-only memory rule is informational; `/wbTranslate` would create only en.json, leaving fr.json and ar.json for later content work.
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix (Live Application)
-| Argument Type | Input Executed | Live Parsed State (wb-labs) | Live Output Generation |
-|---|---|---|---|
-| Specific File Path | `Command: /wbTranslate wbPlan/wbPlan.md` | Locks onto specific doc. | `[PROCEED] Generating localized copies of wbPlan documentation.` |
-| Directory Path | `Command: /wbTranslate wbWork/` | Scans the folder. | `[PROCEED] Translating all markdown files in wbWork/.` |
-| Comma-Separated | `Command: /wbTranslate wbAudit/wbAudit.md,wbDebug/wbDebug.md` | Extracts two specific files. | `[PROCEED] Translating Audit and Debug docs sequentially.` |
-| Wildcard Glob | `Command: /wbTranslate **/*.md` | Extracts all 52 markdown files. | `[PROCEED] Massive localization sweep across all docs.` |
+## 2. What each input form would resolve to today
+
+| Input | Live resolution |
+|---|---|
+| `/wbTranslate core2/packages/wb-core/src/components/WBCode.vue` | Standard bootstrap. Likely 5-10 user-facing strings. |
+| `/wbTranslate core2/packages/wb-core/src/components/` | Directory pass; aggregated en.json. |
+| `/wbTranslate core2/packages/wbc-ui2-cdn/` | Permitted but cautious — memory flags package as parked; would scan but warn that bootstrap during parked state could create churn. |
+| `/wbTranslate "the login form"` | Halt — free-text. |
+| `/wbTranslate core2/packages/wb-core/src/tierEnforcement.js` | One-line "no user-facing strings" (the file throws internal errors only). Exit 0. |
+| `/wbTranslate <component> --new-only` | Refuse on first run — `-n` requires existing extractions. Suggests running without `-n` first. |
 
 ---
 
-## 3. Flag Processing Matrix (Isolated Live Runs)
+## 3. Per-flag behavior, applied live
 
-| Flag | Live Executed Command | Live Output Impact |
-|---|---|---|
-| `--lang="<array>"`| `Command: /wbTranslate wbWork/wbWork.md -l="fr,ar"` | `[LANG] Created wbWork_fr.md and wbWork_ar.md.` |
-| `--tone="<type>"` | `Command: /wbTranslate wbHelp/wbHelp.md -t="formal"` | `[TONE] Enforcing strict, corporate terminology in translated docs.` |
-| `--overwrite` | `Command: /wbTranslate README.md -O -l="es"` | `[OVERWRITE] English README replaced with Spanish.` |
-| `--sync` | `Command: /wbTranslate locales/ -s -l="fr"` | `[SYNC] Failed. No JSON locales directory found in current path.` |
-
----
-
-## 4. Omni-Channel Execution Pipeline (Live Chaining)
-
-### 💠 The "Multilingual Documentation Generator" (`**/*.md -l="fr,ar"`)
-**Live Context:** Running this *right now* to translate the newly generated v4 Massive documents into French and Arabic for international contributors.
-**Command Executed:** `/wbTranslate **/*.md -l="fr,ar"`
-**Live Output:**
-```text
-> Command: /wbTranslate **/*.md -l="fr,ar"
-
-[SYSTEM] Glob resolved to 52 markdown files in docs/.
-[LANG] Engaging French and Arabic translation matrices.
-[RULE] Strict syntax preservation active. Skipping code blocks and table headers.
-[PROCESSING] Translating wbPlan_exhaustive_simulation.md...
-[PROCESSING] Translating wbWork_exhaustive_simulation.md...
-[SUCCESS] Generated 104 new localized markdown files safely.
-```
-
-### 💠 The "Deep Tone Localization" (`wbExplain/wbExplain.md -l="fr" -t="casual"`)
-**Live Context:** Translating the Explain command docs into a highly casual, friendly French tone for junior devs.
-**Command Executed:** `/wbTranslate wbExplain/wbExplain.md -l="fr" -t="casual"`
-**Live Output:**
-```text
-> Command: /wbTranslate wbExplain/wbExplain.md -l="fr" -t="casual"
-
-[SYSTEM] Locked onto wbExplain documentation.
-[TONE] Applying 'casual' ruleset (tutoiement, simplified tech terms).
-[LANG] Processing French translation...
-[SUCCESS] Created wbExplain/wbExplain_fr.md.
-```
+| Flag combination | Live result |
+|---|---|
+| (no flag, file target) | Bootstrap pass; populates en.json from scratch. |
+| (no flag, directory target) | Walks; aggregated en.json. |
+| `--new-only` on first run | Refuse — nothing to "preserve." |
+| `--new-only` after a prior bootstrap | Maintenance pass; only adds new keys. |
 
 ---
 
-## 5. Operational Edge Cases (Live Workspace Check)
+## 4. Pipelines
 
-| Fault Trigger | Live System State | Live Resolution |
-|---|---|---|
-| Logic File Block | **[PASS]** Only `.md` files exist in current glob. | Execution proceeds. |
-| Markdown Corruption | **[PASS]** Table boundaries parsed and masked before translation. | Markdown tables remain structurally intact. |
-| Unsupported Language | **[TRIGGERED]** If user attempts `-l="xx"`. | `❌ Error: Language code 'xx' unrecognized.` |
+<script setup>
+const wbTranslatePipelines = [
+  {
+    "title": "First bootstrap of WBCode.vue",
+    "cmd": "/wbTranslate core2/packages/wb-core/src/components/WBCode.vue",
+    "logs": [
+      {
+        "text": "[SYSTEM] Target: WBCode.vue",
+        "type": "sys"
+      },
+      {
+        "text": "[CONTEXT] Reading project_docs_edition.md... (english-only rule",
+        "type": "ctx"
+      },
+      {
+        "text": "informational only \u2014 bootstrap creates en.json; fr/ar later).",
+        "type": "gen"
+      },
+      {
+        "text": "[SCAN] Reading file...",
+        "type": "gen"
+      },
+      {
+        "text": "[CANDIDATES IDENTIFIED]",
+        "type": "gen"
+      },
+      {
+        "text": "Template (4 user-facing strings):",
+        "type": "gen"
+      },
+      {
+        "text": "- Line 12: \"View source\" (button label, conditional on dev mode)",
+        "type": "gen"
+      },
+      {
+        "text": "- Line 17: \"Copy\" (button label)",
+        "type": "gen"
+      },
+      {
+        "text": "- Line 18: \"Copied!\" (transient feedback text)",
+        "type": "gen"
+      },
+      {
+        "text": "- Line 22: \"Toggle code\" (aria-label)",
+        "type": "gen"
+      },
+      {
+        "text": "[NOT EXTRACTED] (heuristic: not user-facing)",
+        "type": "gen"
+      },
+      {
+        "text": "- Line 8: __WBC_DEV__ identifier \u2014 JS, not user-visible.",
+        "type": "gen"
+      },
+      {
+        "text": "- Line 14: 'aria-expanded' attribute name \u2014 DOM identifier, not value text.",
+        "type": "gen"
+      },
+      {
+        "text": "[GENERATING KEYS]",
+        "type": "gen"
+      },
+      {
+        "text": "wbCode.actions.viewSource: \"View source\"",
+        "type": "gen"
+      },
+      {
+        "text": "wbCode.actions.copy: \"Copy\"",
+        "type": "gen"
+      },
+      {
+        "text": "wbCode.actions.copied: \"Copied!\"",
+        "type": "gen"
+      },
+      {
+        "text": "wbCode.aria.toggle: \"Toggle code\"",
+        "type": "gen"
+      },
+      {
+        "text": "[CONFIRM] Bootstrap (4 strings; WBCode.vue updated; i18n/en.json",
+        "type": "gen"
+      },
+      {
+        "text": "created)? [y/N] > y",
+        "type": "gen"
+      },
+      {
+        "text": "[EDIT] core2/packages/wb-core/src/components/WBCode.vue:",
+        "type": "gen"
+      },
+      {
+        "text": "4 lines updated to t('wbCode.<key>') calls.",
+        "type": "gen"
+      },
+      {
+        "text": "[NEW FILE] core2/packages/wb-core/i18n/en.json:",
+        "type": "gen"
+      },
+      {
+        "text": "{",
+        "type": "gen"
+      },
+      {
+        "text": "\"wbCode\": {",
+        "type": "gen"
+      },
+      {
+        "text": "\"actions\": { \"viewSource\": \"View source\", \"copy\": \"Copy\", \"copied\": \"Copied!\" },",
+        "type": "gen"
+      },
+      {
+        "text": "\"aria\": { \"toggle\": \"Toggle code\" }",
+        "type": "gen"
+      },
+      {
+        "text": "}",
+        "type": "gen"
+      },
+      {
+        "text": "}",
+        "type": "gen"
+      },
+      {
+        "text": "[NEW FILE] core2/packages/wb-core/i18n/glossary.md:",
+        "type": "gen"
+      },
+      {
+        "text": "Translator notes:",
+        "type": "gen"
+      },
+      {
+        "text": "- wbCode.actions.viewSource: button label, verb form (action),",
+        "type": "gen"
+      },
+      {
+        "text": "only appears in dev mode.",
+        "type": "gen"
+      },
+      {
+        "text": "- wbCode.actions.copy: button label.",
+        "type": "gen"
+      },
+      {
+        "text": "- wbCode.actions.copied: transient text shown 2s after copy",
+        "type": "gen"
+      },
+      {
+        "text": "click; past tense.",
+        "type": "gen"
+      },
+      {
+        "text": "- wbCode.aria.toggle: accessibility label for the expand/collapse",
+        "type": "gen"
+      },
+      {
+        "text": "button; verb form.",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Bootstrap complete. en.json created with 4 keys.",
+        "type": "ok"
+      },
+      {
+        "text": "[NEXT STEPS]",
+        "type": "gen"
+      },
+      {
+        "text": "- For French/Arabic per the english-only memory rule:",
+        "type": "gen"
+      },
+      {
+        "text": "1. Copy en.json \u2192 fr.json, ar.json.",
+        "type": "gen"
+      },
+      {
+        "text": "2. Translate values in each (human work or separate model run).",
+        "type": "gen"
+      },
+      {
+        "text": "3. Wire i18n provider in core2/packages/wb-core/src/index.js",
+        "type": "gen"
+      },
+      {
+        "text": "(out of scope for /wbTranslate \u2014 that's setup work).",
+        "type": "gen"
+      },
+      {
+        "text": "[NO TRANSLATION CONTENT] /wbTranslate did NOT translate any strings.",
+        "type": "gen"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  },
+  {
+    "title": "A \"no strings\" file",
+    "cmd": "/wbTranslate core2/packages/wb-core/src/tierEnforcement.js",
+    "logs": [
+      {
+        "text": "[SYSTEM] Target: tierEnforcement.js",
+        "type": "sys"
+      },
+      {
+        "text": "[SCAN] Reading file (78 lines, 1 export, 0 templates)...",
+        "type": "gen"
+      },
+      {
+        "text": "[ANALYSIS] No template/JSX. Throws are caught internally and not",
+        "type": "gen"
+      },
+      {
+        "text": "re-emitted to user UI per consumer code analysis.",
+        "type": "gen"
+      },
+      {
+        "text": "[NO USER-FACING STRINGS FOUND]",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Nothing to translate. Exit 0.",
+        "type": "ok"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  },
+  {
+    "title": "Refuse `--new-only` on first run",
+    "cmd": "/wbTranslate core2/packages/wb-core/src/components/WBCode.vue --new-only",
+    "logs": [
+      {
+        "text": "[SYSTEM] Target: WBCode.vue",
+        "type": "sys"
+      },
+      {
+        "text": "[MODE] new-only \u2014 preserve existing extractions.",
+        "type": "gen"
+      },
+      {
+        "text": "[CHECK] Looking for existing i18n/en.json... not found.",
+        "type": "gen"
+      },
+      {
+        "text": "[REFUSE] --new-only requires existing extractions. There's nothing",
+        "type": "error"
+      },
+      {
+        "text": "to preserve.",
+        "type": "gen"
+      },
+      {
+        "text": "[SUGGEST] Run without --new-only first to bootstrap en.json:",
+        "type": "gen"
+      },
+      {
+        "text": "/wbTranslate core2/packages/wb-core/src/components/WBCode.vue",
+        "type": "gen"
+      },
+      {
+        "text": "[NO MUTATION] Halted.",
+        "type": "gen"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  },
+  {
+    "title": "Maintenance after Pipeline A",
+    "cmd": "/wbTranslate core2/packages/wb-core/src/components/WBCode.vue --new-only",
+    "logs": [
+      {
+        "text": "[SYSTEM] Target: WBCode.vue",
+        "type": "sys"
+      },
+      {
+        "text": "[MODE] new-only.",
+        "type": "gen"
+      },
+      {
+        "text": "[SCAN] ...",
+        "type": "gen"
+      },
+      {
+        "text": "[CANDIDATES] 6 strings found.",
+        "type": "gen"
+      },
+      {
+        "text": "[ALREADY-EXTRACTED] 4 strings match existing keys.",
+        "type": "gen"
+      },
+      {
+        "text": "[NEW] 2 strings:",
+        "type": "gen"
+      },
+      {
+        "text": "- Line 24: \"Show language\" (new toggle label)",
+        "type": "gen"
+      },
+      {
+        "text": "- Line 30: \"Format JSON\" (new action button)",
+        "type": "gen"
+      },
+      {
+        "text": "[GENERATING KEYS]",
+        "type": "gen"
+      },
+      {
+        "text": "wbCode.actions.showLanguage: \"Show language\"",
+        "type": "gen"
+      },
+      {
+        "text": "wbCode.actions.formatJSON: \"Format JSON\"",
+        "type": "gen"
+      },
+      {
+        "text": "[CONFIRM] Add 2 new keys? [y/N] > y",
+        "type": "gen"
+      },
+      {
+        "text": "[EDIT] WBCode.vue: 2 t() calls added.",
+        "type": "gen"
+      },
+      {
+        "text": "[EDIT] i18n/en.json: +2 keys.",
+        "type": "gen"
+      },
+      {
+        "text": "[EDIT] i18n/glossary.md: +2 entries.",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Maintenance pass complete. Existing 4 translations untouched.",
+        "type": "ok"
+      }
+    ],
+    "note": "A week later, WBCode.vue gets two new strings added:",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbTranslate" :pipelines="wbTranslatePipelines" />
+
+
+### 💠 Pipeline First bootstrap of WBCode.vue
+
+
+### 💠 Pipeline A "no strings" file
+
+
+### 💠 Pipeline Refuse `--new-only` on first run
+
+
+### 💠 Pipeline Maintenance after Pipeline A
+
+A week later, WBCode.vue gets two new strings added:
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 5. What would refuse today
+
+| Trigger | Live response |
+|---|---|
+| `/wbTranslate` (no target) | Halt. |
+| `/wbTranslate "the login form"` | Halt — free-text. |
+| `/wbTranslate <new-component> --new-only` | Refuse — nothing to preserve. |
+| `/wbTranslate <file with only error throws>` | Exit 0 — no user-facing strings. |
+| `/wbTranslate core2/packages/wbc-ui2-cdn/` | Permitted but warns about parked package. Asks confirmation. |
+| `/wbTranslate <test file>` | Skip — test files don't translate. |
+| User asks for fr.json / ar.json *content* | Refuse politely — `/wbTranslate` doesn't translate. Suggests human or separate model pass with translator-quality prompts. |
+| Existing locale file is corrupted JSON | Halt — refuses to act on broken state. |
+
+The pattern: **`/wbTranslate` is i18n bootstrap, not i18n content.** It produces scaffolding (key extraction, en.json population, glossary file) and explicitly does *not* invent translations. The single flag (`--new-only`) addresses the maintenance case; first-run is flag-free. Memory awareness shows up in caution around parked packages and english-only rule informational notes. The boundary with content work is hard and clearly named — every report ends with "did NOT translate" so the user knows where the seam is.

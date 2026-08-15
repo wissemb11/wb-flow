@@ -29,13 +29,11 @@ You should trigger `/wbValid` immediately after a worker model has completed a t
 
 ## 💡 Pro Tips for Success
 
-1. **Use a Different Model:** For the most rigorous validation, always have a different LLM model run `/wbValid` than the one that ran `/wbWork`. If Gemini 3 Flash wrote the code, have DeepSeek V4 Pro or Claude Sonnet 4.7 validate it. Fresh eyes catch more bugs!
+1. **Use a Different Model:** For the most rigorous validation, always have a different LLM model run `/wbValid` than the one that ran `/wbWork`. If the agent 3 Flash wrote the code, have the AI agent or the agent the AI agent validate it. Fresh eyes catch more bugs!
 2. **Review the Task Reports:** `/wbValid` will generate a detailed validation report in the `tasks/task_<N>/` folder. Always read this report to understand *why* a task passed or failed.
 3. **Embrace Rejection:** If `/wbValid` rejects a task, it's doing its job! Use the feedback to run `/wbWork` again and perfect the implementation.
 
 Happy validating!
-
-
 
 ## Option Categories
 
@@ -43,10 +41,10 @@ Validation options control which checks run, how results are reported, and wheth
 
 ## Related
 
-- [wbValid ELI5](wbValid_eli5.md) — Plain English overview
-- [wbValid Practical](wbValid_practical.md) — Step-by-step walkthrough
-- [wbValid Expert](wbValid_expert.md) — Architecture and edge cases
+- [wbValid ELI5](wbValid_eli5) — Plain English overview
+- [wbValid Practical](wbValid_practical) — Step-by-step walkthrough
+- [wbValid Expert](wbValid_expert) — Architecture and edge cases
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+← [Home](../../README) · [Commands](../../README#the-command-catalog) · [Install](/README) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

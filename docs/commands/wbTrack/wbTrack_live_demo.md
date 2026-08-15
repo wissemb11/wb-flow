@@ -1,88 +1,329 @@
-# wb-flow Protocol: /wbTrack Live Workspace Demo
+# /wbTrack — Live Demo ()
 
-This document is the **Real-Time Execution Log** of the `/wbTrack` command. It applies the exact structural matrix from the Exhaustive Simulation to the *current, live state* of the `wb-labs` workspace as of 2026-05-04.
+This is what `/wbTrack` actually does on `wb-labs` as the workspace stands today (2026-05-05). The matrix below mirrors the [exhaustive simulation](./wbTrack_exhaustive_simulation), but every cell is filled from the *live* state of the repo — the session files that exist, the models that contributed, the derivative files that were extracted.
 
 ---
 
-## 1. Role & Definition Matrix (Live Application)
-**Target:** `wb-labs/.wb/workflows/reports/2026/05/04/`
-**Live State Evaluated:** 
-*   Active Directory: `wb-labs`
-*   Status: Multiple AI sessions have occurred today across `wb-core` and the `frontEnd/wbc-ui/core2/packages/wb-flow/templates` docs. A `track_report.md` likely already exists for today.
+<CommandLiveDemoAnimation command="wbTrack" />
 
-| Scenario | Live System Behavior (wb-labs) |
+## 1. Live target
+
+| Field | Live value |
 |---|---|
-| Target is Active Directory | **[ACTIVE]** Ready to append recent `wb-core` refactoring logs. |
-| Target is Date Range | **[INACTIVE]** Defaulting to `2026-05-04` unless `-d` is passed. |
-| Tracker Doesn't Exist | **[PASS]** The directory `reports/2026/05/04/` exists. Smart Merge activated. |
+| Active scope | `core2/packages/wb-core` |
+| Session file path | `packages/wb-core/.agents/workflows/tracks/2026/05/05/track_wb-core_20260505.md` |
+| Prior sessions | `track_wb-core_20260504.md` exists (yesterday — finalized with derivatives) |
+| Current model | the AI agent via Antigravity |
+| Models that contributed yesterday | the AI agent (§0–§3), the AI agent (§4–§6, via the agent CLI) |
+
+The real state right now: the `wb-core` plan has 3 rows. Rows 1 and 2 were completed yesterday. Row 3 (WBC.js decomposition) was left unblocked but not started — the agent's §4 recommended it, but the session ended before anyone picked it up.
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix (Live Application)
-| Argument Type | Input Executed | Live Parsed State (wb-labs) | Live Output Generation |
-|---|---|---|---|
-| No Argument | `Command: /wbTrack` | Defaults to today. | `[PROCEED] Appending current session data to today's log.` |
-| Specific Date | `Command: /wbTrack -d="2026-04-30"` | Locks onto historical date. | `[PROCEED] Fetching track data for April 30th.` |
-| Directory Path | `Command: /wbTrack packages/wb-core` | Locks scope. | `[PROCEED] Filtering today's track strictly for wb-core commits.` |
-| Wildcard Glob | `Command: /wbTrack frontEnd/wbc-ui/core2/packages/wb-flow/templates/**/*.md` | Massive sweep. | `[PROCEED] Aggregating all documentation updates into the track.` |
+## 2. What the argument resolves to today
+
+| Argument | Live resolution |
+|---|---|
+| `/wbTrack packages/wb-core` | Creates `track_wb-core_20260505.md` (new day, new file). Runs `/wbStandup wb-core` as §0 sub-command. |
+| `/wbTrack` (no arg) | Creates `track_core2_20260505.md` at monorepo root. Different file, different scope. |
+| `/wbTrack packages/wb-dataviewer` | Creates `track_wb-dataviewer_20260505.md`. Independent session — the wb-core session is unrelated. |
+| `/wbTrack packages/wb-core` when already tracking core2 | Halt. `⚠️ Already tracking: core2. Run /wbStopTrack first.` |
 
 ---
 
-## 3. Flag Processing Matrix (Isolated Live Runs)
+## 3. Per-flag behavior, applied live
 
-| Flag | Live Executed Command | Live Output Impact |
-|---|---|---|
-| `--date="<YYYY-MM-DD>"`| `Command: /wbTrack -d="2026-04-29"` | `[DATE] Found legacy tracker file for v4.6 hardening phase.` |
-| `--sync` | `Command: /wbTrack -s` | `[SYNC] Detected 4 manual python script executions in scratch/.` |
-| `--merge` | `Command: /wbTrack -m` | `[MERGE] Deduplicating the 'Documentation Update' entries.` |
-| `--dry-run` | `Command: /wbTrack -D` | `[DRY-RUN] Console output generated. reports/2026/05/04/track_report.md untouched.` |
+| Flag | If invoked now |
+|---|---|
+| `/wbTrack packages/wb-core` (no flags) | Creates today's session file. Writes §0 with full `/wbStandup` output. Tracking ON for this model. |
+| `/wbTrack -s` (while tracking) | Reports: `🟢 Active scope: packages/wb-core. Session file: track_wb-core_20260505.md. Sections: §0.` |
+| `/wbTrack -s` (while not tracking) | Reports: `⚪ Tracking OFF. No active session for this model.` |
+| `/wbStopTrack` | Writes §STOP to the session file. Tracking OFF. File remains open for other models. |
+| `/wbStopTrack -f` | Writes §STOP + extracts 6 derivative files from the session. |
 
----
+The derivatives extracted by `-f` for yesterday's session:
 
-## 4. Omni-Channel Execution Pipeline (Live Chaining)
-
-### 💠 The "End of Day Sync" (`-s -m`)
-**Live Context:** Running this *right now* to finalize the massive v4 Documentation updates in `wb-labs`. The agent needs to log all the Python script runs and markdown generation without overwriting the morning's work.
-**Command Executed:** `/wbTrack -s -m`
-**Live Output:**
-```text
-> Command: /wbTrack -s -m
-
-[SYSTEM] Initiating End of Day Sync for wb-labs...
-[SYNC] Scanning git diff and chat history...
-[SYNC] Identified 14 new massive v4 standard markdown files.
-[MERGE] Reading reports/2026/05/04/track_report.md...
-[MERGE] Existing file contains morning tasks. Preserving...
-[TRACK] Appending: "Evening Session: Overwrote 14 documentation files with explicit Example format."
-[SUCCESS] Track successfully merged into reports/2026/05/04/track_report.md.
-```
-
-### 💠 The "Historical Audit" (`-d="2026-05-02" -D`)
-**Live Context:** Checking what was accomplished two days ago during the `md.wbc-ui.com` hygiene phase.
-**Command Executed:** `/wbTrack -d="2026-05-02" -D`
-**Live Output:**
-```text
-> Command: /wbTrack -d="2026-05-02" -D
-
-[SYSTEM] Accessing historical archive...
-[DATE] Parsed reports/2026/05/02/track_report.md.
-[DRY-RUN] Summary of 2026-05-02:
-- Executed Core2 Project Standup.
-- Stabilized md.wbc-ui.com architecture.
-- Migrated legacy workflows.
-[SUCCESS] Read-only execution complete.
-```
+| Derivative | Content |
+|---|---|
+| `track_wb-core_20260504_tips.md` | All `[!TIP]` callouts from §0–§6 |
+| `track_wb-core_20260504_warnings.md` | All `[!WARNING]` callouts |
+| `track_wb-core_20260504_importants.md` | All `[!IMPORTANT]` callouts |
+| `track_wb-core_20260504_commentaries.md` | All Commentary sections, stripped of headers |
+| `track_wb-core_20260504_all_commands.md` | Every `/wb*` command executed during the session |
+| `track_wb-core_20260504_resume.md` | Last §N's "Recommended Next" table — the handoff document |
 
 ---
 
-## 5. Operational Edge Cases (Live Workspace Check)
+## 4. Pipelines
 
-| Fault Trigger | Live System State | Live Resolution |
-|---|---|---|
-| Merge Conflict | **[PASS]** No external processes are currently locking `track_report.md`. | Smart Merge proceeds smoothly. |
-| Invalid Date Format | **[TRIGGERED]** If user runs `/wbTrack -d="05/04/2026"`. | `❌ Error: Date must be YYYY-MM-DD (e.g., 2026-05-04).` |
-| Missing History | **[PASS]** `2026-04-29` to present exists. | Historical retrieval succeeds. |
+<script setup>
+const wbTrackPipelines = [
+  {
+    "title": "Start today's session (first model)",
+    "cmd": "/wbTrack packages/wb-core",
+    "logs": [
+      {
+        "text": "[SYSTEM] Scope: packages/wb-core",
+        "type": "sys"
+      },
+      {
+        "text": "[CHECK] tracks/2026/05/05/track_wb-core_20260505.md \u2192 does not exist.",
+        "type": "gen"
+      },
+      {
+        "text": "[CREATE] Initializing universal daily session file.",
+        "type": "gen"
+      },
+      {
+        "text": "[SUB-COMMAND] /wbStandup packages/wb-core...",
+        "type": "gen"
+      },
+      {
+        "text": "# Track: wb-core \u2014 2026-05-05",
+        "type": "gen"
+      },
+      {
+        "text": "> **Target:** packages/wb-core",
+        "type": "gen"
+      },
+      {
+        "text": "> **Created by:** the AI agent via Antigravity",
+        "type": "gen"
+      },
+      {
+        "text": "> **Started:** 2026-05-05 04:03",
+        "type": "gen"
+      },
+      {
+        "text": "> **Status:** \ud83d\udfe2 ACTIVE",
+        "type": "gen"
+      },
+      {
+        "text": "# \u00a70 \u2014 Strategic Vision *(the AI agent \u2014 04:03)*",
+        "type": "gen"
+      },
+      {
+        "text": "## Current State",
+        "type": "sys"
+      },
+      {
+        "text": "wb-core has a 3-row plan. Rows 1-2 (JWT handshake, renderString escape)",
+        "type": "gen"
+      },
+      {
+        "text": "are \u2705 Done + \u2705 Valid (validated yesterday by the agent). Row 3 (WBC.js",
+        "type": "gen"
+      },
+      {
+        "text": "decomposition) is \u2b1c \u2014 unblocked but untouched. Yesterday's session",
+        "type": "gen"
+      },
+      {
+        "text": "(track_wb-core_20260504.md) ended with the agent recommending row 3 as",
+        "type": "gen"
+      },
+      {
+        "text": "the immediate priority.",
+        "type": "gen"
+      },
+      {
+        "text": "## Past Debt: /wbStandup wb-core output",
+        "type": "sys"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  },
+  {
+    "title": "Execute work while tracking",
+    "cmd": "/wbWork --id=\"3\"",
+    "logs": [
+      {
+        "text": "[REPORT] \u2192 reports/2026/05/05/plans/plan_wb-core_20260505.md (row 3 marked \u2705)",
+        "type": "gen"
+      },
+      {
+        "text": "[TRACK] \u2192 tracks/2026/05/05/track_wb-core_20260505.md (\u00a71 appended)",
+        "type": "gen"
+      },
+      {
+        "text": "# \u00a71 \u2014 `/wbWork --id=\"3\"` *(the AI agent \u2014 04:15)*",
+        "type": "gen"
+      },
+      {
+        "text": "## What the user did",
+        "type": "sys"
+      },
+      {
+        "text": "/wbWork --id=\"3\"",
+        "type": "gen"
+      },
+      {
+        "text": "**What the user wants:** Implement the WBC.js decomposition task.",
+        "type": "sys"
+      },
+      {
+        "text": "## What happened",
+        "type": "sys"
+      },
+      {
+        "text": "### Files read",
+        "type": "gen"
+      },
+      {
+        "text": "- core2/packages/wb-core/src/WBC.js (the 1200-line monolith)",
+        "type": "gen"
+      },
+      {
+        "text": "### Files created/modified",
+        "type": "gen"
+      },
+      {
+        "text": "| File | Action | What it contains |",
+        "type": "gen"
+      },
+      {
+        "text": "|---|---|---|",
+        "type": "gen"
+      },
+      {
+        "text": "| `WBC.js` | Modified | Split into 3 modules |",
+        "type": "gen"
+      },
+      {
+        "text": "| `WBC.computed.js` | Created | Core initialization |",
+        "type": "gen"
+      },
+      {
+        "text": "| `WBC.lifecycle.js` | Created | Event delegation |",
+        "type": "gen"
+      },
+      {
+        "text": "## Commentary",
+        "type": "sys"
+      },
+      {
+        "text": "- **Outcome:** WBC.js reduced from 1200 \u2192 340 lines. Two new modules extracted.",
+        "type": "gen"
+      },
+      {
+        "text": "- **Insights:** The event delegation was tangled with initialization \u2014 separating",
+        "type": "gen"
+      },
+      {
+        "text": "them revealed 3 unused handlers that should be cleaned.",
+        "type": "gen"
+      },
+      {
+        "text": "- **Decisions:** Kept the original filename for backward compatibility (re-exports).",
+        "type": "gen"
+      },
+      {
+        "text": "> [!TIP]",
+        "type": "gen"
+      },
+      {
+        "text": "> Run `/wbClean packages/wb-core` to catch the 3 dead handlers revealed by the split.",
+        "type": "gen"
+      },
+      {
+        "text": "## Recommended Next",
+        "type": "sys"
+      },
+      {
+        "text": "| Priority | Command | Why | Recommended Models |",
+        "type": "gen"
+      },
+      {
+        "text": "|---|---|---|---|",
+        "type": "gen"
+      },
+      {
+        "text": "| \ud83d\udd34 1st | `/wbValid --id=\"3\"` | Validate the decomposition | the agent 4 |",
+        "type": "gen"
+      },
+      {
+        "text": "| \ud83d\udfe1 2nd | `/wbClean packages/wb-core` | Dead handlers from the split | Qwen3 Coder |",
+        "type": "gen"
+      }
+    ],
+    "note": "With tracking ON, running `/wbWork --id=\"3\"` produces two outputs:",
+    "noteType": "info"
+  },
+  {
+    "title": "End of day finalization",
+    "cmd": "/wbStopTrack --finalize",
+    "logs": [
+      {
+        "text": "[SYSTEM] Finalizing session for packages/wb-core.",
+        "type": "sys"
+      },
+      {
+        "text": "[STOP] Writing \u00a7STOP to track_wb-core_20260505.md.",
+        "type": "gen"
+      },
+      {
+        "text": "[DERIVE] Extracting 6 derivative files...",
+        "type": "gen"
+      },
+      {
+        "text": "[DERIVE] track_wb-core_20260505_tips.md \u2014 2 tips extracted",
+        "type": "gen"
+      },
+      {
+        "text": "[DERIVE] track_wb-core_20260505_warnings.md \u2014 0 warnings",
+        "type": "gen"
+      },
+      {
+        "text": "[DERIVE] track_wb-core_20260505_importants.md \u2014 1 important",
+        "type": "gen"
+      },
+      {
+        "text": "[DERIVE] track_wb-core_20260505_commentaries.md \u2014 2 commentary blocks",
+        "type": "gen"
+      },
+      {
+        "text": "[DERIVE] track_wb-core_20260505_all_commands.md \u2014 3 commands logged",
+        "type": "gen"
+      },
+      {
+        "text": "[DERIVE] track_wb-core_20260505_resume.md \u2014 handoff for tomorrow",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Session closed. Files at tracks/2026/05/05/.",
+        "type": "ok"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbTrack" :pipelines="wbTrackPipelines" />
+
+
+### 💠 Pipeline Start today's session (first model)
+
+
+### 💠 Pipeline Execute work while tracking
+
+With tracking ON, running `/wbWork --id="3"` produces two outputs:
+
+
+### 💠 Pipeline End of day finalization
 
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## 5. What would refuse today
+
+| Trigger | Live response |
+|---|---|
+| `/wbTrack` when already tracking wb-core | `⚠️ Already tracking: packages/wb-core. Run /wbStopTrack first.` |
+| `/wbTrack packages/wb-core packages/wb-dataviewer` | Halt. One scope only. No multi-target tracking. |
+| `/wbStopTrack` when not tracking | No-op. `⚪ No active session to stop.` |
+| `/wbTrack -d="2026-05-01"` | Halt. `❌ Unknown flag -d. /wbTrack has two flags: --finalize (-f) and --scope (-s).` the agent's version doesn't support retroactive date targeting. |
+| `/wbTrack packages/nonexistent` | Halt. `❌ Directory packages/nonexistent not found.` |
+
+The pattern: **`/wbTrack` is strict about state (one session per model), permissive about bootstrapping (creates directories if needed), and honest about its flag surface (no inherited flags from the agent's version that don't map to the agent's behavior).** The simplicity is the feature — the command is a toggle with one scope variable.

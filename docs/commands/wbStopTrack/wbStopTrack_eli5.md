@@ -1,50 +1,40 @@
-# wbStopTrack — ELI5 Guide
+# /wbStopTrack — ELI5
 
-## What is this?
+## What is `/wbStopTrack`?
 
-Stops the currently running time tracking session and saves the recorded time data to your tracking log. It captures the session duration, the task or branch being worked on, and any notes you've added during the session.
+When you start a work session, `/wbTrack` opens a journal and starts recording everything you do. When you're done for the day, `/wbStopTrack` closes that journal, writes a summary on the last page, and puts it on the shelf.
 
-When you stop a session, `wbStopTrack` snapshots the current state: it records the exact start and end times, calculates the elapsed duration, collects any notes you've made during the session, and appends the entry to your time tracking log file. The log is stored in a structured format (JSON or CSV) that can be exported for billing or analysis.
+After that, the journal is sealed — nobody can add more entries to it. The next time you start working, `/wbTrack` will open a brand new journal.
 
-**What It Captures:**
-- **Session duration** — exact start and end time, total elapsed time rounded to the nearest minute
-- **Task context** — the branch name, task description, or issue number associated with the session
-- **Activity log** — key commits and files touched during the session for automatic activity summary
-- **Status notes** — any mid-session notes, blockers, or achievements logged during the session
-- **Billing metadata** — project, client, and billable/non-billable flags if configured
+## Why does it exist?
 
-**When to use it:** When you finish a task, switch contexts, or end your workday. Always stop the current session before starting `wbTrack` with a new task.
+Without a clear "session over" signal, your session data becomes a long, unbroken stream. Yesterday's work bleeds into today's work. The standup can't tell what's finished from what's in progress. Cost estimates span multiple days with no boundaries.
 
-## Why do I need it?
+`/wbStopTrack` is the full stop at the end of a sentence. It makes session data readable and actionable.
 
-Time tracking only works if you actually stop the clock. `wbStopTrack` closes the session cleanly, saves all data, and ensures your time log is accurate — no more guessing how long you spent on that feature three days ago. It also prevents the common problem of forgetting to stop tracking and ending up with a 12-hour session.
+## Quick Example
 
-**Tips:**
-- Use `--note` to capture your current status before switching tasks
-- Use `--next` to chain stop-and-start without interruption
-- Review your tracking log weekly with `wbLog --type time` to spot inaccuracies
+```bash
+/wbStopTrack .
+```
 
-## Simple Example
+That's it. The tracker gets sealed, a summary is generated, and the file is archived. Tomorrow starts clean.
 
-**Stop current session:** `/wbStopTrack` — stops the active session, saves the time log, and displays a summary of what was tracked.
+## When to Use It
 
-**Stop with note:** `/wbStopTrack --note "Finished API integration, blocked on auth flow"` — stops tracking and attaches a note explaining current progress and blockers.
+- End of work day — the most common use case
+- Before switching to a completely different project
+- Before a release — separate "dev work" from "release activities"
+- When another person or agent will continue the work
 
-**Stop and start new:** `/wbStopTrack --next "WIP: Dashboard filters"` — stops the current session and immediately starts a new one with the given task description.
+## When NOT to Use It
 
----
+- Mid-session when you'll resume in an hour → just leave the tracker open
+- As a way to "reset" the tracker → that's not what this does; it archives, not deletes
+- Before running `/wbLog` → log first, then stop tracking
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+## What Happens If You Forget?
 
-## Common Pitfalls
+Nothing breaks. The tracker stays open, and the next day's commands append to it. But the session boundary is lost, which makes the standup less useful and cost tracking less accurate.
 
-**Not reviewing the output before acting.** Always read the report before making changes — automated suggestions are starting points, not gospel.
-
-**Using the wrong scope.** Be specific about what you target (a file, a directory, the whole project) to avoid unnecessary processing or missed issues.
-
-**Skipping prerequisites.** Many commands require a clean git state or specific tools — run `wbValid` first if you get unexpected errors.
-
-**Ignoring warnings.** Yellow-flagged items often foreshadow red-flagged failures in later steps — address them early.
-
-**Running without context.** For commands that analyze project state, running from the wrong directory or without proper setup produces misleading results.
-
+The best practice is to make `/wbStopTrack` the last command of every work day.

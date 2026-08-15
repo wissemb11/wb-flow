@@ -1,3 +1,8 @@
+---
+title: "wbDebug — Find root causes of bugs"
+description: "## Overview"
+---
+
 # /wbDebug — Find root causes of bugs
 
 ## Overview
@@ -25,16 +30,11 @@
 - ❌ Does not test — use `/wbTest` to verify the fix works.
 - ❌ Does not audit overall quality — use `/wbAudit` for that.
 
-## 🔗 Sister Edition
-
-> The [Claude edition (`flow.wbc-ui.com`)](../../../../apps/wb-flow/flow.wbc-ui.com/src/commands/wbDebug/) <!-- [CROSS-EDITION] Phase=A --> covers the same command in a self-help, opinionated register.
-
 ## What's Next?
 
 After reading this hub, either:
 - Pick a **layer file** above for deep reading
 - Run `/wbNext` to see what commands naturally follow `/wbDebug` in a workflow
-
 
 ## How It Works
 
@@ -42,10 +42,9 @@ Traces execution path backward from crash point using static analysis.
 
 ## Key Options
 
---bisect for git bisect integration, include full stack trace for best results
-
+Include a full stack trace for best results.
 
 > **Usage tip:** Paste the full stack trace for most accurate diagnosis. Include reproduction steps for logic bugs.
 ---
 
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

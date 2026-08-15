@@ -1,86 +1,148 @@
-# wb-flow Protocol: /wbBroadcast Live Workspace Demo
+# /wbBroadcast — Live Demo ()
 
-This document is the **Real-Time Execution Log** of the `/wbBroadcast` command. It applies the exact structural matrix from the Exhaustive Simulation to the *current, live state* of the `wb-labs` workspace as of 2026-05-04.
+This is what `/wbBroadcast` actually does on `wb-labs` as the workspace stands today (2026-05-05). The matrix below mirrors the [exhaustive simulation](./wbBroadcast_exhaustive_simulation), but every cell is filled from the *live* state of the repo.
 
 ---
 
-## 1. Role & Definition Matrix (Live Application)
-**Target:** `wb-labs/frontEnd/wbc-ui/core2`
-**Live State Evaluated:** 
-*   Active Directory: `core2` (Monorepo root).
-*   Status: `demo.wbc-ui.com` is actively running a Vite dev server. The massive v4 Documentation update is nearing completion.
+<CommandLiveDemoAnimation command="wbBroadcast" />
 
-| Scenario | Live System Behavior (wb-labs) |
+## 1. Live target
+
+| Field | Live value |
 |---|---|
-| Target is Webhook | **[ACTIVE]** Ready to parse `.env` to locate Slack/Discord webhook URLs for the engineering team. |
-| Target is Internal PubSub | **[ACTIVE]** System is primed to dispatch `core2` monorepo events across workspaces. |
-| Missing Payload | **[INACTIVE]** Will halt execution if no message is provided. |
+| Configured channels | `#dev`, `#ops`, `#ci-notifications` (Slack webhooks in `.agents/config/`) |
+| Internal PubSub | 4 micro-frontends listening: demo.wbc-ui.com, md.wbc-ui.com, wbc-ui.com, wb-press2.wbc-ui.com |
+| Last broadcast | `wb-core v4.5.2 published` (2026-05-03, to #dev) |
+| Pending events | wb-core WBC.js decomposition completed → cache purge needed |
 
 ---
 
-## 2. Argument & Criteria Resolution Matrix (Live Application)
-| Argument Type | Input Executed | Live Parsed State (wb-labs) | Live Output Generation |
-|---|---|---|---|
-| Natural Language String | `Command: /wbBroadcast "v4 is live"` | Parses string. | `[PROCEED] Formatting simple text notification.` |
-| Specific Channel | `Command: /wbBroadcast #docs-team` | Targets specific webhook. | `[PROCEED] Routing payload specifically to the docs team.` |
-| Comma-Separated | `Command: /wbBroadcast #docs,#engineering` | Parses multiple targets. | `[PROCEED] Queueing parallel HTTP requests.` |
-| Event Type | `Command: /wbBroadcast event:docs_updated` | Formal event syntax. | `[PROCEED] Firing internal event to trigger doc re-render in demo app.` |
+## 2. What each argument resolves to today
+
+| Argument | Live resolution |
+|---|---|
+| `/wbBroadcast #dev -m="wb-core row 3 complete"` | Sends text to #dev Slack channel. |
+| `/wbBroadcast event:purge_cache -d='{"scope":"wb-core"}'` | Fires internal PubSub event to 4 micro-frontends. |
+| `/wbBroadcast #dev,#ops -m="Plan complete"` | Multicast to both channels simultaneously. |
 
 ---
 
-## 3. Flag Processing Matrix (Isolated Live Runs)
+## 3. Pipelines on this exact workspace
 
-| Flag | Live Executed Command | Live Output Impact |
-|---|---|---|
-| `--message="<str>"`| `Command: /wbBroadcast #general -m="Demo server up"` | `[MESSAGE] Wrapping "Demo server up" in JSON.` |
-| `--data="<json>"` | `Command: /wbBroadcast webhook -d='{"docs": 22}'` | `[DATA] Attaching metric data to webhook payload.` |
-| `--silent` | `Command: /wbBroadcast event:ping -s` | `[SILENT] Dispatched background event. No logs.` |
-| `--dry-run` | `Command: /wbBroadcast #engineering -m="Test" -D` | `[DRY-RUN] Would send webhook. Network layer bypassed.` |
+<script setup>
+const wbBroadcastPipelines = [
+  {
+    "title": "Notify team after completing wb-core plan",
+    "cmd": "/wbBroadcast #dev -m=\"wb-core plan complete: JWT handshake, renderString escape, WBC.js decomposition all done. Pending validation on row 3.\"",
+    "logs": [
+      {
+        "text": "[SYSTEM] Single-channel broadcast to #dev.",
+        "type": "sys"
+      },
+      {
+        "text": "[PAYLOAD] Text: \"wb-core plan complete: JWT handshake, renderString escape, WBC.js decomposition all done. Pending validation on row 3.\"",
+        "type": "gen"
+      },
+      {
+        "text": "[DISPATCH] #dev \u2192 200 OK (0.3s)",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Broadcast sent.",
+        "type": "ok"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  },
+  {
+    "title": "Cache purge after WBC.js decomposition",
+    "cmd": "/wbBroadcast event:purge_cache -d='{\"scope\": \"wb-core\", \"reason\": \"WBC.js decomposed into WBC.core.js + WBC.events.js\", \"affected_exports\": [\"initWBC\", \"delegateEvent\"]}'",
+    "logs": [
+      {
+        "text": "[SYSTEM] Internal PubSub event dispatch.",
+        "type": "sys"
+      },
+      {
+        "text": "[EVENT] wb:purge_cache",
+        "type": "gen"
+      },
+      {
+        "text": "[TARGETS] 4 registered listeners:",
+        "type": "gen"
+      },
+      {
+        "text": "- demo.wbc-ui.com \u2192 dispatched",
+        "type": "gen"
+      },
+      {
+        "text": "- md.wbc-ui.com \u2192 dispatched",
+        "type": "gen"
+      },
+      {
+        "text": "- wbc-ui.com \u2192 dispatched",
+        "type": "gen"
+      },
+      {
+        "text": "- wb-press2.wbc-ui.com \u2192 dispatched",
+        "type": "gen"
+      },
+      {
+        "text": "[OK] Event fired to 4 consumers.",
+        "type": "ok"
+      }
+    ],
+    "note": "The WBC.js decomposition changed the export surface. Micro-frontends that import from `wb-core` need to drop their caches:",
+    "noteType": "info"
+  },
+  {
+    "title": "Dry-run before multicast",
+    "cmd": "/wbBroadcast #dev,#ops,#ci-notifications -m=\"wb-core v4.6.0 ready for release\" -D",
+    "logs": [
+      {
+        "text": "[DRY-RUN] Targets: #dev, #ops, #ci-notifications",
+        "type": "warn"
+      },
+      {
+        "text": "[DRY-RUN] Payload: { text: \"wb-core v4.6.0 ready for release\" }",
+        "type": "warn"
+      },
+      {
+        "text": "[DRY-RUN] Would fire 3 HTTP POST requests.",
+        "type": "warn"
+      },
+      {
+        "text": "[DRY-RUN] No requests sent. Run without -D to broadcast.",
+        "type": "warn"
+      }
+    ],
+    "note": "",
+    "noteType": "info"
+  }
+];
+</script>
+
+<LiveDemoAnimation command="wbBroadcast" :pipelines="wbBroadcastPipelines" />
+
+
+### 💠 Pipeline Notify team after completing wb-core plan
+
+
+### 💠 Pipeline Cache purge after WBC.js decomposition
+
+The WBC.js decomposition changed the export surface. Micro-frontends that import from `wb-core` need to drop their caches:
+
+
+### 💠 Pipeline Dry-run before multicast
 
 ---
 
-## 4. Omni-Channel Execution Pipeline (Live Chaining)
+## 4. What would refuse today
 
-### 💠 The "Massive Post-Release Broadcast" (`#docs,#dev -m="..." -d="..."`)
-**Live Context:** Running this *right now* to simulate notifying the entire `wb-labs` organization that the v4 Massive Documentation epic has successfully generated 44+ exhaustive simulated files.
-**Command Executed:** `/wbBroadcast #docs,#dev -m="Epic Complete: v4 Documentation" -d='{"files_generated": 44, "status": "success"}'`
-**Live Output:**
-```text
-> Command: /wbBroadcast #docs,#dev -m="Epic Complete: v4 Documentation" -d='{...}'
+| Trigger | Live response |
+|---|---|
+| `/wbBroadcast #dev` (no message) | `❌ Empty payload. Use -m or -d.` |
+| `/wbBroadcast #unknown-channel -m="test"` | `⚠️ Channel #unknown-channel not configured. Available: #dev, #ops, #ci-notifications.` |
+| `/wbBroadcast event:purge_cache` (no -d) | Proceeds with empty data payload. Event fires with just the timestamp. Not a refusal — events can be signals without data. |
 
-[SYSTEM] Initiating Massive Cross-Channel Broadcast...
-[PAYLOAD] Formatted JSON blocks for Slack integration.
-[DISPATCH] Resolving webhook URL for #docs from .env...
-[DISPATCH] Firing webhook for #docs... 200 OK.
-[DISPATCH] Resolving webhook URL for #dev from .env...
-[DISPATCH] Firing webhook for #dev... 200 OK.
-[SUCCESS] Multi-channel broadcast complete. Teams notified.
-```
-
-### 💠 The "Internal Cache Invalidation" (`event:reload_docs -D`)
-**Live Context:** The documentation has changed. We need to tell the `demo.wbc-ui.com` Vite server to hot-reload its markdown cache without actually sending an external webhook.
-**Command Executed:** `/wbBroadcast event:reload_docs -D`
-**Live Output:**
-```text
-> Command: /wbBroadcast event:reload_docs -D
-
-[SYSTEM] Formatting internal PubSub event...
-[DRY-RUN] Event Name: `wb:reload_docs`.
-[DRY-RUN] Target: Local Vite Dev Server (ws://localhost:5173).
-[DRY-RUN] Payload: `{ timestamp: 1714856600, scope: "frontEnd/wbc-ui/core2/packages/wb-flow/templates" }`
-[SUCCESS] Dry-run complete. Safe to trigger hot-module replacement.
-```
-
----
-
-## 5. Operational Edge Cases (Live Workspace Check)
-
-| Fault Trigger | Live System State | Live Resolution |
-|---|---|---|
-| Dead Webhook | **[PASS]** Webhook URLs correctly parsed from `.env.local`. | HTTP POST succeeds. |
-| Malformed JSON | **[PASS]** Single quotes used correctly around JSON string in CLI. | Data parsed cleanly. |
-| Network Timeout | **[PASS]** API responding within 200ms. | Broadcast marked successful. |
-
----
-
-← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [@wbc-ui2/wb-flow on npm](https://www.npmjs.com/package/@wbc-ui2/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+The pattern: **`/wbBroadcast` is the workspace's outward voice.** It tells external systems and internal consumers what happened. Fire-and-forget by design — a failed broadcast never blocks work.
