@@ -7,7 +7,7 @@ description: "---"
 
 > Self-help. `/wbContext` is the command you run more than any other. This file is the cheat sheet for "what's actually happening when I type it."
 >
-> Format: annotated transcripts, same as [wbSetup_examples](../wbSetup/wbSetup_examples).
+> Format: annotated transcripts, same as [wbSetup_examples](../wbSetup/wbSetup_examples.md).
 
 ---
 

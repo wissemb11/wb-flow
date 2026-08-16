@@ -1,11 +1,11 @@
 ---
-title: "wb-flow (v1.0.2 / next) — Detailed Release Innovations & Technical Guide"
+title: "wb-flow (v1.0.2) — Detailed Release Innovations & Technical Guide"
 description: "This document provides a comprehensive deep-dive with code examples, terminal traces, script logic, and matrix specifications for all new capabilities introduce"
 ---
 
-# `wb-flow` (v1.0.2 / `next`) — Detailed Release Innovations & Technical Guide
+# `wb-flow` (v1.0.2) — Detailed Release Innovations & Technical Guide
 
-This document provides a comprehensive deep-dive with code examples, terminal traces, script logic, and matrix specifications for all new capabilities introduced in `wb-flow` (`next/core`) compared to `v1.0.1/core`.
+This document provides a comprehensive deep-dive with code examples, terminal traces, script logic, and matrix specifications for all new capabilities introduced in `wb-flow` (v1.0.2) compared to `v1.0.1`.
 
 ---
 
@@ -269,7 +269,7 @@ By routing worker execution to background sub-agents (via `--wave`), raw code ed
 | Execution Mode | Claude Context Consumption per Task | Context Growth Over 10 Tasks | Primary Model Cost |
 |---|---|---|---|
 | **Interactive (v1.0.1)** | ~45,000 tokens | ~450,000 tokens (Context Full) | High (Claude API) |
-| **Wave Mode (v1.0.2 / next)** | ~1,500 tokens (`task_report.md` only) | ~15,000 tokens (Sustained) | ~80% Lower (Flat-rate Sub-Agents) |
+| **Wave Mode (v1.0.2)** | ~1,500 tokens (`task_report.md` only) | ~15,000 tokens (Sustained) | ~80% Lower (Flat-rate Sub-Agents) |
 
 ---
 

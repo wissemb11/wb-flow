@@ -166,11 +166,23 @@ function loadCatalogIndex(explicitFile) {
 
 // ─── resolution ─────────────────────────────────────────────────────────────
 
+// The `(auto)` / `(in-session)` suffix is OPTIONAL. A bare CLI name is a CLI
+// name, not a model slug.
+//
+// Until 2026-08-16 every pattern here REQUIRED the suffix, so `-M=agy` missed
+// the sentinel, fell through to the heuristic, and was dispatched as
+// `opencode run -m agy` — a CLI that has no such model, on the lane that is out
+// of balance. `-M=claude` and `-M=codex` failed the same way; bin/wave.js's own
+// comment records `opencode run -m claude` dying with "Model not found" without
+// connecting it to this cause.
+//
+// Anchored `^…$` on the full name, so a namespaced slug that merely CONTAINS one
+// of these words (`opencode-go/claude-…`) still routes by catalog/heuristic.
 const SENTINEL = [
-  { re: /^claude\s*\(auto\)$|^claude\s*\(in-session\)$/i, cli: 'in-session', provider: 'anthropic', pool: 'claude-pro' },
-  { re: /^codex\s*\(auto\)$/i, cli: 'codex', provider: 'openai', pool: 'chatgpt' },
-  { re: /^(agy|antigravity)\s*\(auto\)$/i, cli: 'agy', provider: 'antigravity', pool: 'google-one' },
-  { re: /^copilot\s*\(auto\)$|^github-copilot\/auto$/i, cli: 'copilot', provider: 'github-copilot', pool: 'github-copilot' },
+  { re: /^claude(\s*\((auto|in-session)\))?$/i, cli: 'in-session', provider: 'anthropic', pool: 'claude-pro' },
+  { re: /^codex(\s*\(auto\))?$/i, cli: 'codex', provider: 'openai', pool: 'chatgpt' },
+  { re: /^(agy|antigravity)(\s*\(auto\))?$/i, cli: 'agy', provider: 'antigravity', pool: 'google-one' },
+  { re: /^(copilot(\s*\(auto\))?|github-copilot\/auto)$/i, cli: 'copilot', provider: 'github-copilot', pool: 'github-copilot' },
 ];
 
 /**

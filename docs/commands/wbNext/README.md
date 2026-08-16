@@ -2,6 +2,10 @@
 
 `/wbNext` is the WB-Labs decision-support engine. It reads recent workflow state — audits, plans, task reports, git history — and recommends the single most impactful next move. Unlike `/wbPlan` which produces a full roadmap, `/wbNext` answers one question: *"I'm standing here, what should I do right now?"*
 
+![The closed feedback loop](../../public/diagrams_claude/ClosedLoopAnimation.gif)
+
+*`/wbNext` is the closing edge of the loop: it reads the reports the other commands left behind and tells you which verb comes next.*
+
 ## 🎯 Strategic Position
 
 `/wbNext` exists because the default failure mode of an AI-assisted workflow is choice paralysis. After running an audit, finishing a plan row, or returning from a break, the set of possible next actions is too large. `/wbNext` computes value × urgency across the report tree and returns one ranked recommendation — plus a list of alternatives it considered and rejected, so you can disagree if your judgment differs.

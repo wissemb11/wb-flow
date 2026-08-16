@@ -171,6 +171,6 @@ defaults, and measure if a wave surprises you.
 
 ## See also
 
-- [`wave-gating`](wave-gating) — the three-gate verdict contract the root applies
-- [`model-fallback-chains`](model-fallback-chains) — how each role's chain is built
-- [`cli-subcommands`](cli-subcommands) — `wave`, `model`, `watch` and the rest
+- [`wave-gating`](wave-gating.md) — the three-gate verdict contract the root applies
+- [`model-fallback-chains`](model-fallback-chains.md) — how each role's chain is built
+- [`cli-subcommands`](cli-subcommands.md) — `wave`, `model`, `watch` and the rest

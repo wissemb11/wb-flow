@@ -2,6 +2,10 @@
 
 `/wbTrack` initializes a session tracking file that records every `/wb*` command invocation, creating a timestamped narrative of the work session. It captures the command, target, outcome, branch, task context, and billing metadata — the audit trail that `/wbStandup` and `/wbNext` depend on.
 
+![Session lifecycle: open, work, close](../../public/diagrams_claude/SessionLifecycle.gif)
+
+*`/wbTrack` opens the session narrative that `/wbStopTrack` closes — the two ends of the same arc.*
+
 ## 🎯 Strategic Position
 
 `/wbTrack` is the session diary of the `wb-flow` system. Without it, `/wbStandup` has nothing to summarize and `/wbNext` has no history to learn from. Run it at the start of every work session so downstream commands can produce accurate summaries and informed recommendations.

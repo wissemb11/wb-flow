@@ -1,10 +1,10 @@
 ---
-title: "What's New in wb-flow (v1.0.2 / next)"
-description: "Compared to `v1.0.1`, `wb-flow` (`next/core`) introduces native local error guarding, autonomous wave execution, per-role model override flags, persistent plan "
+title: "What's New in wb-flow (v1.0.2)"
+description: "Compared to `v1.0.1`, `wb-flow` (v1.0.2) introduces native local error guarding, autonomous wave execution, per-role model override flags, persistent plan "
 ---
-# What's New in `wb-flow` (v1.0.2 / `next`)
+# What's New in `wb-flow` (v1.0.2)
 
-Compared to `v1.0.1`, `wb-flow` (`next/core`) introduces native local error guarding, autonomous wave execution, per-role model override flags, persistent plan model rosters, matrix auto-correction, and a standardized 9-file documentation suite across all 34 agentic commands.
+Compared to `v1.0.1`, `wb-flow` (v1.0.2) introduces native local error guarding, autonomous wave execution, per-role model override flags, persistent plan model rosters, matrix auto-correction, and a standardized 9-file documentation suite across all 34 agentic commands.
 
 ---
 
@@ -317,9 +317,9 @@ So `wb-flow model --probe --all` reported **"Insufficient balance"** for every A
 
 ---
 
-## 📊 Feature Comparison Matrix: v1.0.1 vs. Next (v1.0.2)
+## 📊 Feature Comparison Matrix: v1.0.1 vs. v1.0.2
 
-| Feature / Subsystem | `v1.0.1` | `next` (v1.0.2) |
+| Feature / Subsystem | `v1.0.1` | `v1.0.2` |
 |---|---|---|
 | **Subshell Error Guarding** | Basic Exit Code check (`? != 0`) | Output-Inspected Guarding via `.wb/bin/wbRun` |
 | **Wave Script Generation** | Manual / Interactive confirmation | Automated with Autonomous `-y` / `--yes` Flag |

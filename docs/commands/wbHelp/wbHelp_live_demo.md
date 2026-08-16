@@ -1,6 +1,6 @@
 # /wbHelp — Live Demo ()
 
-This is what `/wbHelp` actually does on `wb-labs` as the workspace stands today (2026-05-05). The matrix below mirrors the [exhaustive simulation](./wbHelp_exhaustive_simulation), but every cell references the *live* docs tree.
+This is what `/wbHelp` actually does on `wb-labs` as the workspace stands today (2026-05-05). The matrix below mirrors the [exhaustive simulation](wbHelp_exhaustive_simulation.md), but every cell references the *live* docs tree.
 
 ---
 

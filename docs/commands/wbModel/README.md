@@ -2,6 +2,10 @@
 
 `/wbModel` updates or displays the active model roster for `wb-flow` execution roles (**Planner**, **Validator**, **Worker**, **Mechanical**) inside `commands/model_recommendations.md`.
 
+![Model tiers mapped to roles](../../public/diagrams_claude/ModelTiersAnimation.gif)
+
+*Roles are stable; models rotate. `/wbModel` changes which model fills a role without touching a single plan file.*
+
 ## Overview
 
 `/wbModel` manages the `## User Models (Active Contractual Reference)` table, which acts as the primary contractual state for all `/wb*` command executions. It parses model assignments, automatically resolves appropriate CLI binaries (`agy`, `codex`, `opencode`), and formats 3-tier fallback chains using the `||` (Bash OR operator) syntax.

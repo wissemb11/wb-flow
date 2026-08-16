@@ -75,7 +75,7 @@ Not a third workflow — an automation that wires the `/wbPlan` path to the outp
 
 The chain forces the triage discipline *before* planning. A hand-run audit→plan sequence often skips the ranking step entirely; the chain doesn't let you. That's the value, not just keystroke savings.
 
-Composable on `/wbAudit`, `/wbReview`, `/wbStandup`. `/wbActOn <existing-report>` is the standalone form. `/wbPlan --wbPlan` is a no-op (plan-of-a-plan). Manual two-step remains valid for explicit-scope cases. Full reference: [`wbPlan_flag`](../wbPlan_flag).
+Composable on `/wbAudit`, `/wbReview`, `/wbStandup`. `/wbActOn <existing-report>` is the standalone form. `/wbPlan --wbPlan` is a no-op (plan-of-a-plan). Manual two-step remains valid for explicit-scope cases. Full reference: [`wbPlan_flag`](../wbPlan_flag.md).
 
 ---
 

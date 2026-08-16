@@ -11,9 +11,9 @@ Real-world (but minimal) applications that illustrate how the 33 `/wb*` commands
 
 | Demo | Stack | Complexity | What It Shows |
 |---|---|---|---|
-| [`my-finance-app/`](my-finance-app/README) | Vue 3 + Vite | Medium | Personal finance tracker — full lifecycle: setup → audit → plan → refactor |
-| [`my-new-app/`](my-new-app/README) | Vue 3 + Vite | Medium | Full frontend lifecycle: setup → audit → plan → refactor → release |
-| [`python-etl/`](python-etl/README) | Python + pandas | Low | Data pipeline: context → audit → plan on a non-JS stack |
+| [`my-finance-app/`](my-finance-app/README.md) | Vue 3 + Vite | Medium | Personal finance tracker — full lifecycle: setup → audit → plan → refactor |
+| [`my-new-app/`](my-new-app/README.md) | Vue 3 + Vite | Medium | Full frontend lifecycle: setup → audit → plan → refactor → release |
+| [`python-etl/`](python-etl/README.md) | Python + pandas | Low | Data pipeline: context → audit → plan on a non-JS stack |
 
 ## How to Use These Demos
 
@@ -27,10 +27,10 @@ Each demo directory contains the complete `.wb/workflows/reports/` output showin
 
 ## Related Resources
 
-- [Start Here](../start_here/README) — Getting started with wb-flow
-- [Commands](../commands/README) — Full command catalog
-- [Concepts](../concepts/README) — Architecture deep-dives
+- [Start Here](../start_here/README.md) — Getting started with wb-flow
+- [Commands](../commands/README.md) — Full command catalog
+- [Concepts](../concepts/README.md) — Architecture deep-dives
 
 ---
 
-← [Home](../README) · [Commands](../commands/README) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+← [Home](../README.md) · [Commands](../commands/README.md) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

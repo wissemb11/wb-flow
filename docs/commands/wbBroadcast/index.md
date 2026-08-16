@@ -9,13 +9,13 @@ description: Directory index linking to all layer files for the wbBroadcast comm
 
 | Layer | File |
 |---|---|
-| **eli5** | [wbBroadcast_eli5](wbBroadcast_eli5) |
-| **practical** | [wbBroadcast_practical](wbBroadcast_practical) |
-| **expert** | [wbBroadcast_expert](wbBroadcast_expert) |
-| **examples** | [wbBroadcast_examples](wbBroadcast_examples) |
-| **exhaustive_simulation** | [wbBroadcast_exhaustive_simulation](wbBroadcast_exhaustive_simulation) |
-| **live_demo** | [wbBroadcast_live_demo](wbBroadcast_live_demo) |
+| **eli5** | [wbBroadcast_eli5](wbBroadcast_eli5.md) |
+| **practical** | [wbBroadcast_practical](wbBroadcast_practical.md) |
+| **expert** | [wbBroadcast_expert](wbBroadcast_expert.md) |
+| **examples** | [wbBroadcast_examples](wbBroadcast_examples.md) |
+| **exhaustive_simulation** | [wbBroadcast_exhaustive_simulation](wbBroadcast_exhaustive_simulation.md) |
+| **live_demo** | [wbBroadcast_live_demo](wbBroadcast_live_demo.md) |
 
 ---
 
-> Auto-generated command index. The full catalog is at [commands/](../).
+> Auto-generated command index. The full catalog is at [commands/](../README.md).

@@ -96,4 +96,4 @@ ls -d .wb/workflows/
 
 ---
 
-> **Next Step:** Once installed, proceed to [**Getting Started**](getting_started) to begin your 30-day onboarding.
+> **Next Step:** Once installed, proceed to [**Getting Started**](getting_started.md) to begin your 30-day onboarding.

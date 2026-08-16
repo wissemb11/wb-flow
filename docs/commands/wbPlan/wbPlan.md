@@ -10,10 +10,10 @@ Reads diagnostic reports and produces a ranked, prioritized task table with work
 
 | Layer | File | What you'll learn |
 |---|---|---|
-| ELI5 | [wbPlan_eli5](wbPlan_eli5) | What this command does in plain English |
-| Practical | [wbPlan_practical](wbPlan_practical) | A step-by-step walkthrough on a real project |
-| Expert | [wbPlan_expert](wbPlan_expert) | Architecture, edge cases, and when NOT to use |
-| Examples | [README](README) *(merged)* | Annotated transcripts from actual sessions |
+| ELI5 | [wbPlan_eli5](wbPlan_eli5.md) | What this command does in plain English |
+| Practical | [wbPlan_practical](wbPlan_practical.md) | A step-by-step walkthrough on a real project |
+| Expert | [wbPlan_expert](wbPlan_expert.md) | Architecture, edge cases, and when NOT to use |
+| Examples | [README](README.md) *(merged)* | Annotated transcripts from actual sessions |
 | Simulation | [wbPlan_exhaustive_simulation.md](wbPlan_exhaustive_simulation.md) | Exhaustive flag-matrix and failure-mode coverage |
 | Live Demo | [wbPlan_live_demo.md](wbPlan_live_demo.md) | Real-time execution on an actual codebase |
 
@@ -78,10 +78,10 @@ Step 0 has two rules that decide whether the merge is safe:
 
 > 🔴 **Step 6 never runs if steps 0–5 did not complete.** Archiving before unification does not delete a task — it makes it invisible: nothing live references it, and the next `/wbStandup` no longer scans the tree it sits in. Without `--archive`, step 5 merely *offers* the sweep.
 
-Full model: [Report Lifecycle](/concepts/report_lifecycle).
+Full model: [Report Lifecycle](../../concepts/report_lifecycle.md).
 
 ---
 
 ---
 
-← [Home](/README) · [Commands](/README#the-command-catalog) · [Install](/start_here/installation) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../start_here/installation.md) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

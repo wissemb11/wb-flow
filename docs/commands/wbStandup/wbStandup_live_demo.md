@@ -1,6 +1,6 @@
 # /wbStandup — Live Demo ()
 
-This is what `/wbStandup` actually does on `wb-labs` as the workspace stands today (2026-05-05). The matrix below mirrors the [exhaustive simulation](./wbStandup_exhaustive_simulation), but every cell is filled from the *live* state of the repo — real plan files, real track histories, real blocker chains.
+This is what `/wbStandup` actually does on `wb-labs` as the workspace stands today (2026-05-05). The matrix below mirrors the [exhaustive simulation](wbStandup_exhaustive_simulation.md), but every cell is filled from the *live* state of the repo — real plan files, real track histories, real blocker chains.
 
 ---
 

@@ -2,6 +2,10 @@
 
 `/wbHelp` is the WB-Labs command discovery and self-documentation engine. It is a **meta-command** in the truest sense — it does not produce reports, does not modify files, and does not generate state. It serves a single purpose: surface accurate, up-to-date documentation for the entire `/wb*` command suite.
 
+![Navigating a command’s seven documentation layers](../../public/diagrams_claude/CommandDocsNavigationAnimation.gif)
+
+*Every command ships the same 7 documentation layers. `/wbHelp` is the index into them — start at the layer that matches your question, not at the top.*
+
 ## 🎯 Strategic Position
 
 In a 28-command ecosystem, knowledge of which command to invoke for a given goal is the single largest barrier to onboarding and the most common source of friction in daily use. `/wbHelp` exists to flatten that barrier:

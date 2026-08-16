@@ -7,7 +7,7 @@ description:" "Answers four classification questions about every /wb* command: w
 
 > **Audience:** Developers who already use `/wb*` commands and want the full map.
 > **Authoritative source:** `frontEnd/wbc-ui/core2/packages/wb-flow/templates/commands/wb_commands_reference.json` — single source of truth.
-> **Related:** [Overview](overview_agentic_workflows) · [Daily Playbook](../daily_use/the_daily_playbook) · [Flags & Shortcuts](flags_and_shortcuts) · [Command Composition](command_composition)
+> **Related:** [Overview](overview_agentic_workflows.md) · [Daily Playbook](../daily_use/the_daily_playbook.md) · [Flags & Shortcuts](flags_and_shortcuts.md) · [Command Composition](command_composition.md)
 
 This page answers four questions:
 
@@ -162,4 +162,4 @@ A command outside these four patterns is **single-shot**: fresh inputs, fresh ou
 
 ---
 
-* — companion to the [Overview](overview_agentic_workflows) and the [Daily Playbook](../daily_use/the_daily_playbook).*
+* — companion to the [Overview](overview_agentic_workflows.md) and the [Daily Playbook](../daily_use/the_daily_playbook.md).*

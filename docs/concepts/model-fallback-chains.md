@@ -15,7 +15,7 @@ description: "---"
 
 > [!NOTE]
 > A chain says *which model runs a role*. It does **not** say who may be the **root** agent — that is
-> a separate, stricter rule. See [`orchestrator_and_tokens`](orchestrator_and_tokens).
+> a separate, stricter rule. See [`orchestrator_and_tokens`](orchestrator_and_tokens.md).
 
 ## Pool alternation — why it matters
 

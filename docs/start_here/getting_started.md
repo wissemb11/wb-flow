@@ -7,7 +7,7 @@ description: Opinionated 30-day onboarding plan teaching which /wb* commands to 
 
 > Self-help. You have 21 commands. You don't need most of them at once. This file tells you which commands to learn first, in what order, and what a typical day looks like once you've internalized them.
 >
-> Format: opinionated tutorial, not a reference. For reference, see [overview_agentic_workflows](../concepts/overview_agentic_workflows).
+> Format: opinionated tutorial, not a reference. For reference, see [overview_agentic_workflows](../concepts/overview_agentic_workflows.md).
 
 ---
 
@@ -34,7 +34,7 @@ After the initial learning curve, your daily rotation will be these:
 | **`/wbPlan <pkg>`** | When the task is bigger than one sentence | Break work into resumable subtasks |
 | **`/wbDebug "<error>"`** | The moment you hit any error | Hypothesis before fix |
 | **`/wbAudit <pkg>`** | Before merging or shipping | Brutal review of what you did |
-| **`/wbAudit <pkg> --act --wbPlan`** | When you'd otherwise run audit then plan back-to-back | Audit + ranked actions + plan in one run. See [`wbPlan_flag`](../concepts/wbPlan_flag) |
+| **`/wbAudit <pkg> --act --wbPlan`** | When you'd otherwise run audit then plan back-to-back | Audit + ranked actions + plan in one run. See [`wbPlan_flag`](../concepts/wbPlan_flag.md) |
 | **`/wbGit`** | After every logical unit of work | Commit — the only command that touches git |
 
 These six form a complete daily loop: orient → load → work → debug-as-needed → review → save. Most days, you won't touch the other 15.
@@ -83,7 +83,7 @@ The output will be opinionated. If it says "looks good" on the first pass, push 
 
 Fix what audit flagged. Don't ship until major findings are addressed.
 
-> 💡 **Once you're comfortable with `/wbAudit` standalone**, try the chained form: `/wbAudit packages/wb-core --act --wbPlan`. Same audit, plus a sibling action file ranking findings into TODAY/THIS WEEK/THIS MONTH/LATER, plus a plan file with worker/validator tasks for the multi-step ones. Useful when audit + plan would otherwise be two separate commands. Full reference: [`concepts/wbPlan_flag`](../concepts/wbPlan_flag). The standalone form remains valid; flags are convenience.
+> 💡 **Once you're comfortable with `/wbAudit` standalone**, try the chained form: `/wbAudit packages/wb-core --act --wbPlan`. Same audit, plus a sibling action file ranking findings into TODAY/THIS WEEK/THIS MONTH/LATER, plus a plan file with worker/validator tasks for the multi-step ones. Useful when audit + plan would otherwise be two separate commands. Full reference: [`concepts/wbPlan_flag`](../concepts/wbPlan_flag.md). The standalone form remains valid; flags are convenience.
 
 **Exit criterion:** you shipped a small feature where audit had to be re-run after fixes.
 
@@ -471,9 +471,9 @@ It's not. Daily brainstorming flattens your judgment. Use `/wbVision` rarely (mo
 ## When to refer to which doc
 
 - **This file** — first time using the system, or returning after a break.
-- **[overview_agentic_workflows](../concepts/overview_agentic_workflows)** — quick reference: which command does what.
-- **[the_daily_playbook](../daily_use/the_daily_playbook)** — when you've forgotten what to run at 10am vs. 4pm.
-- **[`<cmd>/<cmd>_practical`](../commands/)** — when you've forgotten when to use a command.
+- **[overview_agentic_workflows](../concepts/overview_agentic_workflows.md)** — quick reference: which command does what.
+- **[the_daily_playbook](../daily_use/the_daily_playbook.md)** — when you've forgotten what to run at 10am vs. 4pm.
+- **[`<cmd>/<cmd>_practical`](../commands/README.md)** — when you've forgotten when to use a command.
 
 If you're going to bookmark one, bookmark `the_daily_playbook.md`. It's the one you'll re-read most.
 

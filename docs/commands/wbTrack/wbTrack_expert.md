@@ -76,7 +76,7 @@ This is a softer version of `/wbCheck` — it doesn't gate the model, but it doe
 
 ### Limited Self-Correct (the `/wbX <output_file>` dual-mode pattern)
 
-Universal `/wbX` commands with structured output (`/wbPlan`, `/wbAudit`, `/wbReview`, `/wbContext`, etc.) support a **content-detected dual mode**: if you pass a previous output file as the first arg and its first H1 matches the command's schema, the command runs in verify-and-repair instead of normal-mode production. See [`../../concepts/self_correct_mode`](../../concepts/self_correct_mode) for the universal protocol.
+Universal `/wbX` commands with structured output (`/wbPlan`, `/wbAudit`, `/wbReview`, `/wbContext`, etc.) support a **content-detected dual mode**: if you pass a previous output file as the first arg and its first H1 matches the command's schema, the command runs in verify-and-repair instead of normal-mode production. See [`../../concepts/self_correct_mode`](../../concepts/self_correct_mode.md) for the universal protocol.
 
 `/wbTrack` joins this club as of 2026-05-09 — but with one architectural carve-out: track files are **append-only multi-model narratives**, so self-correct CANNOT rewrite §N body content. If it could, one model running `/wbTrack <file>` would silently overwrite another model's §N reasoning, destroying the conversational audit trail that the universal-daily-file design exists to create.
 

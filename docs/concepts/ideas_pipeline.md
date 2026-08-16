@@ -258,20 +258,20 @@ All ideas for a given scope on a given day go into the same file, regardless of 
 
 ### Command docs (6-layer deep-dives)
 
-- [wbIdea — ELI5](../commands/wbIdea/wbIdea_eli5) · [practical](../commands/wbIdea/wbIdea_practical) · [expert](../commands/wbIdea/wbIdea_expert) · [examples](../commands/wbIdea/wbIdea_examples) · [exhaustive](../commands/wbIdea/wbIdea_exhaustive_simulation) · [live](../commands/wbIdea/wbIdea_live_demo)
-- [wbVision — practical](../commands/wbVision/wbVision_practical) (brainstorming, feeds ideas)
-- [wbPlan — practical](../commands/wbPlan/wbPlan_practical) (committed execution, receives promoted ideas)
-- [wbWork — practical](../commands/wbWork/wbWork_practical) (executes ideas or tasks)
-- [wbValid — practical](../commands/wbValid/wbValid_practical) (validates and assigns verdicts)
-- [wbExplain — practical](../commands/wbExplain/wbExplain_practical) (detailed explanations)
+- [wbIdea — ELI5](../commands/wbIdea/wbIdea_eli5.md) · [practical](../commands/wbIdea/wbIdea_practical.md) · [expert](../commands/wbIdea/wbIdea_expert.md) · [examples](../commands/wbIdea/wbIdea_examples.md) · [exhaustive](../commands/wbIdea/wbIdea_exhaustive_simulation.md) · [live](../commands/wbIdea/wbIdea_live_demo.md)
+- [wbVision — practical](../commands/wbVision/wbVision_practical.md) (brainstorming, feeds ideas)
+- [wbPlan — practical](../commands/wbPlan/wbPlan_practical.md) (committed execution, receives promoted ideas)
+- [wbWork — practical](../commands/wbWork/wbWork_practical.md) (executes ideas or tasks)
+- [wbValid — practical](../commands/wbValid/wbValid_practical.md) (validates and assigns verdicts)
+- [wbExplain — practical](../commands/wbExplain/wbExplain_practical.md) (detailed explanations)
 
 ### Related concept docs
 
-- [Plan State Management](plan_state_management) — the `⬜` `✅` `⏸️` `🚫` `🔄` states shared by plans and ideas
-- [Command Classification](command_classification) — where `/wbIdea` fits in the 6 functional families
-- [Command Composition](command_composition) — how to chain `/wbIdea` with other commands
-- [Workflow Architecture](wbWorkflow/workflow_architecture) — the "reports/ folder is the orchestration" principle
-- [Ultimate Workflow Lifecycle](wbWorkflow/ultimate_workflow_lifecycle) — full lifecycle from Setup to Broadcast
+- [Plan State Management](plan_state_management.md) — the `⬜` `✅` `⏸️` `🚫` `🔄` states shared by plans and ideas
+- [Command Classification](command_classification.md) — where `/wbIdea` fits in the 6 functional families
+- [Command Composition](command_composition.md) — how to chain `/wbIdea` with other commands
+- [Workflow Architecture](wbWorkflow/workflow_architecture.md) — the "reports/ folder is the orchestration" principle
+- [Ultimate Workflow Lifecycle](wbWorkflow/ultimate_workflow_lifecycle.md) — full lifecycle from Setup to Broadcast
 
 ---
 

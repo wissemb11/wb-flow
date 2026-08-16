@@ -156,12 +156,12 @@ The bar for `--wbPlan` is "this finding is multi-step, multi-file, coordinated w
 
 For per-command details, see each command's own examples files:
 
-- [`wbAudit/wbAudit_examples`](../commands/wbAudit/wbAudit_examples)
-- [`wbReview/wbReview_examples`](../commands/wbReview/wbReview_examples)
-- [`wbStandup/wbStandup_examples`](../commands/wbStandup/wbStandup_examples)
-- [`wbActOn/wbActOn_examples`](../commands/wbActOn/wbActOn_examples) — the engine; deepest treatment of `--wbPlan`
-- [`wbPlan/wbPlan_examples`](../commands/wbPlan/wbPlan_examples) — explains why `/wbPlan --wbPlan` errors
+- [`wbAudit/wbAudit_examples`](../commands/wbAudit/wbAudit_examples.md)
+- [`wbReview/wbReview_examples`](../commands/wbReview/wbReview_examples.md)
+- [`wbStandup/wbStandup_examples`](../commands/wbStandup/wbStandup_examples.md)
+- [`wbActOn/wbActOn_examples`](../commands/wbActOn/wbActOn_examples.md) — the engine; deepest treatment of `--wbPlan`
+- [`wbPlan/wbPlan_examples`](../commands/wbPlan/wbPlan_examples.md) — explains why `/wbPlan --wbPlan` errors
 
-For the `--act` companion flag, see [Command Classification](command_classification) (Sibling Actions section).
+For the `--act` companion flag, see [Command Classification](command_classification.md) (Sibling Actions section).
 
 ---

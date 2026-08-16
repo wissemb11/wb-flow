@@ -1,6 +1,6 @@
 # /wbValid — Live Demo ()
 
-This is what `/wbValid` would do on `wb-labs` as the workspace stands today (2026-05-04). The matrix below mirrors the [exhaustive simulation](./wbValid_exhaustive_simulation), filled from the actual plan that exists right now.
+This is what `/wbValid` would do on `wb-labs` as the workspace stands today (2026-05-04). The matrix below mirrors the [exhaustive simulation](wbValid_exhaustive_simulation.md), filled from the actual plan that exists right now.
 
 ---
 

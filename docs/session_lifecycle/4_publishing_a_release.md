@@ -87,7 +87,7 @@ The publish itself is over; now handle the ripple effects:
 | Skip `--restore` | Local edits stop showing up in the demo app | Run `/wbRelease <pkg> --restore` |
 | Skip `npm pack --dry-run` | Ship `.env` or 200MB of test fixtures to npm | Unpublish (within 72h) or publish a corrective patch + deprecate the bad version |
 | Audit said "not shippable", you published anyway | The thing the audit warned about is now in the wild | Patch + republish; update audit thresholds if the warning was wrong |
-| Publish in the middle of a feature session | Half-done changes get bundled into the release | Only publish from a Golden Save Point (see [`1_the_golden_save_point`](1_the_golden_save_point)) |
+| Publish in the middle of a feature session | Half-done changes get bundled into the release | Only publish from a Golden Save Point (see [`1_the_golden_save_point`](1_the_golden_save_point.md)) |
 | Run `/wbPublish` without `/wbRelease` first | `workspace:*` literals end up in the published `package.json`; consumers can't install | npm rejects the publish in most cases; if it slips through, patch + republish |
 
 ---

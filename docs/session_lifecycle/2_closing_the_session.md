@@ -68,6 +68,6 @@ Most clients won't volunteer this. You have to do it manually.
 - **You're debugging something subtle.** The AI's mental model of the bug is in the thread; a fresh session will re-derive it from scratch and may miss the same nuance.
 - **Closing would force a re-onboarding.** If the next session is in 5 minutes for one quick question, the close-then-reopen cost outweighs the context-tax savings.
 
-The rough rule: close when the cost of carrying the context forward exceeds the cost of re-loading it. By default, that's at the [Golden Save Point](1_the_golden_save_point) and at end-of-day.
+The rough rule: close when the cost of carrying the context forward exceeds the cost of re-loading it. By default, that's at the [Golden Save Point](1_the_golden_save_point.md) and at end-of-day.
 
 ---

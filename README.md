@@ -32,6 +32,10 @@ You don't ask a role to review your code. You run `/wbAudit`. You don't ask a pl
 
 **Audit before you plan. Plan before you execute. Validate before you ship.**
 
+![Plan → Work → Validate — the three-agent orchestration pattern](assets/TripletAnimation.gif)
+
+*The same three verbs, as the system runs them: one agent plans, another executes, a **third** verifies. The separation is the point — a model that validates its own diff will call it correct.*
+
 ## 🧐 What is it?
 
 wb-flow is a **zero-dependency CLI** that copies 33 structured `/wb*` slash-command templates into your project — pure Markdown files your AI reads and follows as operating procedures.
@@ -43,6 +47,9 @@ wb-flow is a **zero-dependency CLI** that copies 33 structured `/wb*` slash-comm
 
 ## 🥊 Compared With...
 
+![Five release steps, run manually versus through /wb*](assets/AgenticVsManual.gif)
+
+
 | Approach | Limitation | wb-flow Advantage |
 |---|---|---|
 | **Raw AI prompts** | Output depends on the model's mood | Templates rigidly define format, steps, and constraints |
@@ -52,6 +59,9 @@ wb-flow is a **zero-dependency CLI** that copies 33 structured `/wb*` slash-comm
 ---
 
 ## 🚀 Installation
+
+![npm install → wb-flow init → agent detection → wiring complete](assets/InstallationAnimation.gif)
+
 
 ### Path 1 — One-shot via `npx` (Recommended)
 
@@ -165,6 +175,9 @@ And with **no wrapper at all**, in any assistant:
 
 ## ⚡ Quick Start
 
+![Your first workflow: Developer ↔ AI assistant ↔ wb-flow core](assets/FirstWorkflowAnimation.gif)
+
+
 ```bash
 /wbSetup .                   # Read the codebase — generates context.md + dev.md
 /wbPlan "add dark mode"      # Break the goal into a ranked task table
@@ -177,6 +190,11 @@ That's a full cycle: **plan → execute → validate**, guided by your AI assist
 ---
 
 ## 🚀 What's New in v1.0.2
+
+![A model fallback chain failing over when a provider hits its quota](assets/FallbackFailoverAnimation.gif)
+
+*Local error guarding in action: when a provider returns an error **with exit code 0**, the chain now detects it and fails over instead of silently reporting success.*
+
 
 ### New CLI subcommands
 

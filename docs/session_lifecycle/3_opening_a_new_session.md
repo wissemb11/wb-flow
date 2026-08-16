@@ -13,8 +13,8 @@ description: Protocol and triggers for starting a fresh AI chat session with the
 
 The trigger is **any of these**, in priority order:
 
-1. You just [closed the previous session](2_closing_the_session) — even if "just" means 30 seconds ago. The whole point of the close was to start fresh.
-2. You hit a [Golden Save Point](1_the_golden_save_point) and decided to start a major new feature.
+1. You just [closed the previous session](2_closing_the_session.md) — even if "just" means 30 seconds ago. The whole point of the close was to start fresh.
+2. You hit a [Golden Save Point](1_the_golden_save_point.md) and decided to start a major new feature.
 3. New day. (Trivially.)
 4. The current session is over ~150 messages and the AI is visibly drifting — repeating itself, mis-remembering recent code, hallucinating function names. This is the *forced* trigger; the others are *planned*.
 
@@ -77,4 +77,4 @@ The arrows are the only continuity that matters. Everything inside the box is ep
 
 ---
 
-**Next:** [`4_publishing_a_release`](4_publishing_a_release) — when one of those well-bracketed sessions exists to ship a package, the publishing pipeline is the arc that runs inside it.
+**Next:** [`4_publishing_a_release`](4_publishing_a_release.md) — when one of those well-bracketed sessions exists to ship a package, the publishing pipeline is the arc that runs inside it.

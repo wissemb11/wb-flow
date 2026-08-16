@@ -6,6 +6,10 @@ description: "Welcome to the official documentation hub for `/wbPlan` in **wb-fl
 
 Welcome to the official documentation hub for `/wbPlan` in **wb-flow**.
 
+![Plan → Work → Valid, including the FAIL → re-work path](../../public/diagrams_claude/PlanWorkValid.gif)
+
+*`/wbPlan` produces the table the other two verbs consume. The loop above is the contract: every row it writes carries a `Verify` oracle and a validator who is **not** the executor — a FAIL sends the row back to `⬜`, it does not lower the bar.*
+
 ## Overview
 `/wbPlan` is the architectural planning engine of **wb-flow**. It breaks user goals into prioritized, cost-aware task tables (`plan_<scope>.md`) and constructs the `## 🌊 Next Executable Sequence` matrix for parallel wave execution.
 

@@ -1,6 +1,6 @@
 # /wbActOn — Live Demo ()
 
-This is what `/wbActOn` actually does on `wb-labs` as the workspace stands today (2026-05-05). The matrix below mirrors the [exhaustive simulation](./wbActOn_exhaustive_simulation), but every cell is filled from the *live* state of the repo — real audit findings, real model recommendations, real memory items.
+This is what `/wbActOn` actually does on `wb-labs` as the workspace stands today (2026-05-05). The matrix below mirrors the [exhaustive simulation](wbActOn_exhaustive_simulation.md), but every cell is filled from the *live* state of the repo — real audit findings, real model recommendations, real memory items.
 
 ---
 

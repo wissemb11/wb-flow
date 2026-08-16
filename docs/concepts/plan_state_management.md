@@ -202,6 +202,6 @@ An individual dispatch always carries its model flag. A bare `/wbWork plan.md --
 
 The state machine above governs one file. Across days, `/wbPlan <plan_file.md>` sweeps the scope's whole `reports/` tree and pulls every row still `⬜` or `🔨` into today's plan, so one file answers *"what is open?"*. `⏸️ Deferred` and `🚫 Cancelled` rows do not come forward — they are decided, not open.
 
-See [Report Lifecycle](report_lifecycle) for the full model, including `--archive`.
+See [Report Lifecycle](report_lifecycle.md) for the full model, including `--archive`.
 
 ---

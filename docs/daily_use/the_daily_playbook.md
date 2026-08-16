@@ -7,7 +7,7 @@ description: Answer sheet for daily commands covering the six-stage daily loop f
 
 > Self-help. When you can't remember which command to run at 10am vs. 4pm, this is the answer sheet.
 >
-> Same format as [overview_agentic_workflows](../concepts/overview_agentic_workflows): dense, opinionated, no cheerleading.
+> Same format as [overview_agentic_workflows](../concepts/overview_agentic_workflows.md): dense, opinionated, no cheerleading.
 
 ---
 
@@ -125,7 +125,7 @@ Cell scope: `/wbWork` touches `Done`, `/wbValid` touches `Valid`, `/wbPlan` touc
 
 Why flags rather than chat: a misparsed *"defer task 3"* on a bad day silently leaves the row as `⬜`, and the next standup nags about it forever. Flag form is auditable; chat form is fragile.
 
-Full reference: [`../concepts/plan_state_management`](../concepts/plan_state_management).
+Full reference: [`../concepts/plan_state_management`](../concepts/plan_state_management.md).
 
 ### Cross-cutting work (rarely midday)
 
@@ -182,7 +182,7 @@ Same flag pair on `/wbReview`, `/wbStandup`. `/wbActOn` always acts; takes `--wb
 
 **The old two-step still works.** Use it when you want manual control over what gets planned — flags are convenience, not mandate. But for the default afternoon polish, `--act --wbPlan` saves a context switch and produces better-structured artifacts than rewriting the chain by hand.
 
-Full reference: [`concepts/wbPlan_flag`](../concepts/wbPlan_flag).
+Full reference: [`concepts/wbPlan_flag`](../concepts/wbPlan_flag.md).
 
 ### When to skip the polish phase entirely
 
@@ -290,9 +290,9 @@ Why these last: they're orchestration and cross-cutting refactors. They assume y
 
 The playbook above is *inside* a session. The session itself has its own lifecycle — open, work, save-point, close — and it's the layer most workflow docs forget exists. Three short reads cover it:
 
-1. [`session_lifecycle/1_the_golden_save_point`](../session_lifecycle/1_the_golden_save_point) — the rare clean-repo state where every plan task is `✅ Valid`. The only safe moment to start a major new feature; the cheapest moment to stop guilt-free.
-2. [`session_lifecycle/2_closing_the_session`](../session_lifecycle/2_closing_the_session) — the 3-step close: `/wbStandup`, `/wbStopTrack --finalize`, **close the chat window**. The third step is the one that actually frees tokens; the first two are bookkeeping that *enable* it.
-3. [`session_lifecycle/3_opening_a_new_session`](../session_lifecycle/3_opening_a_new_session) — the protocol for opening fresh, including the same-day "Cumulative Append" rule (calendar-day = persistence unit; second runs append after `---`, no `_v2` suffixes).
+1. [`session_lifecycle/1_the_golden_save_point`](../session_lifecycle/1_the_golden_save_point.md) — the rare clean-repo state where every plan task is `✅ Valid`. The only safe moment to start a major new feature; the cheapest moment to stop guilt-free.
+2. [`session_lifecycle/2_closing_the_session`](../session_lifecycle/2_closing_the_session.md) — the 3-step close: `/wbStandup`, `/wbStopTrack --finalize`, **close the chat window**. The third step is the one that actually frees tokens; the first two are bookkeeping that *enable* it.
+3. [`session_lifecycle/3_opening_a_new_session`](../session_lifecycle/3_opening_a_new_session.md) — the protocol for opening fresh, including the same-day "Cumulative Append" rule (calendar-day = persistence unit; second runs append after `---`, no `_v2` suffixes).
 
 The ROI on this is asymmetric: closing wrong costs you tokens-per-message on every subsequent reply forever; closing right is one chat-window-close. Learn it once.
 

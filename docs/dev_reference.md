@@ -60,7 +60,7 @@ The `package.json` scripts proxy to `vitepress dev docs` and `vitepress build do
 | File | Purpose |
 |---|---|
 | `core/README.md` | Active package brief and architecture overview |
-| [`context.md`](./context.md) | This folder's identity and architecture |
-| [`dev.md`](./dev.md) | This folder's refusal rules |
+| [`context.md`](context.md) | This folder's identity and architecture |
+| [`dev.md`](dev.md) | This folder's refusal rules |
 | `.wb/workflows/reports/2026/08/13/plans/` | Active plan reports for this scope |
 | `core/templates/` | Upstream template source of truth |

@@ -252,7 +252,7 @@ Every `/wbActOn` run has:
 - Outputs **never** go to `docs/ai_reference/` — that folder is reference-only.
 - Every output opens with `# I am <ModelName>...` so the active model is identifiable within the shared file.
 - Every callout includes a `Recommended model` field — the model is picked by task complexity, independent of the triage model.
-- §5 #2 — Link Integrity — Correct broken markdown links in docs. See [First Run Walkthrough](../../start_here/first_run_walkthrough).
+- §5 #2 — Link Integrity — Correct broken markdown links in docs. See [First Run Walkthrough](../../start_here/first_run_walkthrough.md).
  — kept under `docs/ai_reference/start_here/` as a **canonical example** (a hand-curated reference document, not a runtime output).
 
 ---

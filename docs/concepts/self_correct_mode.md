@@ -40,7 +40,7 @@ Two rules keep the merge honest:
 
 `⏸️ Deferred` and `🚫 Cancelled` rows are *decided*, not open — they stay where they are.
 
-> 🔴 **Self-correct never archives.** Repair is safe to run unattended and is expected to run often; moving folders is neither. A sweep happens only under an explicit `--archive` and is never implied by any other flag. What self-correct *does* do is notice the mess and offer the command: `📋 Mechanical — 4 superseded plan folders hold no open tasks. → /wbPlan <this file> --archive`. Full model: [Report Lifecycle](report_lifecycle).
+> 🔴 **Self-correct never archives.** Repair is safe to run unattended and is expected to run often; moving folders is neither. A sweep happens only under an explicit `--archive` and is never implied by any other flag. What self-correct *does* do is notice the mess and offer the command: `📋 Mechanical — 4 superseded plan folders hold no open tasks. → /wbPlan <this file> --archive`. Full model: [Report Lifecycle](report_lifecycle.md).
 
 ## What it actually fixes
 

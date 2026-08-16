@@ -21,9 +21,9 @@ The key insight: **workflows are not scripts.** They're not automated pipelines.
 
 | Layer | What It Covers | Key Pages |
 |---|---|---|
-| **Architecture** | How commands interact, what state they share, what contracts they enforce | [Workflow Architecture](workflow_architecture) |
-| **Lifecycle** | The canonical sequence from session start to session close | [Ultimate Workflow Lifecycle](ultimate_workflow_lifecycle) |
-| **Sequencing** | How tasks within a plan are ordered and executed using DAG dependencies | [Sequencing](sequencing_work_items) |
+| **Architecture** | How commands interact, what state they share, what contracts they enforce | [Workflow Architecture](workflow_architecture.md) |
+| **Lifecycle** | The canonical sequence from session start to session close | [Ultimate Workflow Lifecycle](ultimate_workflow_lifecycle.md) |
+| **Sequencing** | How tasks within a plan are ordered and executed using DAG dependencies | [Sequencing](sequencing_work_items.md) |
 
 ---
 
@@ -48,9 +48,9 @@ Each step reads state left by the previous step. `/wbStandup` surfaces open task
 
 For different depths of explanation:
 
-- [ELI5](presentation/wbWorkflow_eli5) — The workflow concept explained simply
-- [Practical](presentation/wbWorkflow_practical) — Real scenarios and command chains
-- [Expert](presentation/wbWorkflow_expert) — Architecture, state flow, and design decisions
+- [ELI5](presentation/wbWorkflow_eli5.md) — The workflow concept explained simply
+- [Practical](presentation/wbWorkflow_practical.md) — Real scenarios and command chains
+- [Expert](presentation/wbWorkflow_expert.md) — Architecture, state flow, and design decisions
 
 ---
 
@@ -58,7 +58,7 @@ For different depths of explanation:
 
 | Concept | Relationship |
 |---|---|
-| [Command Classification](../command_classification) | Defines the role types (Worker, Validator, Critic...) that compose workflows |
-| [Command Composition](../command_composition) | Rules for chaining commands (what can follow what) |
-| [Plan State Management](../plan_state_management) | How plan files carry state across commands |
-| [Session Lifecycle](../../session_lifecycle/) | The start-to-finish session pattern that workflows live inside |
+| [Command Classification](../command_classification.md) | Defines the role types (Worker, Validator, Critic...) that compose workflows |
+| [Command Composition](../command_composition.md) | Rules for chaining commands (what can follow what) |
+| [Plan State Management](../plan_state_management.md) | How plan files carry state across commands |
+| [Session Lifecycle](../../session_lifecycle/README.md) | The start-to-finish session pattern that workflows live inside |

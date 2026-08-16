@@ -6,6 +6,10 @@
 >
 > **Related:** [`/wbTrack`](../wbTrack/README.md)
 
+![Session lifecycle: open, work, close](../../public/diagrams_claude/SessionLifecycle.gif)
+
+*`/wbStopTrack` writes the final `§END` and extracts the derivatives — the closing half of the arc `/wbTrack` opened.*
+
 ---
 
 ## When to Use

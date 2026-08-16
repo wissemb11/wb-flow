@@ -9,7 +9,7 @@ description: Planning index of daily workflow scenarios — the most-opened fold
 
 This folder is the most-opened in the documentation. Bookmark it.
 
-The single source file you'll re-read most is [`the_daily_playbook`](the_daily_playbook). This README is its planning index — a pre-curated scenario lookup so you don't have to scan the playbook to find the right entry point.
+The single source file you'll re-read most is [`the_daily_playbook`](the_daily_playbook.md). This README is its planning index — a pre-curated scenario lookup so you don't have to scan the playbook to find the right entry point.
 
 ---
 
@@ -39,7 +39,7 @@ Three guarantees about this shape:
 2. **The order matters.** Running `/wbDeploy` in the morning before `/wbStandup` defeats the point — you'd be shipping without knowing what's in flight.
 3. **Each phase ends in a hand-off artifact** (context file → plan → audit → release). The artifacts stitch the phases together across days.
 
-Full deep-dive: [`the_daily_playbook`](the_daily_playbook).
+Full deep-dive: [`the_daily_playbook`](the_daily_playbook.md).
 
 ---
 
@@ -196,7 +196,7 @@ The mandatory refusals (each step refuses if a prior step had blockers):
  review→save wrong" end-to-end + cross-cutting
 ```
 
-Exit criterion per belt is concrete (ship a feature, the first thing you type on an error is `/wbDebug`, you shipped a real release, etc.) — see [`the_daily_playbook`](the_daily_playbook) for the criteria.
+Exit criterion per belt is concrete (ship a feature, the first thing you type on an error is `/wbDebug`, you shipped a real release, etc.) — see [`the_daily_playbook`](the_daily_playbook.md) for the criteria.
 
 ---
 
@@ -210,9 +210,9 @@ The other 18 commands optimize the remaining 20%. Don't feel pressure to use the
 
 ## What this folder is NOT
 
-- Not a reference. For per-command details, go to [`../commands/`](../commands/).
-- Not a concept primer. For *why* commands work this way, go to [`../concepts/`](../concepts/).
-- Not a tutorial. For first-time onboarding, go to [`../start_here/`](../start_here/).
+- Not a reference. For per-command details, go to [`../commands/`](../commands/README.md).
+- Not a concept primer. For *why* commands work this way, go to [`../concepts/`](../concepts/README.md).
+- Not a tutorial. For first-time onboarding, go to [`../start_here/`](../start_here/README.md).
 
 The playbook is opinionated and expects you've already learned the commands. If a sequence above mentions a command you've never run, look it up in `commands/<NN>_<cmd>/<cmd>_practical.md` first.
 

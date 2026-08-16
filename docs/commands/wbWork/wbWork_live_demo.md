@@ -1,6 +1,6 @@
 # /wbWork — Live Demo ()
 
-This is what `/wbWork` actually does on `wb-labs` as the workspace stands today (2026-05-04). The matrix below mirrors the [exhaustive simulation](./wbWork_exhaustive_simulation), but every cell is filled from the *live* state of the repo — the active plan that exists, the rows that exist, the deps that are actually in the file.
+This is what `/wbWork` actually does on `wb-labs` as the workspace stands today (2026-05-04). The matrix below mirrors the [exhaustive simulation](wbWork_exhaustive_simulation.md), but every cell is filled from the *live* state of the repo — the active plan that exists, the rows that exist, the deps that are actually in the file.
 
 ---
 

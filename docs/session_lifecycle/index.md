@@ -17,22 +17,22 @@ The three docs in this folder are about that meta-layer.
 
 ## The four docs
 
-1. **[`1_the_golden_save_point`](1_the_golden_save_point)** — how to recognize the rare repository state where everything is clean and validated. The only safe moment to start a major new feature, or to stop guilt-free.
-2. **[`2_closing_the_session`](2_closing_the_session)** — the 3-step SOP for ending a working session. Snapshot, finalize tracker, **close the window**. The third step is the one that actually does the work.
-3. **[`3_opening_a_new_session`](3_opening_a_new_session)** — the protocol for starting fresh. Includes the same-day "Cumulative Append" rule for tracker/standup/plan files (calendar-day = unit of persistence).
-4. **[`4_publishing_a_release`](4_publishing_a_release)** — the publishing pipeline as a session-bracketing event: `/wbAudit` + `/wbTest` → `/wbRelease` → `npm pack --dry-run` → `/wbPublish` → `/wbRelease --restore` → handoff. Includes the one cleanup step people skip and the failure modes that result.
+1. **[`1_the_golden_save_point`](1_the_golden_save_point.md)** — how to recognize the rare repository state where everything is clean and validated. The only safe moment to start a major new feature, or to stop guilt-free.
+2. **[`2_closing_the_session`](2_closing_the_session.md)** — the 3-step SOP for ending a working session. Snapshot, finalize tracker, **close the window**. The third step is the one that actually does the work.
+3. **[`3_opening_a_new_session`](3_opening_a_new_session.md)** — the protocol for starting fresh. Includes the same-day "Cumulative Append" rule for tracker/standup/plan files (calendar-day = unit of persistence).
+4. **[`4_publishing_a_release`](4_publishing_a_release.md)** — the publishing pipeline as a session-bracketing event: `/wbAudit` + `/wbTest` → `/wbRelease` → `npm pack --dry-run` → `/wbPublish` → `/wbRelease --restore` → handoff. Includes the one cleanup step people skip and the failure modes that result.
 
 ## Reading order
 
 Linear: `1 → 2 → 3 → 4`. Each one ends with a pointer to the next.
 
-If you only read one, read [`2_closing_the_session`](2_closing_the_session) — closing is the step people skip most often, and the one with the highest cost-per-skip (context-window economics compound across sessions).
+If you only read one, read [`2_closing_the_session`](2_closing_the_session.md) — closing is the step people skip most often, and the one with the highest cost-per-skip (context-window economics compound across sessions).
 
 ## What this folder is NOT
 
-- Not about specific commands. For per-command details, see [`../commands/`](../commands/).
-- Not about daily flow. For "10am vs. 4pm," see [`../daily_use/the_daily_playbook`](../daily_use/the_daily_playbook).
-- Not onboarding. For "I've never done this," see [`../start_here/`](../start_here/).
+- Not about specific commands. For per-command details, see [`../commands/`](../commands/README.md).
+- Not about daily flow. For "10am vs. 4pm," see [`../daily_use/the_daily_playbook`](../daily_use/the_daily_playbook.md).
+- Not onboarding. For "I've never done this," see [`../start_here/`](../start_here/README.md).
 
 ## Why this matters more than it looks
 

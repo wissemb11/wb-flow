@@ -10,12 +10,12 @@ Produces structured, conventional-commit-format messages from staged changes or 
 
 | Layer | File | What you'll learn |
 |---|---|---|
-| ELI5 | [wbGit_eli5](wbGit_eli5) | What this command does in plain English |
-| Practical | [wbGit_practical](wbGit_practical) | A step-by-step walkthrough on a real project |
-| Expert | [wbGit_expert](wbGit_expert) | Architecture, edge cases, and when NOT to use |
-| Examples | [wbGit_examples](wbGit_examples) | Annotated transcripts from actual sessions |
-| Simulation | [wbGit_exhaustive_simulation](wbGit_exhaustive_simulation) | Exhaustive flag-matrix and failure-mode coverage |
-| Live Demo | [wbGit_live_demo](wbGit_live_demo) | Real-time execution on an actual codebase |
+| ELI5 | [wbGit_eli5](wbGit_eli5.md) | What this command does in plain English |
+| Practical | [wbGit_practical](wbGit_practical.md) | A step-by-step walkthrough on a real project |
+| Expert | [wbGit_expert](wbGit_expert.md) | Architecture, edge cases, and when NOT to use |
+| Examples | [wbGit_examples](wbGit_examples.md) | Annotated transcripts from actual sessions |
+| Simulation | [wbGit_exhaustive_simulation](wbGit_exhaustive_simulation.md) | Exhaustive flag-matrix and failure-mode coverage |
+| Live Demo | [wbGit_live_demo](wbGit_live_demo.md) | Real-time execution on an actual codebase |
 
 ## What This Command Does NOT Do
 
@@ -41,4 +41,4 @@ Generates the commit message; you run the commit yourself.
 
 ---
 
-← [Home](/README) · [Commands](/README#the-command-catalog) · [Install](/start_here/installation) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../start_here/installation.md) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

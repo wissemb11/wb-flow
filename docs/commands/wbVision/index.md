@@ -4,13 +4,13 @@
 
 | Layer | File |
 |---|---|
-| **eli5** | [wbVision_eli5](wbVision_eli5) |
-| **practical** | [wbVision_practical](wbVision_practical) |
-| **expert** | [wbVision_expert](wbVision_expert) |
-| **examples** | [wbVision_examples](wbVision_examples) |
-| **exhaustive_simulation** | [wbVision_exhaustive_simulation](wbVision_exhaustive_simulation) |
-| **live_demo** | [wbVision_live_demo](wbVision_live_demo) |
+| **eli5** | [wbVision_eli5](wbVision_eli5.md) |
+| **practical** | [wbVision_practical](wbVision_practical.md) |
+| **expert** | [wbVision_expert](wbVision_expert.md) |
+| **examples** | [wbVision_examples](wbVision_examples.md) |
+| **exhaustive_simulation** | [wbVision_exhaustive_simulation](wbVision_exhaustive_simulation.md) |
+| **live_demo** | [wbVision_live_demo](wbVision_live_demo.md) |
 
 ---
 
-> Auto-generated command index. The full catalog is at [commands/](../).
+> Auto-generated command index. The full catalog is at [commands/](../README.md).

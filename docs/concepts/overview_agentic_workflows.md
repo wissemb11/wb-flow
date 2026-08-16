@@ -187,7 +187,7 @@ Not everything about this design is obviously good. Worth naming the tradeoffs s
 
 1. **The `reports/YYYY/MM/DD/` folder grows without bound, but reads are bounded.** Files accumulate; nothing deletes them. The bounded-read mitigation is the universal `--since=<window>` default (see "Default report windows" below). Disk grows; reads stay fast. Periodic manual archiving is still your job.
 
-2. **21 commands is a lot.** The Belt System in [the_daily_playbook](../daily_use/the_daily_playbook) mitigates this, but realistically: `/wbContext`, `/wbPlan`, `/wbAudit`, `/wbDebug`, `/wbGit`, `/wbRelease` carry 90% of the daily load. The other 15 exist for occasional or situational use. That's fine — but don't feel pressure to use them just because they exist. Growth from 16 → 21 also validates critique #1 below: the vocabulary is creeping, and this makes "don't invent a 22nd command" harder advice to follow.
+2. **21 commands is a lot.** The Belt System in [the_daily_playbook](../daily_use/the_daily_playbook.md) mitigates this, but realistically: `/wbContext`, `/wbPlan`, `/wbAudit`, `/wbDebug`, `/wbGit`, `/wbRelease` carry 90% of the daily load. The other 15 exist for occasional or situational use. That's fine — but don't feel pressure to use them just because they exist. Growth from 16 → 21 also validates critique #1 below: the vocabulary is creeping, and this makes "don't invent a 22nd command" harder advice to follow.
 
 3. **The closed-loop design assumes commands actually read `reports/`.** If an AI implementation skips that step (or you use a different AI client that doesn't honor it), the whole "system" reverts to unrelated one-shot commands. There's no enforcement; it's a convention.
 

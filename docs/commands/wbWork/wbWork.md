@@ -11,11 +11,11 @@ Picks up a task from a plan file and executes it. The core worker command that t
 | Layer | File | What you'll learn |
 |---|---|---|
 | ELI5 | [wbWork_eli5.md](wbWork_eli5.md) | What this command does in plain English |
-| Practical | [wbWork_practical](wbWork_practical) | A step-by-step walkthrough on a real project |
-| Expert | [wbWork_expert](wbWork_expert) | Architecture, edge cases, and when NOT to use |
-| Examples | [README](README) *(merged)* | Annotated transcripts from actual sessions |
-| Simulation | [wbWork_exhaustive_simulation](wbWork_exhaustive_simulation) | Exhaustive flag-matrix and failure-mode coverage |
-| Live Demo | [wbWork_live_demo](wbWork_live_demo) | Real-time execution on an actual codebase |
+| Practical | [wbWork_practical](wbWork_practical.md) | A step-by-step walkthrough on a real project |
+| Expert | [wbWork_expert](wbWork_expert.md) | Architecture, edge cases, and when NOT to use |
+| Examples | [README](README.md) *(merged)* | Annotated transcripts from actual sessions |
+| Simulation | [wbWork_exhaustive_simulation](wbWork_exhaustive_simulation.md) | Exhaustive flag-matrix and failure-mode coverage |
+| Live Demo | [wbWork_live_demo](wbWork_live_demo.md) | Real-time execution on an actual codebase |
 
 ## What This Command Does NOT Do
 
@@ -49,4 +49,4 @@ Orchestrates sub-commands: understands task type, chains Plan→Check→Test→R
 
 ---
 
-← [Home](/README) · [Commands](/README#the-command-catalog) · [Install](/start_here/installation) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../start_here/installation.md) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)

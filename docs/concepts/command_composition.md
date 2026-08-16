@@ -6,13 +6,13 @@ description: "Guides developers on chaining /wb* commands and feeding output bac
 # Command Composition: Self-Application & Chaining
 
 > **Audience:** Developers who want to chain `/wb*` commands or feed a command's output back into itself.
-> **Related:** [Command Classification](command_classification) · [wbPlan Flags](wbPlan_flag) · [Overview](overview_agentic_workflows)
+> **Related:** [Command Classification](command_classification.md) · [wbPlan Flags](wbPlan_flag.md) · [Overview](overview_agentic_workflows.md)
 
 ## Why this matters
 
 Most `/wb*` commands produce a markdown file; many of those files can be fed back into the same or a different `/wb*` command. This page tells you which chains make sense and which don't.
 
-*Prerequisite: [Command Classification](command_classification) — you need to know what each command produces before you can chain them.*
+*Prerequisite: [Command Classification](command_classification.md) — you need to know what each command produces before you can chain them.*
 
 <TripletAnimation />
 
@@ -167,4 +167,4 @@ You ran an audit on Tuesday using the agent the agent. On Wednesday, you run `/w
 
 ---
 
-* — companion to [Command Classification](command_classification).*
+* — companion to [Command Classification](command_classification.md).*

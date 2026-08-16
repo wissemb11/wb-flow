@@ -2,6 +2,10 @@
 
 `/wbPublish` is the WB-Labs npm publication pipeline. It handles the full publish workflow — version bump validation, pre-publish checks, registry configuration, and topological publish ordering — turning a tested and audited codebase into a publicly installable npm module. It runs only after `/wbRelease` and refuses otherwise.
 
+![The publish pipeline](../../public/diagrams_claude/PublishPipeline.gif)
+
+*The publish path, end to end. `/wbPublish` executes what `/wbRelease` planned — it is deliberately not the command that decides a version.*
+
 ## 🎯 Strategic Position
 
 `/wbPublish` is the final gate in the package distribution pipeline. Every other command ensures the package is correct; `/wbPublish` ensures it's deliverable. It runs a five-point pre-check automatically (recent release report exists, version matches, `workspace:*` unpicked, `dist/` aligned, version not already on npm) and refuses with specific fixes if any fail. After publish, it demands a `/wbRelease --restore` — skipping this leaves your dev tree with pinned versions instead of `workspace:*`, breaking local package linking.

@@ -5,7 +5,7 @@ description: Concrete worked example showing which wb-flow commands to run and i
 
 # First-Run Walkthrough — From core2/ to a Package
 
-> Self-help. You've read [getting_started](getting_started) and [bootstrapping_existing_project](bootstrapping_existing_project). Now you want a **concrete worked example**: which commands, in what order, the first time you sit down with this monorepo.
+> Self-help. You've read [getting_started](getting_started.md) and [bootstrapping_existing_project](bootstrapping_existing_project.md). Now you want a **concrete worked example**: which commands, in what order, the first time you sit down with this monorepo.
 >
 > Worked example throughout: **`wb-core`**. The same pattern applies to any other package — see Section 3 for the `wb-press` edge case.
 

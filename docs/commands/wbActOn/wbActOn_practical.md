@@ -104,7 +104,7 @@ Other `/wb*` commands don't take these flags because they either *do* the work d
 
 ## Reference
 
-2. **Follow the walkthrough.** If you haven't seen the end-to-end flow, read [First Run Walkthrough](../../start_here/first_run_walkthrough).
+2. **Follow the walkthrough.** If you haven't seen the end-to-end flow, read [First Run Walkthrough](../../start_here/first_run_walkthrough.md).
 
 Built from `/wbAudit packages/wb-core/` on 2026-04-26. Every future `/wbActOn` run matches its structure, density, and tone exactly.
 

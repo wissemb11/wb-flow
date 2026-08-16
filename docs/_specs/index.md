@@ -11,7 +11,7 @@ Low-level technical specifications for the internal logic of the WB-Labs agentic
 
 | File | Coverage |
 |---|---|
-| [command_composition_spec_v1](command_composition_spec_v1) | Part 1: Input routing, output piping, and self-application rules |
+| [command_composition_spec_v1](command_composition_spec_v1.md) | Part 1: Input routing, output piping, and self-application rules |
 
 ## Purpose
 
@@ -25,9 +25,9 @@ Specifications (specs) define the canonical behavior of each `/wb*` command. The
 
 ## Related Resources
 
-- **[Commands](../commands/README)** — Command catalog
-- **[Concepts](../concepts/README)** — Architecture deep-dives
-- **[Start Here](../start_here/README)** — Getting started guide
+- **[Commands](../commands/README.md)** — Command catalog
+- **[Concepts](../concepts/README.md)** — Architecture deep-dives
+- **[Start Here](../start_here/README.md)** — Getting started guide
 
 - Deep-dives into how the CLI-to-AI handoff is handled.
 

@@ -2,6 +2,10 @@
 
 `/wbAudit` is the WB-Labs honesty engine. It reads **actual source files** — not summaries, not plans — and returns a scored, ranked assessment of whether code is ready to ship. It is the command you run *before* `/wbRelease`, not after something breaks.
 
+![Detecting and correcting drift](../../public/diagrams_claude/DriftCorrectionAnimation.gif)
+
+*`/wbAudit` finds the gap between what a scope claims and what it does — then the plan it emits is what closes it.*
+
 ## 🎯 Strategic Position
 
 Every other command in the suite tells you what to *do*. `/wbAudit` tells you where you actually **are**. That distinction matters because the default failure mode of an AI reviewer is agreeableness — *"looks good overall, minor improvements possible"* — which is always wrong for a non-trivial package. Every active package has at least one MAJOR finding.

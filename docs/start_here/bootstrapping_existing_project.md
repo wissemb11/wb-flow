@@ -7,7 +7,7 @@ description: Guidance for existing users adopting the formal wb-flow system with
 
 > Self-help. You've built up `context.md`, `dev.md`, and `reports/` files over time, but the system is messy. You're wondering: should I delete and start fresh, or keep what's there?
 >
-> This file answers that question. Companion to [getting_started](getting_started), which is for *brand-new* users; this one is for *existing* users adopting the formal command system. For a practical example, see [wbSetup_practical](../commands/wbSetup/wbSetup_practical).
+> This file answers that question. Companion to [getting_started](getting_started.md), which is for *brand-new* users; this one is for *existing* users adopting the formal command system. For a practical example, see [wbSetup_practical](../commands/wbSetup/wbSetup_practical.md).
 
 ---
 
@@ -45,7 +45,7 @@ The cost of regenerating all this from scratch is high. `/wbSetup` infers from c
 
 `/wbSetup` is designed for *new packages*, not for re-bootstrapping existing ones. Running it on a package that already has `context.md` + `dev.md` will overwrite hand-authored rules. You'd lose the same things as the delete option, just one package at a time.
 
-The [wbSetup_practical](../commands/wbSetup/wbSetup_practical) doc actively flags this:
+The [wbSetup_practical](../commands/wbSetup/wbSetup_practical.md) doc actively flags this:
 
 > "Do NOT run it 'to refresh' an existing, working package. That's `/wbContext`, not `/wbSetup`. Running `/wbSetup` on a package that already has a tuned `dev.md` risks overwriting hand-authored rules."
 
@@ -110,7 +110,7 @@ You don't sweep across all packages on a calendar. A package gets cleaner only w
 
 **Leave it.** Old reports don't hurt anything.
 
-The `--since=<window>` defaults (documented in [overview_agentic_workflows](../concepts/overview_agentic_workflows)) mean commands only read the last 7-30 days anyway. Old reports stop influencing new sessions automatically. They sit on disk as a historical archive.
+The `--since=<window>` defaults (documented in [overview_agentic_workflows](../concepts/overview_agentic_workflows.md)) mean commands only read the last 7-30 days anyway. Old reports stop influencing new sessions automatically. They sit on disk as a historical archive.
 
 If disk pressure ever becomes real (it won't, for years), you can `mv` old `reports/<old-date>/` folders to cold storage. That's a 1-line operation, not a workflow concern.
 

@@ -59,7 +59,7 @@ As of 2026-05-09, `/wbTrack` joins the dual-mode club — pass it a track file i
 
 **Limited** because track files are append-only multi-model narratives. Self-correct will check §N order, model-tag formatting, footer presence, link integrity, status freshness, and auto-repair bare `/wbX` in `Recommended Next` tables — but it will **not** rewrite the body of any §N (that would let one model overwrite another's reasoning, breaking the audit trail). Broken links inside §N bodies are flagged in a `## ⚠️ Self-Correct Findings` section near the bottom; the original author of the §N may hand-edit to fix mechanical bugs, while a different model wanting to disagree appends a new §N+1 instead.
 
-See [`../../concepts/self_correct_mode`](../../concepts/self_correct_mode) for the full dual-mode protocol shared by all `/wbX` commands.
+See [`../../concepts/self_correct_mode`](../../concepts/self_correct_mode.md) for the full dual-mode protocol shared by all `/wbX` commands.
 
 <!-- FLAGS_SHORTCUTS_START -->
 ## Flags & shortcuts

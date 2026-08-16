@@ -2,13 +2,17 @@
 
 Welcome to the official documentation hub for `/wbWork` in **wb-flow**.
 
+![Worker executes, validator verifies, failures retry](../../public/diagrams_claude/WorkerValidatorLoop.gif)
+
+*The worker executes, a different agent validates, and a FAIL sends the row back to `⬜` rather than lowering the bar. `/wbWork` owns the left half of this loop.*
+
 
 > [!TIP]
 > **Running a wave costs the orchestrator's context.** `--summary` is already the default and saved a
 > measured **63,002 tokens** on one 10-cell wave. For the rest of the levers — merged dispatches,
 > `--list` before you spend, when `--sessions` helps and when it hurts — and for **who may root a run**
 > (plus the temporary `codex` fallback when Claude is limited), see
-> [`concepts/orchestrator_and_tokens`](../../concepts/orchestrator_and_tokens).
+> [`concepts/orchestrator_and_tokens`](../../concepts/orchestrator_and_tokens.md).
 
 ## Overview
 `/wbWork` is the work execution engine of **wb-flow**. It executes tasks defined in your plan files (`plan_<scope>.md`), generates formal task reports (`task_<N>_report.md`), updates the `☐ Done` checkboxes, and dispatches parallel sub-agent wave jobs via `wb-flow wave`.

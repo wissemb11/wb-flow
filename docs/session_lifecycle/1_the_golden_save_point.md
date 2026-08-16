@@ -39,7 +39,7 @@ The commit message at a save point should describe the hygiene work — the chor
 
 ### 2. Close the session
 
-The save point is also the cheapest moment to close the AI session — your context window is mostly full of *cleanup* tokens, not *feature* tokens. Carrying that into the next phase is wasteful. Move to [`2_closing_the_session`](2_closing_the_session).
+The save point is also the cheapest moment to close the AI session — your context window is mostly full of *cleanup* tokens, not *feature* tokens. Carrying that into the next phase is wasteful. Move to [`2_closing_the_session`](2_closing_the_session.md).
 
 ### 3. Decide whether to keep going
 
@@ -47,5 +47,5 @@ The trap is treating the save point as a *finish line* (great, I'm done!) or as 
 
 The right move is usually to **stop**. The save point is rare. The next session will be sharper if it starts from a clean context with a clean repo, even if "stop" means "in two hours, after lunch, with a fresh chat."
 
-If you do continue, [open a new session](3_opening_a_new_session) — don't ride the current one into a 4-hour mega-thread. The math on that is in `2_closing_the_session.md`.
+If you do continue, [open a new session](3_opening_a_new_session.md) — don't ride the current one into a 4-hour mega-thread. The math on that is in `2_closing_the_session.md`.
 

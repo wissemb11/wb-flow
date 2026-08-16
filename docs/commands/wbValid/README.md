@@ -2,6 +2,10 @@
 
 `/wbValid` is the gate between "done" and "actually done." It reads a plan's Verify column and checks each acceptance criterion against the completed work across seven categories — structure, config, deps, templates, permissions, and cross-refs. Without it, tasks get marked done on trust, and trust doesn't ship.
 
+![Three-agent orchestration: plan, work, validate](../../public/diagrams_claude/TripletAnimation.gif)
+
+*Why validation is its own verb: a model re-reading a diff it just wrote will call it correct. The third agent exists to break that.*
+
 ## 🎯 Strategic Position
 
 `/wbValid` sits between task execution and plan closure. It does not do the work — it checks whether the work meets the criteria defined when the task was planned. Its seven-category check provides structured pass/fail/needs-remediation status per criterion, feeding directly into whether a task is ready to close or needs `/wbWork`.

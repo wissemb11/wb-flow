@@ -4,13 +4,13 @@
 
 | Layer | File |
 |---|---|
-| **eli5** | [wbCheck_eli5](wbCheck_eli5) |
-| **practical** | [wbCheck_practical](wbCheck_practical) |
-| **expert** | [wbCheck_expert](wbCheck_expert) |
-| **examples** | [wbCheck_examples](wbCheck_examples) |
-| **exhaustive_simulation** | [wbCheck_exhaustive_simulation](wbCheck_exhaustive_simulation) |
-| **live_demo** | [wbCheck_live_demo](wbCheck_live_demo) |
+| **eli5** | [wbCheck_eli5](wbCheck_eli5.md) |
+| **practical** | [wbCheck_practical](wbCheck_practical.md) |
+| **expert** | [wbCheck_expert](wbCheck_expert.md) |
+| **examples** | [wbCheck_examples](wbCheck_examples.md) |
+| **exhaustive_simulation** | [wbCheck_exhaustive_simulation](wbCheck_exhaustive_simulation.md) |
+| **live_demo** | [wbCheck_live_demo](wbCheck_live_demo.md) |
 
 ---
 
-> Auto-generated command index. The full catalog is at [commands/](../).
+> Auto-generated command index. The full catalog is at [commands/](../README.md).

@@ -93,7 +93,7 @@ When any of these flags is present alongside `--id`, the command **skips its nor
 
 The `-o` / `-d` / `-c` shortcuts are reserved across all three commands — `-o` will never mean anything else in `/wbWork` / `/wbValid` / `/wbPlan` (rule 3: same flag → same shortcut).
 
-Full reference: [`plan_state_management`](plan_state_management).
+Full reference: [`plan_state_management`](plan_state_management.md).
 
 ## How the runtime resolves shortcuts
 
