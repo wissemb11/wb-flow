@@ -27,6 +27,7 @@
 | [Annex B](#-annex-b--agy-model-roster-antigravity--google) | `agy` models **+ verified syntax** |
 | [Annex C](#-annex-c--claude-cli) | `claude` CLI |
 | [Annex C2](#-annex-c2--codex-cli-openai-codex) | **`codex` CLI** — `exec`, no slash-commands, stdin trap |
+| [Annex C3](#-annex-c3--grok-cli-xai--supergrok) | **`grok` CLI** — SuperGrok; the only non-Claude lane that **expands `/wb*`** |
 | [Annex D](#-annex-d--subscriptions-inventory) | what each subscription covers |
 | [Annex E](#-annex-e--delegated-commands-which-flags-belong-where) | which flags go on which dispatch |
 | [Annex F](#-annex-f--calling-these-from-python-and-node) | **Python / Node equivalents** — parsing, timeouts, capture |
@@ -48,6 +49,24 @@
 
 > Snapshot of `~/.wb-flow/commands/model_recommendations.md` at 2026-08-02. The live file is written
 > by `wb-flow model`; this copy is a bench reference and does not update itself.
+
+> **Adding Grok to this roster (2026-08-17).** The `xai` provider is now catalogued and routable
+> (Annex C3). Nothing adopts it automatically — a roster only changes when you change it:
+>
+> ```bash
+> wb-flow model --set validator=xai/grok-4.6     # the slot it is best at: independent lineage
+> wb-flow model --set worker=xai/grok-4.5
+> wb-flow model --probe --all=xai                # 3/3 reachable, measured 2026-08-17
+> ```
+>
+> The roster accepts the namespaced slug (`xai/grok-4.6`), the display name (`Grok 4.6`) or the
+> sentinel (`Grok (auto)` → grok's own default, currently 4.6). All three resolve; the slug is the
+> unambiguous one.
+>
+> ⚠️ **`wb-flow model --probe` REWRITES `~/.wb-flow/commands/model_recommendations.md`** — it is not a
+> read-only command. Probing to answer *"does this model answer?"* also republishes the user-level
+> roster from what it just detected. Run it from a scope with its own `.wb/commands/` roster (nearest
+> wins), or expect the user-level file to change.
 
 **Dispatch chains** — each role tries its models left to right:
 
@@ -159,7 +178,7 @@ single most expensive failure mode in this system, and it is invisible until som
 | Root agent | Verdict |
 |---|---|
 | **Claude Code (any Opus/Sonnet tier)** | ✅ **The supported root.** Both couplings hold as designed. |
-| **A different big thinker** (Kimi K2.7 Code, GLM-5.2) | 🚫 **Declined, not deferred.** The orchestrator-relative executor check that would make this legitimate was scoped and **deliberately not built** — see below. Do not re-propose it as a task. |
+| **A different big thinker** (Kimi K2.7 Code, GLM-5.2, **Grok 4.6**) | 🚫 **Declined, not deferred.** The orchestrator-relative executor check that would make this legitimate was scoped and **deliberately not built** — see below. Do not re-propose it as a task. **Grok is the strongest candidate the rule refuses** — it is the only non-Claude CLI that expands `/wb*`, so it *looks* like a drop-in root — but `isClaudeExecutor()` matches `/claude\|opus\|sonnet\|haiku/i`, so a Grok root would be handed every row a Grok leaf executed and would validate its own work with no warning. The couplings are Claude-shaped; being a good model does not change their shape. |
 | **Gemini 3.1 Pro / any `agy` model** | 🚫 Blocked twice over, independently of the above: `wave` spawns with `opencode run` and cannot dispatch an `agy` name at all, and Antigravity is untrusted as an executor since 2026-07-25. |
 | **A fast/cheap model** (DeepSeek V4 Pro, Qwen 3.7 Plus, any Flash) | 🚫 Never a root. Use them as **leaf executors** — that is what the 🔨/📋 rows are for. |
 
@@ -184,10 +203,26 @@ single most expensive failure mode in this system, and it is invisible until som
 
 | Role | Preference order (capability), then a **different pool** at each step |
 |---|---|
-| 🧠 **Planner** | orchestrator → opus → gemini-*-pro → fable → sonnet → mythos → kimi-k3 → kimi-k2.7 → glm-5.2 → grok-4 |
-| ✅ **Validator** | orchestrator → opus → gemini-*-pro → fable → kimi-k2.7 → kimi-k3 → glm-5.2 → sonnet |
-| 🔨 **Worker** | deepseek-v4-pro → gemini-*-pro → kimi-k2.7-code → qwen*-max → minimax-m3 → glm-5.2 → codex → sonnet → opus → **orchestrator (last resort)** |
-| 📋 **Mechanical** | qwen*-plus → gemini-*-**flash** → deepseek-v4-flash → haiku → flash → nano → mini → mimo → glm-5.1 → **orchestrator (last resort)** |
+| 🧠 **Planner** | orchestrator → opus → **grok-4.6** → gemini-*-pro → fable → sonnet → mythos → kimi-k3 → kimi-k2.7 → glm-5.2 → grok-4.5 |
+| ✅ **Validator** | orchestrator → opus → **grok-4.6** → gemini-*-pro → fable → kimi-k2.7 → kimi-k3 → glm-5.2 → sonnet |
+| 🔨 **Worker** | deepseek-v4-pro → **grok-4.5** → gemini-*-pro → kimi-k2.7-code → qwen*-max → minimax-m3 → glm-5.2 → codex → sonnet → opus → **orchestrator (last resort)** |
+| 📋 **Mechanical** | qwen*-plus → gemini-*-**flash** → deepseek-v4-flash → haiku → flash → nano → mini → mimo → glm-5.1 → grok-4.5 `--effort low` → **orchestrator (last resort)** |
+
+> **Where Grok slots, and why.** `qualifyModel()` already tiers it: **`grok-4.6` = 🧠 Lead Architect
+> & Planner**, **`grok-4.5` = 🧠 Big Planner & Deep Thinker** ([`bin/model.js`](../../bin/model.js)).
+> Two properties make it more than another name in the list:
+>
+> 1. **It is a genuinely independent lineage on an independent wallet.** Rule 10 (never validate your
+>    own edits) wants a validator from a different family *and* a different limit window than the
+>    model that executed the row. Against a Claude-rooted tree, Grok is the cleanest such lane
+>    available — xAI, SuperGrok, neither Anthropic nor Google.
+> 2. **It expands `/wb*` natively** (Annex C3). Of the six CLIs here only `claude`, `opencode` and
+>    `grok` do; `agy`, `codex`, `gemini` and `copilot` need the template inlined into the prompt.
+>    That makes a Grok cell the *same shape* as a Claude cell, with none of the codex ceremony.
+>
+> **Mechanical is the one role it should not take by default.** Both Grok models are frontier tier
+> with `xhigh` reasoning as the configured default — that is paying for judgment the role is defined
+> as not wanting. Put it there only as a last link, and pin `--reasoning-effort low`.
 
 ### Ordering *within* the `agy` pool
 
@@ -220,8 +255,16 @@ chain of three `opencode/*` models died together on a single `Insufficient balan
 | `claude-pro` | the in-session root, `claude -p`, `anthropic/*` | 0 |
 | `google-one` | `agy` — bare model names | 1 |
 | `opencode-go` | the Go subscription | 2 |
+| `chatgpt` | `codex exec` — bare `gpt-5.*` names | 3 |
+| `supergrok` | `grok` — `xai/*`, dispatched with the bare name | 4 |
 | `opencode-zen` | metered pay-as-you-go | 5 |
 | anything else | incidental credentials | 9 |
+
+> The rank is a **tiebreak between pools that both satisfy the slot**, not a quality ranking of the
+> models in them. `supergrok` sits at 4 because it is the newest of the five subscriptions here —
+> ahead of metered credit, behind the four with a longer track record on this machine. Nothing stops
+> it winning a slot outright when it is the only pool left that has not already been used in the chain,
+> which is exactly the case you want it for.
 
 Three passes, loosening one constraint at a time: **new pool + new family** → **new pool, family may
 repeat** (the same model on a different subscription is the *ideal* fallback: identical capability,
@@ -255,6 +298,11 @@ agy -p --model gemini-3.1-pro-high --dangerously-skip-permissions "/wbWork <plan
 # opencode — provider-prefixed slug, slash-command via --command
 opencode run -m opencode/deepseek-v4-pro --dangerously-skip-permissions \
   --command wbWork "<plan.md> --id=1 --no-plan-update"
+
+# grok — bare model name; `-p` is --single, so the PROMPT is its value and goes
+# immediately after. The slash-command rides inside the prompt, as with claude.
+grok --model grok-4.6 --permission-mode bypassPermissions \
+  -p "/wbWork <plan.md> --id=1 --no-plan-update"
 
 # codex — headless is the `exec` SUBCOMMAND; the prompt must name the template,
 # and stdin must be closed. Every one of those three differs from the others.
@@ -310,6 +358,7 @@ The `provider` field in `.wb/models.json` decides this — **not** the model nam
 |---|---|---|---|
 | `anthropic` | `claude` | **bare** — `claude-opus-5` | `anthropic/claude-opus-5` |
 | `openai` | `codex` | **bare** — `gpt-5.6-terra` | `openai/gpt-5.6-terra` |
+| `xai` | `grok` | **bare** — `grok-4.6` | `xai/grok-4.6` |
 | `antigravity` | `agy` | **bare** — `gemini-3.1-pro-high` | `gemini-3.1-pro-high` |
 | `google` | `gemini` | **bare** — `gemini-3.1-pro` | `gemini-3.1-pro` |
 | `github-copilot` | `copilot` | **bare** — `(none)` | `github-copilot/auto` |
@@ -365,6 +414,29 @@ print(r.stdout)
 const { spawnSync } = require('child_process');
 const r = spawnSync('codex', ['exec', '-m', 'gpt-5.6-terra', '--dangerously-bypass-approvals-and-sandbox', '--skip-git-repo-check', 'hi! who are you?'], {
   encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+});
+console.log(r.stdout);
+```
+
+### `grok` — serves `xai`
+
+```bash
+grok --model grok-4.6 --permission-mode bypassPermissions -p "hi! who are you?"
+```
+
+```python
+import subprocess
+r = subprocess.run(
+    ['grok', '--model', 'grok-4.6', '--permission-mode', 'bypassPermissions', '-p', 'hi! who are you?'],
+    capture_output=True, text=True,
+)
+print(r.stdout)
+```
+
+```javascript
+const { spawnSync } = require('child_process');
+const r = spawnSync('grok', ['--model', 'grok-4.6', '--permission-mode', 'bypassPermissions', '-p', 'hi! who are you?'], {
+  encoding: 'utf8',
 });
 console.log(r.stdout);
 ```
@@ -498,7 +570,7 @@ CLI the table above assigns, so one chain routinely spans several CLIs:
 | `opencode-go/qwen3.7-plus` | Qwen | 📋 Mechanical — default (**no hyphen** after `qwen3`) |
 | `opencode-go/qwen3.7-max` | Qwen | 🔨 Worker alternative |
 | `opencode-go/qwen3.6-plus` | Qwen | previous generation |
-| `opencode-go/grok-4.5` | Grok / xAI | 🧠 Planner — independent lineage |
+| `opencode-go/grok-4.5` | Grok / xAI | 🧠 Planner — independent lineage (**same model as `xai/grok-4.5`, different wallet** — see Annex C3) |
 | `opencode-go/minimax-m3` | MiniMax | 🔨 Worker alternative |
 | `opencode-go/minimax-m2.7` | MiniMax | previous generation |
 | `opencode-go/mimo-v2.5-pro` | MiMo | 🔨 Worker alternative |
@@ -685,6 +757,181 @@ run cold. Warm reuse still works on the opencode links of the same chain.
 
 ---
 
+## 📎 Annex C3 — `grok` CLI (xAI / SuperGrok)
+
+> **Verified against `grok 1.0.4 (d846eb93d9) [stable]`, 2026-08-17.** Every claim below was measured
+> in a terminal on this machine — model roster, flag shapes, slash-command expansion, error dialect
+> and wall-clock latency. Nothing here is recalled from a changelog.
+
+### The roster — two models
+
+`grok models` (`You are logged in with grok.com`):
+
+| Name (pass to `--model` / `-m`) | Display | Context | Reasoning efforts | `qualifyModel()` tier |
+|---|---|---|---|---|
+| `grok-4.6` **(default)** | Grok 4.6 | 500 000 | `xhigh` · `high` · `medium` · `low` | 🧠 **Lead Architect & Planner** |
+| `grok-4.5` | Grok 4.5 | 500 000 | `high` · `medium` · `low` | 🧠 **Big Planner & Deep Thinker** |
+
+Catalogued as `xai/grok-4.6` / `xai/grok-4.5` in `models.json`, pool `supergrok`. The **prefix is
+stripped at dispatch** — `grok` takes the bare name, like `claude`, `codex` and `agy`. `Grok (auto)`
+is the sentinel for "let grok pick", which today means `grok-4.6` (`[models] default` in
+`~/.grok/config.toml`).
+
+### The finding that matters — **`grok` expands `/wb*`**
+
+**Of the six CLIs in this manual, only `claude`, `opencode` and `grok` can be handed a slash-command.**
+`agy`, `codex`, `gemini` and `copilot` all need the template path inlined into the prompt.
+
+Grok reads Claude Code's directories natively. `grok inspect` on this machine lists **all 33 `/wb*`
+wrappers as user skills**, sourced straight from `~/.claude/commands/`:
+
+```
+Skills (56)
+└ wbwork    user [claude]      → source: /home/wissemb11/.claude/commands/wbWork.md
+└ wbvalid   user [claude]
+…
+```
+
+and a skill is invocable as `/name`. Measured end-to-end:
+
+```bash
+grok -m grok-4.6 -p "/wbhelp"          # → read the template, printed the full 33-command catalog (92 s)
+grok -m grok-4.5 -p "/wbHelp wbGit"    # → mixed case resolved too; printed the wbGit manual (31 s)
+```
+
+Two consequences:
+
+- **A Grok cell is the same shape as a Claude cell.** No `--command` flag (that is opencode's), no
+  `"Read <template> and execute the procedure described there"` preamble (that is codex's), no
+  `< /dev/null`.
+- **Case is forgiving, lowercase is deterministic.** Skills register lowercased (`wbwork`), and
+  resolution is model-mediated rather than parsed, so `/wbWork` also works. Prefer the registered
+  spelling in scripted dispatches.
+
+> ⚠️ **This is inherited, not native.** Grok discovers `.claude/skills/`, `.claude/agents/`,
+> `.claude/plugins/`, `CLAUDE.md` and `.claude/settings.json`. The `/wb*` wrappers ride in on that
+> compatibility layer. If xAI narrows it, `grok inspect` is where you will see it first — check there
+> before assuming a dispatch is broken.
+
+### Verified syntax
+
+```bash
+# The shape wb-flow emits — bare model name, permission flag, `-p` last
+grok --model grok-4.6 --permission-mode bypassPermissions -p "/wbWork <plan.md> --id=1 --no-plan-update"
+
+# Omit --model → grok's own default (grok-4.6)
+grok --permission-mode bypassPermissions -p "hi! who are you?"
+#   → "I'm Grok 4.5, an AI built by xAI."   (with -m grok-4.5, in 3.5 s)
+
+# Reasoning effort — this machine defaults to xhigh; drop it for mechanical rows
+grok --model grok-4.5 --reasoning-effort low -p "<mechanical prompt>"
+
+# Discovery
+grok models        # the two-model roster above
+grok inspect       # every skill / agent / plugin / permission grok sees HERE
+grok sessions      # list sessions (they resume by TITLE, not just id)
+```
+
+```python
+import subprocess
+r = subprocess.run(
+    ['grok', '--model', 'grok-4.6', '--permission-mode', 'bypassPermissions',
+     '-p', '/wbWork plan.md --id=1 --no-plan-update'],
+    capture_output=True, text=True, timeout=900,
+)
+# grok exits 1 on a bad model / auth failure and prints to BOTH stdout and stderr
+infra = r.returncode != 0 and "unknown model id" in (r.stdout + r.stderr)
+print(r.stdout)
+```
+
+```javascript
+const { spawnSync } = require('child_process');
+const r = spawnSync('grok', ['--model', 'grok-4.6', '--permission-mode', 'bypassPermissions',
+  '-p', '/wbWork plan.md --id=1 --no-plan-update'], { encoding: 'utf8', timeout: 900000 });
+const infra = r.status !== 0 && /unknown model id/.test((r.stdout || '') + (r.stderr || ''));
+console.log(r.stdout);
+```
+
+```python
+# Structured output — grok is the only CLI here that will CONSTRAIN itself to a schema
+import json, subprocess
+r = subprocess.run(
+    ['grok', '--model', 'grok-4.6', '--json-schema',
+     '{"type":"object","properties":{"verdict":{"type":"string"},"why":{"type":"string"}}}',
+     '-p', 'Did task 3 land? Answer as the schema.'],
+    capture_output=True, text=True, timeout=300,
+)
+verdict = json.loads(r.stdout)          # --json-schema implies --output-format json
+```
+
+### `-p` is `--single`, and that changes the flag order rule
+
+`grok` parses with clap, where **`-p` is `--single <PROMPT>` — the prompt is its *value*.** So the
+prompt must come immediately after `-p`, and `-p` goes last. Different cause from `agy` (whose `-p`
+is Go's `--print` and *steals* the next entry), identical discipline: **every real flag precedes
+`-p`, and the prompt follows it.**
+
+`--permission-mode bypassPermissions` is the `--dangerously-skip-permissions` analogue. This machine
+also sets `permission_mode = "always-approve"` in `~/.grok/config.toml`, so an unflagged dispatch
+happens to work *here* — pass the flag anyway, so the dispatch does not depend on a config file that
+is not in the repo.
+
+### Other flags worth knowing
+
+| Flag | Use |
+|---|---|
+| `--reasoning-effort low\|medium\|high\|xhigh` | alias `--effort`; 4.5 has no `xhigh` |
+| `--output-format plain\|json\|streaming-json\|streaming-messages-json` | machine-readable; `streaming-messages-json` is the **Anthropic Messages wire format** |
+| `--json-schema '<schema>'` | constrain the reply to a JSON Schema; implies `--output-format json` |
+| `-r` / `--resume [<ID or TITLE>]` · `-c` / `--continue` | **resume by title** — the piece `codex` lacks (see below) |
+| `--max-turns <N>` | hard cap on agent turns — a runaway-cell brake the other CLIs do not offer |
+| `--rules "<text>"` · `--system-prompt-override` | append to / replace the system prompt |
+| `--cwd <dir>` | run against another directory (`codex`'s `-C`) |
+| `--worktree [name]` | run in a fresh git worktree — **ignored in `-p` headless mode** |
+| `--sandbox <profile>` | filesystem/network profile (env `GROK_SANDBOX`) |
+| `--no-subagents` · `--disable-web-search` | trim the toolset for a deterministic cell |
+
+### G1 gate — grok's error dialect is a **third** dialect, and it is not matched
+
+Measured with a deliberately bad slug:
+
+```
+$ grok --model grok-9.9-nope --permission-mode bypassPermissions -p "reply ok"
+Error: Couldn't set model 'grok-9.9-nope': Invalid params: "unknown model id". Run 'grok models' …
+$ echo $?
+1
+```
+
+Honest exit code (**1**), unlike `agy` — but the wording is neither opencode's `Error: Model not
+found` nor codex's `ERROR: {"type":"error"…}` envelope, so **`INFRA_GREP_PATTERN` does not match it.**
+A bad Grok slug therefore fails its cell correctly (non-zero rc) while being classified **ATTEMPTED**
+rather than **INFRA** — "ran and produced nothing" instead of "never ran". Those demand opposite
+responses.
+
+To close that gap, add `Couldn't set model` to the `Error:` alternation in **both** twins — they are
+asserted byte-identical by `test/wave_gates.js`:
+
+- [`bin/wave_constants.js`](../../bin/wave_constants.js) → `INFRA_GREP_PATTERN`
+- [`templates/_shared/wbRun`](../_shared/wbRun) → `INFRA_PATTERN`
+
+Left unchanged deliberately as of 2026-08-17: exit-code 1 already fails the cell, so this is a
+labelling defect, not a false-green one. Verify the classification yourself on the first Grok wave.
+
+### Status with `wb-flow wave`
+
+✅ **Fully dispatchable as of 2026-08-17.** `cliFor()` in
+[`bin/wave_router.js`](../../bin/wave_router.js) resolves through
+[`bin/cli_registry.js`](../../bin/cli_registry.js), which now carries `xai → grok`, so a roster naming
+`xai/grok-4.6` (or the display name `Grok 4.6`, or `Grok (auto)`) routes to a real `grok` argv — chain
+fallback, per-id gates and `--summary` included. Because `slashCommands: true`, the generator emits
+the plain `/wbWork …` prompt rather than an inlined template.
+
+**`--sessions` is not wired to it.** Session reuse is implemented against `opencode session list
+--format json`. Grok *can* do the same thing — `grok sessions`, and `--resume` matches a **title** —
+so the lane is buildable, but it is not built; Grok cells run cold today.
+
+---
+
 ## 📎 Annex D — Subscriptions inventory
 
 | Tier | Covers | Priority for |
@@ -693,6 +940,7 @@ run cold. Warm reuse still works on the opencode links of the same chain.
 | **Google One** | `agy` Gemini roster (Annex B) | long context — ⚠️ not dispatchable by `wave` |
 | **Go subscription** | all 17 `opencode-go/*` slugs (Annex A) | 🔨 Worker, 📋 Mechanical — flat-rate, $0 marginal |
 | **ChatGPT** | `codex exec` — 4 verified models (Annex C2) | any role — a **fourth limit window** to alternate into |
+| **SuperGrok** | `grok` — Grok 4.6 + Grok 4.5 (Annex C3) | ✅ **Validator of independent lineage** (xAI, neither Anthropic nor Google), 🧠 Planner fallback, 🔨 Worker — a **fifth limit window**, and the only non-Claude lane that expands `/wb*` |
 | **Zen / OpenAI, Kimi / Moonshot** | reachable through `opencode-go/*` | second-opinion validators of a different lineage |
 
 > **The Go tier is flat-rate.** Token counts on `opencode-go/*` dispatches cost no marginal money —
@@ -711,6 +959,7 @@ of `opencode run`, `agy -p` or `codex exec`.
 |---|---|---|
 | A single task to a sub-agent | **No** — unknown flag, the run fails | `wbRun opencode run -m <slug> --dangerously-skip-permissions --command wbWork "<plan> --id=1 --no-plan-update"` |
 | A single task to **codex** | **No** | `wbRun codex exec -m gpt-5.6-terra --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check "Read <template> …" < /dev/null` |
+| A single task to **grok** | **No** | `wbRun grok --model grok-4.6 --permission-mode bypassPermissions -p "/wbWork <plan> --id=1 --no-plan-update"` |
 | A whole wave to a headless Claude | **Yes — inside the prompt string** | `wbRun claude -p --permission-mode auto "/wbWork <plan> --wave=A --sessions"` |
 | A wave from your own session | **Yes** | `/wbWork <plan> --wave=A --sessions` |
 | The generator directly | **Yes** | `wb-flow wave <plan> --wave=A --summary --sessions` |
@@ -752,6 +1001,7 @@ What follows is the part that genuinely differs: **parsing, timeouts, and captur
 ```bash
 opencode models | grep "^opencode-go/"
 agy models
+grok models
 opencode providers list
 ```
 
@@ -883,15 +1133,24 @@ Measured, not assumed. Re-check with `wb-flow model --probe`.
 
 | Provider | Status | Evidence |
 |---|---|---|
+| **`grok`** (SuperGrok) | ✅ **WORKS — measured 2026-08-17** | `grok -m grok-4.5 -p "hi! who are you?"` → *"I'm Grok 4.5, an AI built by xAI"* in **3.5 s**; `grok -p "/wbhelp"` expanded the wrapper and printed the catalog in 92 s; `grok models` lists 2 |
 | **`agy`** (Google One) | ✅ **WORKS** | `agy -p --model gemini-3.1-pro-high …` answers; 11 models listed |
 | **`claude`** (Claude Pro) | ✅ works | in-session root; `claude -p` available |
 | **`opencode-go/*`** (Go sub) | ❌ **unreachable** | 5 probes / 4 models / 2 days → `ETIMEDOUT` at 45–150 s |
 | **`opencode/*`** (OpenCode Zen) | ❌ **no balance** | `Error: Insufficient balance.` — hit live during Wave A |
 | `deepseek/`, `nvidia/`, `github-copilot/`, `openrouter/` | ❓ untested | credentialed per `opencode providers list`; never probed |
 
-> **Consequence:** `agy` is currently the **only working delegated executor**, and `wave` cannot
-> dispatch it. Until the generator gets an `agy` lane, delegated waves have no working lane —
-> run tasks in-session, or probe the untested `opencode` providers above for one that answers.
+> **Consequence (as written 2026-08-02):** `agy` is currently the **only working delegated executor**,
+> and `wave` cannot dispatch it. Until the generator gets an `agy` lane, delegated waves have no
+> working lane — run tasks in-session, or probe the untested `opencode` providers above for one that
+> answers.
+>
+> **Amended 2026-08-17 — there is now a second working delegated executor, and it *is* dispatchable.**
+> `grok` answers, is catalogue-routed through `bin/cli_registry.js`, and expands `/wb*` without a
+> wrapper flag. That is the first non-Claude lane with all three properties at once. It does not
+> retire the caution about `agy` above; it means a delegated wave has somewhere to go that is neither
+> Claude Pro nor Google One. **Still verify its cells by artifact rather than by Done box** — a new
+> lane has no track record here, and G1 currently mislabels its model-not-found dialect (Annex C3).
 
 ### The three things that break a dispatch, in order of how often
 
@@ -909,6 +1168,7 @@ Measured, not assumed. Re-check with `wb-flow model --probe`.
 opencode models | grep "^opencode-go/"     # Annex A
 opencode providers list                     # which providers hold credentials
 agy models                                  # Annex B
+grok models                                 # Annex C3 — and `grok inspect` for its skill view
 wb-flow model --detect                      # propose a roster from the above
 wb-flow model --probe                       # the ONLY check that proves a model answers
 ```
@@ -944,6 +1204,7 @@ agent CLI. This is the shape referenced as **“dispatch”** throughout the tab
 ```bash
 wbRun opencode run -m <slug> --dangerously-skip-permissions --command wbAudit "<target>"
 wbRun agy -p --model <name> --dangerously-skip-permissions "/wbAudit <target>"
+wbRun grok --model <name> --permission-mode bypassPermissions -p "/wbAudit <target>"
 ```
 
 ```python
@@ -959,6 +1220,11 @@ spawnSync("opencode", ["run", "-m", slug, "--dangerously-skip-permissions",
 > **`agy` differs**: it has no `--command` flag — the slash-command rides inside the prompt string,
 > and `--dangerously-skip-permissions` is mandatory or headless mode auto-denies every tool and
 > returns empty output with exit 0. See Annex B.
+>
+> **`grok` also has no `--command` flag, but it genuinely expands the slash-command** — it loads the
+> `~/.claude/commands/*.md` wrappers as skills, so `/wbAudit <target>` inside the prompt is the real
+> command, not a literal string. `agy`, `codex`, `gemini` and `copilot` would treat it as text. See
+> Annex C3.
 
 ### 1 · The 33 `/wb*` commands
 
@@ -1043,6 +1309,8 @@ spawnSync("opencode", ["run", "-m", slug, "--dangerously-skip-permissions",
 | List opencode models | `opencode models` | `subprocess.run([...]).stdout.splitlines()` | `execFileSync(...).split("\n")` |
 | Which providers are credentialed | `opencode providers list` | same, parse the `●` lines | same |
 | List agy models | `agy models` | same | same |
+| List grok models | `grok models` | same, parse the `* name (default)` / `- name` lines | same |
+| What grok sees in THIS dir | `grok inspect --json` | `json.loads(...)` → `["skills"]` | `JSON.parse(...).skills` |
 | List codex models | **— none.** codex cannot enumerate; use `wb-flow model --detect --probe` | — | — |
 | Sessions as JSON | `opencode session list --format json` | `json.loads(...)` | `JSON.parse(...)` |
 | Token/cost stats | `opencode stats --days 1 --models` | dispatch + parse | dispatch + parse |
@@ -1315,6 +1583,74 @@ subprocess.run(['codex', 'exec', '--dangerously-bypass-approvals-and-sandbox', '
 ```javascript
 const { spawnSync } = require('child_process');
 spawnSync('codex', ['exec', '--dangerously-bypass-approvals-and-sandbox', '--skip-git-repo-check', 'hi! who are you?'], { encoding: 'utf8', timeout: 60000, stdio: ['ignore','pipe','pipe'] });
+```
+
+### Provider: `xai` (Pool: `supergrok`)
+
+#### `xai/grok-4.6`
+
+`xai` → **`grok`** · model arg `grok-4.6`
+
+**Bash**
+```bash
+grok --model grok-4.6 --permission-mode bypassPermissions -p "hi! who are you?"
+```
+
+**Python**
+```python
+import subprocess
+subprocess.run(['grok', '--model', 'grok-4.6', '--permission-mode', 'bypassPermissions', '-p', 'hi! who are you?'],
+               capture_output=True, text=True, timeout=60)
+```
+
+**Node.js**
+```javascript
+const { spawnSync } = require('child_process');
+spawnSync('grok', ['--model', 'grok-4.6', '--permission-mode', 'bypassPermissions', '-p', 'hi! who are you?'], { encoding: 'utf8', timeout: 60000 });
+```
+
+#### `xai/grok-4.5`
+
+`xai` → **`grok`** · model arg `grok-4.5`
+
+**Bash**
+```bash
+grok --model grok-4.5 --permission-mode bypassPermissions -p "hi! who are you?"
+```
+
+**Python**
+```python
+import subprocess
+subprocess.run(['grok', '--model', 'grok-4.5', '--permission-mode', 'bypassPermissions', '-p', 'hi! who are you?'],
+               capture_output=True, text=True, timeout=60)
+```
+
+**Node.js**
+```javascript
+const { spawnSync } = require('child_process');
+spawnSync('grok', ['--model', 'grok-4.5', '--permission-mode', 'bypassPermissions', '-p', 'hi! who are you?'], { encoding: 'utf8', timeout: 60000 });
+```
+
+#### `Grok (auto)`
+
+`xai` → **`grok`** · no `--model` (provider default)
+
+**Bash**
+```bash
+grok --permission-mode bypassPermissions -p "hi! who are you?"
+```
+
+**Python**
+```python
+import subprocess
+subprocess.run(['grok', '--permission-mode', 'bypassPermissions', '-p', 'hi! who are you?'],
+               capture_output=True, text=True, timeout=60)
+```
+
+**Node.js**
+```javascript
+const { spawnSync } = require('child_process');
+spawnSync('grok', ['--permission-mode', 'bypassPermissions', '-p', 'hi! who are you?'], { encoding: 'utf8', timeout: 60000 });
 ```
 
 ### Provider: `openrouter` (Pool: `openrouter`)
@@ -1855,6 +2191,6 @@ const { spawnSync } = require('child_process');
 spawnSync('copilot', ['--allow-all', '-p', 'hi! who are you?'], { encoding: 'utf8', timeout: 60000 });
 ```
 
-> **36 models** documented, every one in bash, python and node.
+> **39 models** documented, every one in bash, python and node.
 
 <!-- MODEL_CATALOG_END -->

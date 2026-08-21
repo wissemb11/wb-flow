@@ -148,6 +148,7 @@ const POOL_RANK = {
   'google-one': 1,      // agy — bare model names
   'opencode-go': 2,     // the Go subscription
   'chatgpt': 3,         // codex — a ChatGPT subscription, its own limit window
+  'supergrok': 4,       // grok — SuperGrok, a fifth limit window (xAI)
   'opencode-zen': 5,    // metered, pay-as-you-go
 };
 function poolRank(entry) {
@@ -166,7 +167,7 @@ function poolRank(entry) {
  * only two passes that can fill a slot, so no codex model could ever be
  * proposed. Preference and payment are now separate facts.
  */
-const SUBSCRIPTION_POOLS = new Set(['claude-pro', 'google-one', 'opencode-go', 'chatgpt']);
+const SUBSCRIPTION_POOLS = new Set(['claude-pro', 'google-one', 'opencode-go', 'chatgpt', 'supergrok']);
 function isSubscription(entry) {
   return SUBSCRIPTION_POOLS.has(poolOf(entry));
 }
@@ -176,6 +177,7 @@ function poolOf(entry) {
   if (name === 'Claude (auto)' || /^anthropic\s*\(auto\)$/i.test(name)) return 'claude-pro';
   if (/^codex\s*\(auto\)$/i.test(name) || name === 'Codex (auto)' || /^openai\s*\(auto\)$/i.test(name)) return 'chatgpt';
   if (/^(agy|antigravity)\s*\(auto\)$/i.test(name) || name === 'Antigravity (auto)') return 'google-one';
+  if (/^(grok|xai|supergrok)\s*\(auto\)$/i.test(name) || name === 'Grok (auto)') return 'supergrok';
   if (/^opencode-go\s*\(auto\)$/i.test(name)) return 'opencode-go';
   if (/^opencode-zen\s*\(auto\)$/i.test(name)) return 'opencode-zen';
   if (/^github-copilot\s*\(auto\)$/i.test(name)) return 'github-copilot';
@@ -190,6 +192,7 @@ function poolOf(entry) {
   if (prefix === 'opencode-go') return 'opencode-go';
   if (prefix === 'opencode') return 'opencode-zen';
   if (prefix === 'anthropic') return 'claude-pro';
+  if (prefix === 'xai') return 'supergrok';
   return prefix;
 }
 
@@ -585,6 +588,7 @@ function autoAliasForProvider(provider) {
   if (name === 'anthropic') return 'Claude (auto)';
   if (name === 'openai') return 'Codex (auto)';
   if (name === 'antigravity' || name === 'agy') return 'Antigravity (auto)';
+  if (name === 'xai' || name === 'grok') return 'Grok (auto)';
   return null;
 }
 
@@ -604,6 +608,25 @@ function dispatchFor(entry, promptExample, catIdx) {
       if (R.cli === 'agy') {
         return '.wb/bin/wbRun agy -p --model ' + R.modelArg + ' --dangerously-skip-permissions "' + promptExample + '"';
       }
+      if (R.cli === 'grok') {
+        // grok DOES expand `/wb*` (Claude Code commands are loaded as skills),
+        // so the prompt keeps its slash form — no --command flag, no inlined
+        // template path. `-p` takes the prompt as its value, so it goes last.
+        return '.wb/bin/wbRun grok --model ' + R.modelArg
+          + ' --permission-mode bypassPermissions -p "' + promptExample + '"';
+      }
+      // Every OTHER catalogued CLI, straight from its spec. Without this, only
+      // the three hand-written branches above were catalog-aware and everything
+      // else fell to the `opencode run -m <slug>` line at the bottom — so a
+      // detected roster published `opencode run -m anthropic/claude-opus-5`,
+      // billing a model to a CLI that cannot serve it. That is the precise bug
+      // cli_registry.js was introduced to end; the roster writer had never been
+      // connected to it. (Found 2026-08-17 while adding the xai provider.)
+      const spec = REG.CLI_SPEC[R.cli];
+      if (spec && R.cli !== 'opencode') {
+        return '.wb/bin/wbRun ' + spec.bin + ' ' + spec.argv(R.modelArg, null).join(' ')
+          + ' "' + promptExample + '"' + (spec.stdinNull ? ' < /dev/null' : '');
+      }
     }
   }
   if (isInSession(entry)) {
@@ -616,6 +639,9 @@ function dispatchFor(entry, promptExample, catIdx) {
   }
   if (/^(agy|antigravity)\s*\(auto\)$/i.test(name) || name === 'Antigravity (auto)') {
     return '.wb/bin/wbRun agy -p --dangerously-skip-permissions "' + promptExample + '"';
+  }
+  if (/^(grok|xai|supergrok)\s*\(auto\)$/i.test(name) || name === 'Grok (auto)') {
+    return '.wb/bin/wbRun grok --permission-mode bypassPermissions -p "' + promptExample + '"';
   }
   const tail = name.split('/').pop();
   if (AGY_ONLY.test(tail)) {
@@ -643,6 +669,11 @@ const ROLE_PROMPT = {
 
 function renderRosterTable(roster, meta) {
   const m = meta || {};
+  // Both the Lane column and the dispatch chains below used to be computed
+  // catalog-BLIND (`entries.map(laneOf)` / `dispatchFor(e, prompt)` with no
+  // index), so the published roster disagreed with the router that actually
+  // runs it. Load the catalog once here and hand it to both.
+  const catIdx = REG.loadCatalogIndex();
   const lines = [];
   lines.push('| Role | Active Selected Models (1st / 2nd / 3rd) | Lane |');
   lines.push('|---|---|---|');
@@ -653,7 +684,7 @@ function renderRosterTable(roster, meta) {
       ? entries.map((e) => '**' + e + '**').join(' / ')
       : '_not configured_';
     const lane = entries.length
-      ? Array.from(new Set(entries.map(laneOf))).join(' → ')
+      ? Array.from(new Set(entries.map((e) => laneOf(e, catIdx)))).join(' → ')
       : '_run `wb-flow model --detect`_';
     const unreachable = (m.unreachable || []).filter((u) => entries.indexOf(u) !== -1);
     const warn = unreachable.length ? ' ⚠️ unreachable: ' + unreachable.join(', ') : '';
@@ -679,7 +710,7 @@ function renderRosterTable(roster, meta) {
       const spawned = entries.filter((e) => !isInSession(e));
       if (inSess.length) lines.push('# 1st: in-session — the orchestrator runs this itself, nothing spawned');
       if (spawned.length) {
-        lines.push(spawned.map((e) => dispatchFor(e, ROLE_PROMPT[role])).join(' || '));
+        lines.push(spawned.map((e) => dispatchFor(e, ROLE_PROMPT[role], catIdx)).join(' || '));
       } else {
         lines.push('# (no delegated fallback configured)');
       }
@@ -739,6 +770,7 @@ function laneOf(entry, catIdx) {
   const name = String(entry);
   if (/^codex\s*\(auto\)$/i.test(name) || name === 'Codex (auto)') return 'codex';
   if (/^(agy|antigravity)\s*\(auto\)$/i.test(name) || name === 'Antigravity (auto)') return 'agy';
+  if (/^(grok|xai|supergrok)\s*\(auto\)$/i.test(name) || name === 'Grok (auto)') return 'grok';
   if (name.indexOf('/') === -1 && AGY_ONLY.test(name)) return 'agy';
   if (name.indexOf('/') === -1 && CODEX_ONLY.test(name)) return 'codex';
   return 'opencode';
@@ -816,23 +848,30 @@ function resolveRosterFile(from, opts) {
   
   if (!existing.length) return null;
   
-  const nearestMatch = existing[0];
-  const nearestMtime = nearestMatch.mtime;
-
-  for (let i = 1; i < existing.length; i++) {
-    const c = existing[i];
-    if (c.mtime > nearestMtime && c.root !== nearestMatch.root) {
-      // Create readable timestamps like "2026-08-14 20:41"
-      const ts1 = new Date(nearestMtime).toISOString().replace('T', ' ').substring(0, 16);
-      const ts2 = new Date(c.mtime).toISOString().replace('T', ' ').substring(0, 16);
-      console.error('⚠️  Routing on ' + nearestMatch.path + ' (nearest).');
-      console.error('    A newer roster exists at ' + c.path + ' (' + ts2 + ' vs ' + ts1 + ').');
-      console.error('    Use --file= to override, or re-run `wb-flow model --pick` in this scope.');
-      break;
+  // The shipped template is a seed, not a user's active roster. Its mtime can
+  // move whenever the package is rebuilt, so it must not outrank a real roster
+  // merely because the package was installed recently.
+  const templateDir = path.join(templatesRoot, 'templates');
+  const active = existing.filter((candidate) => {
+    try {
+      const resolved = fs.realpathSync(candidate.path);
+      return !(resolved === templateDir || resolved.startsWith(templateDir + path.sep));
+    } catch (e) {
+      return false;
     }
+  });
+  const candidates = active.length ? active : existing;
+
+  // A scope-local copy is useful only while it is current. Once a newer
+  // project or user roster exists, silently routing on the nearest stale copy
+  // makes every generated dispatch look valid while using the wrong lineup.
+  // Keep the original candidate order as the deterministic tie-breaker.
+  let freshest = candidates[0];
+  for (let i = 1; i < candidates.length; i++) {
+    if (candidates[i].mtime > freshest.mtime) freshest = candidates[i];
   }
 
-  return nearestMatch.path;
+  return freshest.path;
 }
 
 /** Parse the roster table back out — `/wbModel --list` and tests both need it. */
@@ -1033,7 +1072,16 @@ function probeModel(slug, timeoutMs, catIdx) {
   // Catalog-authoritative routing (see resolveCli). When the catalog names a
   // CLI for this slug, honour it instead of re-deriving one from the string.
   const R = resolveCli(name, catIdx);
-  if (R.source === 'catalog' && R.cli !== 'opencode') {
+  // `|| 'sentinel'` added 2026-08-17. A provider `(auto)` entry resolves through
+  // SENTINEL, not the catalog, so it used to fall past this branch into the
+  // string heuristics and out the bottom as `opencode run -m "Grok (auto)"` —
+  // reported as *"Model not found"* for a lane that answers in 3 s. wave_router's
+  // cliFor() has always accepted both sources; the probe was the outlier, which
+  // is exactly the probe-here / dispatch-there split cli_registry.js exists to
+  // prevent. Fixing it also repairs the `Antigravity (auto)` probe, whose
+  // hand-written fallback below still carries the `-p`-first argv order that
+  // makes agy answer the permission flag instead of the prompt.
+  if ((R.source === 'catalog' || R.source === 'sentinel') && R.cli !== 'opencode') {
     if (R.cli === 'in-session') return { slug: slug, ok: true, why: '', skipped: 'in-session root', route: R };
     const built = REG.argvFor(R, PROBE_PROMPT);
     if (!built) return { slug: slug, ok: false, why: 'no CLI spec for ' + R.cli, route: R };
@@ -1776,7 +1824,7 @@ async function run(argv) {
         };
       });
 
-      const defaultProviders = ['anthropic', 'openai', 'google', 'antigravity', 'opencode-go'];
+      const defaultProviders = ['anthropic', 'openai', 'xai', 'google', 'antigravity', 'opencode-go'];
       const defaultIndexes = masterProviders
         .map((p, idx) => (defaultProviders.indexOf(p.provider) !== -1 ? idx : -1))
         .filter((idx) => idx !== -1);

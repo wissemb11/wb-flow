@@ -1,7 +1,7 @@
 {
   "name": "wb-flow",
-  "version": "1.0.2",
-  "description": "Zero-dependency CLI that bootstraps an agentic AI workflow system into any repo. Universal — works with Vue, React, Python, or any codebase. Compatible with Claude Code, OpenCode, Gemini CLI, Cursor, and other AI coding assistants.",
+  "version": "1.0.3",
+  "description": "wb-flow turns AI coding into a planned, parallel, validated, and traceable engineering workflow. Zero-dependency CLI that bootstraps an agentic AI workflow system into any repo. Universal — works with Vue, React, Python, or any codebase. Compatible with Claude Code, OpenCode, Gemini CLI, Cursor, and other AI coding assistants.",
   "bin": {
     "wb-flow": "./bin/install.js"
   },
@@ -16,7 +16,7 @@
     "!bin/gen_cli_matrix.js"
   ],
   "scripts": {
-    "test": "node bin/gen_cli_matrix.js --check && node test/model_routing.js && node test/probe_targets.js && node test/roster_freshness.js && node test/probe_defaults.js && node test/wave_modules.js && node test/smoke.js && node test/wave_gates.js && node test/watch.js && node test/archive.js && node test/docs_repair_invariants.js && node bin/verify-wrappers.js && node bin/verify-roster.js",
+    "test": "node bin/gen_cli_matrix.js --check && node test/model_routing.js && node test/probe_targets.js && node test/roster_freshness.js && node test/runbook_regressions.js && node test/lint_entrypoint.js && node test/probe_defaults.js && node test/wave_modules.js && node test/smoke.js && node test/wave_gates.js && node test/watch.js && node test/archive.js && node test/docs_repair_invariants.js && node bin/verify-wrappers.js && node bin/verify-roster.js",
     "test:coverage": "c8 --reporter=text npm test",
     "prepublishOnly": "npm test && node bin/verify-roster.js"
   },
@@ -39,7 +39,13 @@
     "zero-dependency",
     "prompt-engineering",
     "ai-coding",
-    "llm-cli"
+    "llm-cli",
+    "agentic-coding",
+    "spec-driven-development",
+    "ai-agents",
+    "llm",
+    "coding-agents",
+    "software-engineering"
   ],
   "repository": {
     "type": "git",

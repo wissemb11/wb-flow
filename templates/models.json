@@ -25,6 +25,15 @@
       ]
     },
     {
+      "provider": "xai",
+      "pool": "supergrok",
+      "models": [
+        "xai/grok-4.6",
+        "xai/grok-4.5",
+        "Grok (auto)"
+      ]
+    },
+    {
       "provider": "openrouter",
       "pool": "openrouter",
       "models": [

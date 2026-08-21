@@ -9,6 +9,7 @@ function resolveDisplayName(name) {
   if (/^claude\s*\(auto\)$|^claude\s*\(in-session\)$/.test(key) || key === '(auto)' || key === '(in-session)') return '';
   if (/^codex\s*\(auto\)$/.test(key) || key === 'codex (auto)') return 'Codex (auto)';
   if (/^(antigravity|agy)\s*\(auto\)$/.test(key) || key === 'antigravity (auto)' || key === 'agy (auto)') return 'Antigravity (auto)';
+  if (/^(grok|xai|supergrok)\s*\(auto\)$/.test(key)) return 'Grok (auto)';
   // A roster written by `wb-flow model` holds dispatchable SLUGS, not the
   // human display names the hand-written rosters used. Pass those through
   // untouched — otherwise every generated roster reads as "unrecognised model"

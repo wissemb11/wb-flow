@@ -448,7 +448,7 @@ function checkStep4(content) {
           // In-session commands are a special case — they don't need -M=
           const absoluteIndex = cpText.indexOf(cm[0], fm.index);
           const ac = cpText.slice(absoluteIndex + cm[0].length, absoluteIndex + cm[0].length + 200);
-          if (!/in-session|\(auto\)|# in-session/.test(ac) && !/in-session|\(auto\)|# in-session/.test(cmd)) {
+          if (!/in-session|\(auto\)|# in-session|human|\(human\)|manual/.test(ac) && !/in-session|\(auto\)|# in-session|human|\(human\)|manual/.test(cmd)) {
             fails.push('step-4: copy/paste dispatch missing -M= flag: `' + cmd.slice(0, 80) + '…`');
           }
         }
@@ -873,3 +873,10 @@ function run(argv) {
 }
 
 module.exports = { run };
+
+// Keep the module importable for the installer while making the documented
+// direct oracle invocation real: `node bin/lint.js <plan>` must execute the
+// same runner as `wb-flow lint <plan>` instead of loading and exiting 0.
+if (require.main === module) {
+  process.exit(run(process.argv.slice(2)) || 0);
+}

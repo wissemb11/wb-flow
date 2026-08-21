@@ -8,7 +8,7 @@ const R = require('../bin/wave_router.js');
 
 let pass = 0;
 function t(name, fn) { fn(); pass++; console.log('  ✓ ' + name); }
-console.log('🧪 roster freshness -> nearest wins');
+console.log('🧪 roster freshness -> newest wins');
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'wbroster-'));
 const REAL_HOME = process.env.HOME;
@@ -47,17 +47,17 @@ t('within one root, .wb/commands/ outranks the shipped templates/ seed', () => {
   assert.strictEqual(got.planner[0], 'opencode-go/kimi-k3');
 });
 
-t('across roots, the NEAREST roster wins — not the freshest', () => {
+t('across roots, the FRESHEST roster wins — not the nearest', () => {
   const { models } = R.resolveModelsFromRoster('# a plan with no header roster', repoRoot, {}, {}, pkgRoot);
   const chain = R.chainFor(models, 'planner').map((m) => m || 'Claude (auto)');
-  assert.strictEqual(chain[0], 'opencode-go/kimi-k3',
-    'pkgRoot is tried first, so its roster must win even if older');
+  assert.strictEqual(chain[0], 'Codex (auto)',
+    'the newer repo roster must win even when a nearer package roster exists');
 });
 
 t('every role resolves from the same file', () => {
   const { models } = R.resolveModelsFromRoster('# no header', repoRoot, {}, {}, pkgRoot);
   for (const role of ['planner', 'selfValidator', 'worker', 'mechanical']) {
-    assert.strictEqual(R.chainFor(models, role).map((m) => m || 'Claude (auto)')[0], 'opencode-go/kimi-k3');
+    assert.strictEqual(R.chainFor(models, role).map((m) => m || 'Claude (auto)')[0], 'Codex (auto)');
   }
 });
 

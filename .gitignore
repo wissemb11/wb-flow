@@ -2,3 +2,4 @@ node_modules/
 docs/.wb/
 .wb/
 _deploy_/
+coverage/

@@ -4,6 +4,10 @@ Thanks for your interest in contributing! wb-flow is a zero-dependency CLI that 
 
 ## How to Contribute
 
+### Architecture
+
+Before making changes, please read the [Architecture Overview](docs/architecture.md) which explains how templates, `bin/install.js`, `bin/wave.js`, and the reports tree fit together.
+
 ### Reporting Bugs
 
 Open an issue at [github.com/wissemb11/wb-flow/issues](https://github.com/wissemb11/wb-flow/issues) with:
@@ -50,3 +54,7 @@ docs(readme): move framework-agnostic disclaimer above the fold
 ### License
 
 By contributing, you agree that your contributions are licensed under the project's MIT License.
+
+## Not this quarter
+
+We are currently under a 90-day feature freeze. Please see [../broadcast/20_FREEZE.md](../broadcast/20_FREEZE.md) for a list of what is allowed versus forbidden during this time. New command suggestions or broad architecture changes will be deferred until this window closes.

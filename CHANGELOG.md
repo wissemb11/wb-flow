@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3] - 2026-08-21
+
+### Fixed — `--command` flag generated on CLIs that do not support it
+
+`bin/wave_generator.js` emitted `--command <name>` for all CLIs where `cli.slashCommands` was true (`claude`, `grok`, and `opencode`). While `opencode run` supports `--command`, `claude` and `grok` reject it with unknown/unexpected option errors, causing all `/wbValid` wave cells to fail at Gate 1.
+
+- Gated `--command` flag emission strictly to `opencode` (`cli.bin === 'opencode'`).
+- For `claude` and `grok`, wave generation now correctly emits the slash command string as the prompt argument (e.g. `claude -p --model <m> --permission-mode auto "/wbValid ..."`).
+- Added comprehensive regression tests in `test/runbook_regressions.js` asserting that generated scripts for `claude` and `grok` contain zero `--command` flags while `opencode` scripts continue to include `--command`.
+
+### Added — `--no-merge` escape flag for wave cell auto-merging
+
+Added `--no-merge` flag in `bin/wave_generator.js` and documented it in `wbWork_template.md`. 
+- Allows wave authors to disable automatic cell merging when tasks of the same role and model should remain explicitly separated into distinct execution dispatches.
+- Added behavioural test in `test/smoke.js` verifying that default runs merge candidate cells while `--no-merge` splits them into separate dispatches.
+
+### Fixed — Publish runbook dotfile copying
+
+Updated `_deploy_/publish_runbook.md` to use `cp -r core/.` instead of `cp -r core/*` to ensure dotfile directories like `.github/` are preserved during distribution synchronization. Added regression test pinning this behavior in `test/runbook_regressions.js`.
+
+### Changed — Version bump and release maintenance
+
+- Bumped package version to `1.0.3`.
+- Updated test suite, documentation, and demo references (`docs/architecture.md`, `ROADMAP.md`, `.github/`, `docs/demo_apps/wb-flow-demo`).
+
 ## [1.0.2] - 2026-08-14
 
 ### Added — orchestrator rules and token-budget guidance

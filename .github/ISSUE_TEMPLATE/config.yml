@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Q&A and Ideas (GitHub Discussions)
+    url: https://github.com/wissemb11/wb-flow/discussions
+    about: Please ask questions and share ideas in Discussions instead of opening an issue.
+  - name: First-run or setup issues
+    url: https://github.com/wissemb11/wb-flow/discussions
+    about: If you are having trouble setting up or running the tool for the first time, please use Discussions. Our team will triage and use the 'first-run' label to track setup friction.

@@ -879,6 +879,22 @@ try {
     /VERDICT: NO-OP —\$_g9_noop/.test(mergedBuilt.script) && /VERDICT: ATTEMPTED —\$_g9_att/.test(mergedBuilt.script),
     'the cell verdict is the worst id, and names which ids failed'
   );
+
+  const NOMERGE_PLAN = MERGED_PLAN.replace('--id=3,8', '--id=3 --no-merge`<br><br>`/wbWork plan_merged_20260801.md --id=8');
+  fs.writeFileSync(mergedPlanPath, NOMERGE_PLAN);
+  const nomergeMatrix = WV.parseMatrix(NOMERGE_PLAN);
+  const nomergeBuilt = WV.buildScript({
+    planPath: mergedPlanPath, wave: 'A', cells: WV.cellsOf(nomergeMatrix, 'A', 'work'),
+    dispatchIndex: WV.indexDispatches(nomergeMatrix), models: models, jobs: 0,
+    repoRoot: mergedDir, verifyColumn: WV.parseVerifyColumn(NOMERGE_PLAN),
+    estTime: WV.parseEstTime(NOMERGE_PLAN), planDirRel: '',
+  });
+  assert(nomergeBuilt.spawned.length === 2, '--no-merge disables auto-merge for the specified cell');
+  assert(
+    /plan_merged_20260801\.md --id=3.*--no-merge/.test(nomergeBuilt.script) && 
+    /plan_merged_20260801\.md --id=8/.test(nomergeBuilt.script),
+    'the generated script contains both independent cell commands'
+  );
   assert(
     mergedBuilt.script.indexOf("['3,8']=40") !== -1,
     'a merged cell budgets the SUM of its rows (30+10), so it is not falsely OVER est'

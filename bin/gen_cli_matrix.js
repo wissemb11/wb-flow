@@ -26,6 +26,7 @@ const MANUAL = path.resolve(__dirname, '..', 'templates', 'commands', 'model_ref
 const EXAMPLE = {
   anthropic: 'anthropic/claude-opus-5',
   openai: 'openai/gpt-5.6-terra',
+  xai: 'xai/grok-4.6',
   antigravity: 'gemini-3.1-pro-high',
   google: 'gemini-3.1-pro',
   'github-copilot': 'github-copilot/auto',

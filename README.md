@@ -4,59 +4,31 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org)
 
-> **Your AI assistant is brilliant. It's just undisciplined.**
-> wb-flow gives it a spine — 33 strict, verb-driven command templates that turn vague requests into structured, traceable, verifiable work.
+## wb-flow turns AI coding into a planned, parallel, validated, and traceable engineering workflow.
+
+It is a zero-dependency CLI that bootstraps an agentic AI control plane into any repo.
+It works with Vue, React, Python, and any other codebase.
+It is compatible with Claude Code, OpenCode, Gemini CLI, Cursor, and other coding agents.
 
 ![wb-flow demo](assets/demo.gif)
-
-> **Framework-agnostic.** wb-flow is a standalone dev tool — works with Vue, React, Python, Go, Rust, or any codebase. Independent of the `wbc-ui` ecosystem (despite the shared author).
-
----
-
-## The Problem
-
-You give your AI a 3-hour task. Two hours in, it's rewriting files you didn't ask it to touch, skipped the part where it should have audited the codebase first, and committed with `git commit -m "fix stuff"`.
-
-It didn't fail because it's not smart enough. It failed because **nobody gave it a process**.
-
-## The Solution: Verbs, Not Personas
-
-Most AI workflow tools solve this with *personas* — "ask the QA Agent", "invoke the Architect". wb-flow takes a different approach: **verbs over personas.**
-
-You don't ask a role to review your code. You run `/wbAudit`. You don't ask a planner to break down a feature. You run `/wbPlan`. The command *is* the contract.
-
-```
-/wbAudit  →  /wbPlan  →  /wbWork  →  /wbValid
-  Audit        Plan        Execute     Validate
-```
-
-**Audit before you plan. Plan before you execute. Validate before you ship.**
-
-![Plan → Work → Validate — the three-agent orchestration pattern](assets/TripletAnimation.gif)
-
-*The same three verbs, as the system runs them: one agent plans, another executes, a **third** verifies. The separation is the point — a model that validates its own diff will call it correct.*
-
-## 🧐 What is it?
-
-wb-flow is a **zero-dependency CLI** that copies 33 structured `/wb*` slash-command templates into your project — pure Markdown files your AI reads and follows as operating procedures.
-
-- **Zero runtime.** No server, no daemon, no Python environment. The tool installs itself and then disappears.
-- **Zero lock-in.** Works with Claude Code, Cursor, OpenCode, Gemini CLI, or any assistant that reads a prompt.
-- **Zero ambiguity.** Every command has a defined input contract, a defined output format, and a defined handoff to the next step.
-- **Universal.** Works with Vue, React, Python, Go, Rust, Terraform — anything with source files.
-
-## 🥊 Compared With...
-
-![Five release steps, run manually versus through /wb*](assets/AgenticVsManual.gif)
-
-
-| Approach | Limitation | wb-flow Advantage |
-|---|---|---|
-| **Raw AI prompts** | Output depends on the model's mood | Templates rigidly define format, steps, and constraints |
-| **Heavy frameworks** (LangChain, AutoGen) | Require Python, API keys, orchestration | Pure Markdown, zero dependencies |
-| **Persona-based agents** (BMAD-Method) | Simulate a Scrum team with roleplay | Verbs over personas — tighter, more honest, less drift |
+*Current demo* <!-- HERO: swap when thought 02 ships hero.gif -->
 
 ---
+
+## Why wb-flow
+
+Our workflow follows this core engineering ladder: Plan → Decompose → Parallelize → Execute → Validate → Trace.
+
+### The Five-Layer Stack
+- **Composable planning:** Structured definition and decomposition of tasks.
+- **`--as` cognition:** Pre-flight explanations and step-by-step blueprints.
+- **Waves:** Orchestrated, parallel execution scheduling.
+- **Artifact graph:** A concrete trail of evidence connecting requirement to validation.
+- **Model routing:** Dispatching the right model for the right job.
+
+### Verbs Over Personas
+We orchestrate *what* needs to happen (plan, execute, validate), not *who* does it. The command *is* the contract.
+For a detailed look at how this solves a different problem than tools like BMAD, GSD, or Spec Kit, see our [Agentic Coding Comparisons](https://flow.wbc-ui.com/docs/comparisons/index.html) page.
 
 ## 🚀 Installation
 

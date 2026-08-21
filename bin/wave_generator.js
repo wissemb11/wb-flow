@@ -174,8 +174,12 @@ function emitDispatchGates(L, cmdInfo) {
     else if (cli.bin === 'opencode') L.push('      --dir "$REPO" \\');
     if (cmdInfo.sessionKey && cli.bin === 'opencode') L.push('      "${_g9_sargs[@]}" \\');
     if (cli.slashCommands) {
-      L.push('      --command ' + shq(parsed.name) + ' \\');
-      L.push('      ' + shq(args) + tail);
+      if (cli.bin === 'opencode') {
+        L.push('      --command ' + shq(parsed.name) + ' \\');
+        L.push('      ' + shq(args) + tail);
+      } else {
+        L.push('      ' + shq('/' + parsed.name + ' ' + args) + tail);
+      }
     } else {
       // A CLI that cannot expand `/wbWork …` must be handed the template
       // inline, exactly as the wrapper files do. codex AND agy are both in this
@@ -415,8 +419,11 @@ function buildScript(ctx) {
   // into a single merged dispatch (--id=5,6) to reuse startup context and reduce cost.
   const spawned = [];
   const spawnMap = new Map();
+  let mergeCounter = 0;
   for (const item of rawSpawned) {
-    const key = [item.parsed.name, item.parsed.target, item.cell.role, item.route.model || ''].join('::');
+    const isNoMerge = item.parsed.rest.includes('--no-merge') || (ctx.noMerge === true);
+    const baseKey = [item.parsed.name, item.parsed.target, item.cell.role, item.route.model || ''].join('::');
+    const key = isNoMerge ? baseKey + '::nomerge::' + (++mergeCounter) : baseKey;
     if (spawnMap.has(key)) {
       const prev = spawnMap.get(key);
       for (const id of item.parsed.ids) {

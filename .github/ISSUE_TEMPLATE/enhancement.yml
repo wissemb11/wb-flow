@@ -1,0 +1,17 @@
+name: Enhancement
+description: Suggest an enhancement for wb-flow
+body:
+  - type: textarea
+    id: problem_statement
+    attributes:
+      label: Problem Statement
+      description: Describe the problem you are trying to solve.
+    validations:
+      required: true
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the change you'd like to see.
+    validations:
+      required: true

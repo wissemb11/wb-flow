@@ -58,6 +58,10 @@ const NAME_TO_SLUG = new Map([
   // so these map to BARE model names, not provider-prefixed slugs.
   ['gemini 3.6 flash', 'gemini-3.6-flash-high'],
   ['claude sonnet 4.6', 'claude-sonnet-4-6'],
+  // grok (xAI / SuperGrok) — dispatched via `grok --model <name>`, so the
+  // catalogued slug is namespaced and cli_registry strips the prefix.
+  ['grok 4.6', 'xai/grok-4.6'],
+  ['grok 4.5', 'xai/grok-4.5'],
 ]);
 
 // Slugs that only the `agy` CLI can run. buildScript emits `opencode run` for

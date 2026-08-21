@@ -37,6 +37,7 @@ const os = require('os');
 const PROVIDER_CLI = {
   anthropic: 'claude',
   openai: 'codex',
+  xai: 'grok',
   antigravity: 'agy',
   google: 'gemini',
   'github-copilot': 'copilot',
@@ -69,6 +70,29 @@ const CLI_SPEC = {
       const a = ['exec'];
       if (model) a.push('-m', model);
       a.push('--dangerously-bypass-approvals-and-sandbox', '--skip-git-repo-check');
+      if (prompt != null) a.push(prompt);
+      return a;
+    },
+  },
+  grok: {
+    bin: 'grok',
+    // ✅ VERIFIED 2026-08-17 — the ONLY non-Claude CLI here that expands a
+    // `/wb*` command with no wrapper flag. Grok reads Claude Code's
+    // ~/.claude/commands/*.md as user SKILLS (`grok inspect` lists all 33,
+    // lowercased, vendor: claude), and a skill is invocable as `/name`.
+    // Measured: `grok -p "/wbhelp"` printed the full catalog after reading the
+    // template; `/wbHelp wbGit` (mixed case) resolved too.
+    slashCommands: true,
+    argv: function (model, prompt) {
+      // `-p` is clap's `--single <PROMPT>`, so the prompt is its VALUE and must
+      // follow immediately. bypassPermissions is the `--dangerously-skip-
+      // permissions` analogue: without it a delegated cell can be stopped by an
+      // approval prompt headless mode cannot answer. (This machine also sets
+      // permission_mode = "always-approve" in ~/.grok/config.toml — the flag is
+      // here so a dispatch does not depend on that file.)
+      const a = [];
+      if (model) a.push('--model', model);
+      a.push('--permission-mode', 'bypassPermissions', '-p');
       if (prompt != null) a.push(prompt);
       return a;
     },
@@ -127,7 +151,7 @@ const CLI_SPEC = {
 // Which CLIs take the BARE model name rather than the namespaced slug. Only
 // opencode understands `provider/model`; handing it to the others is what made
 // them look unreachable.
-const BARE_MODEL_CLIS = new Set(['claude', 'codex', 'agy', 'gemini', 'copilot']);
+const BARE_MODEL_CLIS = new Set(['claude', 'codex', 'agy', 'gemini', 'copilot', 'grok']);
 
 // ─── catalog ────────────────────────────────────────────────────────────────
 
@@ -182,6 +206,7 @@ const SENTINEL = [
   { re: /^claude(\s*\((auto|in-session)\))?$/i, cli: 'in-session', provider: 'anthropic', pool: 'claude-pro' },
   { re: /^codex(\s*\(auto\))?$/i, cli: 'codex', provider: 'openai', pool: 'chatgpt' },
   { re: /^(agy|antigravity)(\s*\(auto\))?$/i, cli: 'agy', provider: 'antigravity', pool: 'google-one' },
+  { re: /^(grok|xai|supergrok)(\s*\(auto\))?$/i, cli: 'grok', provider: 'xai', pool: 'supergrok' },
   { re: /^(copilot(\s*\(auto\))?|github-copilot\/auto)$/i, cli: 'copilot', provider: 'github-copilot', pool: 'github-copilot' },
 ];
 
@@ -228,7 +253,25 @@ function argvFor(route, prompt) {
   return { bin: spec.bin, argv: spec.argv(route.modelArg, prompt), spec: spec };
 }
 
+// Deterministic wb-flow commands that are also useful as direct registry
+// oracles. Keep the adapter lazy so importing this model-routing registry does
+// not eagerly load command implementations.
+const COMMANDS = {
+  lint: function (args) {
+    return require('./lint.js').run(args);
+  },
+};
+
+// `node bin/cli_registry.js lint <plan>` is the direct form used by the lint
+// task oracle. The normal package entrypoint remains bin/install.js.
+if (require.main === module) {
+  const args = process.argv.slice(2);
+  const command = args.shift();
+  if (command && COMMANDS[command]) process.exit(COMMANDS[command](args) || 0);
+  process.exit(command ? 1 : 0);
+}
+
 module.exports = {
   PROVIDER_CLI, CLI_SPEC, BARE_MODEL_CLIS, SENTINEL,
-  catalogIndex, loadCatalogIndex, resolveCli, argvFor,
+  catalogIndex, loadCatalogIndex, resolveCli, argvFor, COMMANDS,
 };

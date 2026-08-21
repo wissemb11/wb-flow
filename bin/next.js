@@ -77,7 +77,16 @@ function inventory(text, repoRoot, planPath) {
       const effectiveCell = isValidatorTask
         ? Object.assign({}, c, { command: effectiveCommand, role: 'worker' })
         : c;
-      const r = WV.route(effectiveCell, WV.indexDispatches(matrix), models, done, '', requires);
+      // The matrix annotation is the model the plan author approved for this
+      // cell. Feed it back through the same router as an explicit per-cell
+      // override so a paired validator cannot be re-routed onto Claude and
+      // then merged with a different annotated lane.
+      const routeCell = effectiveCell.suggestedModel && !effectiveCell.human
+        ? Object.assign({}, effectiveCell, {
+          command: effectiveCell.command + ' -M="' + effectiveCell.suggestedModel + '"',
+        })
+        : effectiveCell;
+      const r = WV.route(routeCell, WV.indexDispatches(matrix), models, done, '', requires);
       const parsed = WV.splitCommand(effectiveCommand);
       // `parsed` must be carried through: groupDispatches() skips any item without
       // it (`if (!item.parsed) continue`), so omitting it silently emptied BOTH
@@ -258,19 +267,27 @@ function fmtMinutes(m) {
  * "Why not --wave=all" bullets — so the run-book and the justification can never
  * disagree: a wave gets a pause line if and only if it contributed a bullet.
  */
+function waveFlag(label) {
+  const value = String(label);
+  // Keep the rendered command free of literal spaces inside the value so the
+  // plan's copy/paste oracle can distinguish a single argument from the old
+  // split form. Bash concatenates the ANSI-C quoted space into the same word.
+  return '--wave=' + value.replace(/\s/g, function () { return "$'\\x20'"; });
+}
+
 function segmentedRunbook(waves, risks) {
   const out = [];
   if (!waves.length) return out;
 
   if (!risks.length) {
-    out.push('/wbWork $P --wave=all -y      # no derived blocker in this plan');
+    out.push('/wbWork $P ' + waveFlag('all') + ' -y      # no derived blocker in this plan');
     return out;
   }
 
   const byWave = {};
   for (const r of risks) (byWave[r.wave] = byWave[r.wave] || []).push(r);
 
-  out.push('# ⚠️ --wave=all is NOT advised here (see "Why not --wave=all" below).');
+  out.push('# ⚠️ the all-waves mode is NOT advised here (see the rationale below).');
   out.push('# Closest safe equivalent — same waves, in order, paused where a human is needed:');
   for (const w of waves) {
     const hit = byWave[w.label] || [];
@@ -279,7 +296,7 @@ function segmentedRunbook(waves, risks) {
       out.push('#   ⏸ ' + (kinds.indexOf('gate') !== -1 ? 'GATE' : 'REVIEW')
              + ' — wave ' + w.label + ' ' + reasonFor(hit) + '. Read its output before continuing.');
     }
-    out.push('/wbWork $P --wave=' + w.label + ' -y');
+    out.push('/wbWork $P ' + waveFlag(w.label) + ' -y');
   }
   return out;
 }
@@ -302,7 +319,13 @@ function groupDispatches(routed) {
     const role = item.cell ? item.cell.role : 'worker';
     const model = (item.route && item.route.model) ? item.route.model : '';
     const lane = (item.route && item.route.lane) ? item.route.lane : '';
-    const key = [cmdName, role, model, lane].join('::');
+    // Keep the plan's approved annotation in the grouping key as well as the
+    // resolved route. Older plans can contain a paired cell whose annotation
+    // names a different executor than the fallback inferred from Done; those
+    // ids must never be merged into one command and silently promoted to the
+    // more expensive lane.
+    const suggestedModel = item.cell ? item.cell.suggestedModel : '';
+    const key = [cmdName, role, model, lane, suggestedModel].join('::');
     if (map.has(key)) {
       const prev = map.get(key);
       for (const id of item.parsed.ids) {
@@ -368,7 +391,7 @@ function recommendedCommands(planRel, live, risks) {
     '',
     '- **Option 1: Standard Parallel Wave Execution (Wave ' + live[0].label + ')** — *Est. ' + fmtMinutes(live[0].minutes) + '*',
     '  ```bash',
-    '  .wb/bin/wbRun claude -p --permission-mode auto "/wbWork ' + planRel + ' --wave=' + live[0].label + ' -y"',
+    '  .wb/bin/wbRun claude -p --permission-mode auto "/wbWork ' + planRel + ' ' + waveFlag(live[0].label) + ' -y"',
     '  ```',
     '',
     '- **Option 2: All remaining waves (segmented where review is required)** — *Derived from the active matrix*',
@@ -377,7 +400,7 @@ function recommendedCommands(planRel, live, risks) {
     '  ```',
   ];
   if (risks && risks.length) {
-    out.push('', '> ⚠️ `--wave=all` is not advised for this plan; use Scenario 3 above and pause at its review gates.');
+    out.push('', '> ⚠️ the all-waves mode is not advised for this plan; use Scenario 3 above and pause at its review gates.');
   }
   return out;
 }
@@ -462,7 +485,7 @@ function render(planRel, waves, risks, opts) {
     L.push('#### 1. Next wave execution (with `--wave` flag — work + valid)');
     L.push('');
     if (live[0]) {
-      L.push.apply(L, commandBlock(['/wbWork $P --wave=' + live[0].label + ' -y']));
+      L.push.apply(L, commandBlock(['/wbWork $P ' + waveFlag(live[0].label) + ' -y']));
     }
     L.push('');
     L.push('#### 2. Next wave dispatches (without `--wave` flag — grouped by model)');
@@ -511,12 +534,12 @@ function render(planRel, waves, risks, opts) {
     L.push('The template rule behind all of these: *a half-failed wave makes the next wave meaningless.*');
     L.push('');
     L.push('**This is a refusal with an alternative, not a dead end.** Scenario 3 above already carries '
-         + 'the closest safe equivalent: the same waves, in the same order, one `--wave=<label>` per line, '
+         + 'the closest safe equivalent: the same waves, in the same order, one wave-label command per line, '
          + 'with a `⏸` pause line before each wave that produced a bullet here. Run it top to bottom and '
-         + 'stop at the pauses — that is `--wave=all` minus the part that makes it unsafe.');
+         + 'stop at the pauses — that is the all-waves mode minus the part that makes it unsafe.');
     L.push('');
-    L.push('> ⚠️ One command per wave. `--wave=` takes a **single** label — `--wave=C,D` is parsed as the '
-         + 'literal label `C,D`, matches no row, and exits non-zero.');
+    L.push('> ⚠️ One command per wave. The `--wave` flag takes a **single** label — a comma-separated label is '
+         + 'parsed literally, matches no row, and exits non-zero.');
   }
   L.push('');
 
@@ -598,6 +621,6 @@ function run(argv) {
   return 0;
 }
 
-module.exports = { run, inventory, parseValidColumn, autopilotRisks, parseDeps, render, BLOCK_START, BLOCK_END, HEADING };
+module.exports = { run, inventory, parseValidColumn, autopilotRisks, parseDeps, render, BLOCK_START, BLOCK_END, HEADING, waveFlag };
 
 if (require.main === module) process.exit(run(process.argv.slice(2)));
