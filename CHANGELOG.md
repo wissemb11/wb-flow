@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.4] - 2026-08-24
+
+### Changed — README hero media
+
+- Replaced `assets/demo.gif` with `assets/hero.gif` in the README fold, and removed the
+  `<!-- HERO: swap when thought 02 ships hero.gif -->` marker. The new hero is a 58.51 s,
+  1146×650 asciinema recording covering the full storyboard: idea → plan → parallel waves →
+  independent validation → artifact grid.
+- Mirrored the same fold image in `src/github/README.md`.
+- Added `assets/hero.gif` to `files[]`. `assets/demo.gif` is retained for B-roll.
+
+### Fixed — broken comparisons link in README
+
+- `https://flow.wbc-ui.com/docs/comparisons/index.html` → `https://flow.wbc-ui.com/comparisons/`.
+  The old path returned **HTTP 200 while rendering a page titled `404`** — the docs site is an SPA
+  that answers 200 for any path, so every link-checker reported it healthy.
+
+### Fixed — `test/roster_freshness.js` could not isolate itself from the package's own roster
+
+`resolveRosterFile()` searches `[pkgRoot, repoRoot, ~/.wb-flow, templatesRoot]`, where `templatesRoot`
+is `__dirname/..` — the installed package directory, hardcoded with no override. A roster at
+`core/.wb/commands/model_recommendations.md` therefore joined the candidate set during tests, and
+because selection is **freshest-wins**, any edit to that file made it outrank the suite's own temp
+fixtures and fail the assertions. Reassigning `process.env.HOME` was not sufficient.
+
+- `bin/model.js` — `resolveRosterFile()` accepts `opts.implicitRoots`; `false` restricts the search to
+  the roots the caller names. Production callers do not pass it and keep the full search, so **routing
+  behaviour is unchanged for users**.
+- `bin/wave_router.js` — `resolveModelsFromRoster()` accepts and forwards the option.
+- `test/roster_freshness.js` — passes `{ implicitRoots: false }`, with a comment explaining why it is
+  required rather than cosmetic.
+
+### Fixed — two comments in `bin/wave_router.js` described the opposite of the code
+
+Both said the roster resolver is *"nearest wins"*. It is **freshest-wins**
+(`if (candidates[i].mtime > freshest.mtime)`). Corrected.
+
+### Note
+
+No change to `templates/`, and no user-visible change in routing behaviour. This release exists mainly
+because npm bakes the README at publish time: the 1.0.3 tarball serves the old placeholder, and a
+version bump is the only way to update the package page.
+
 ## [1.0.3] - 2026-08-21
 
 ### Fixed — `--command` flag generated on CLIs that do not support it

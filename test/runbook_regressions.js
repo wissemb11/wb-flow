@@ -102,4 +102,66 @@ t('T1: wave generator emits --command only for opencode, not claude/grok', () =>
   assert.ok(grokCli.argv.includes('-p'), 'grok argv must still contain -p');
 });
 
+t('an ALL-held plan is reported as held, never as closed', () => {
+  // Regression for 2026-08-22. Three distinct code paths turned a hold into a
+  // "closed" claim, and each hid the next:
+  //   1. the inventory row rendered `✅ closed` for a wave with 0 runnable cells;
+  //   2. `risks` was built from `w.routed`, which excludes held cells, so the
+  //      "Why not --wave=all" refusal flipped into an endorsement;
+  //   3. when EVERY wave is held, `render()` took the closed-plan early return
+  //      and announced "every task in this plan is closed" — on a plan whose
+  //      gate was never signed.
+  // The safest possible annotation produced the most dangerous run-book.
+  const heldPlan = [
+    '# Plan Backlog: held — 2026-08-22',
+    '',
+    '| # | Requires | Dep | 🔗 | Task | Verify | P | Est. Time (mins) | Worker (Suggested) | Validator (Suggested) | ☐ Done | ☐ Valid |',
+    '|---|---|---|---|---|---|---|---|---|---|---|---|',
+    '| 1 | ✅ Validator | — | 📄 | sign the gate | `true` | P1 | 15 | x | y | ⬜ | ⬜ |',
+    '',
+    '## 🌊 Next Executable Sequence',
+    '',
+    '| Wave | 🧠 Planner | ✅ Validator | 🔨 Worker | 📋 Mechanical |',
+    '|---|---|---|---|---|',
+    '| **E · GATE** | — | `/wbWork held.md --id=1`<br>→ *⏸️ HELD — no independent lane* | — | — |',
+  ].join('\n');
+
+  const w = NX.inventory(heldPlan, process.cwd(), 'held.md');
+  const waveE = w.filter(function (x) { return /^E/.test(x.label); })[0];
+  assert.ok(waveE, 'wave E must survive inventory even with every cell held');
+  assert.strictEqual(waveE.cells, 0, 'a held cell is not runnable');
+  assert.ok(waveE.heldCells > 0, 'the hold must be counted, not discarded');
+
+  const risks = NX.autopilotRisks(w, heldPlan);
+  assert.ok(
+    risks.some(function (r) { return r.wave === waveE.label && r.kind === 'gate'; }),
+    'an all-held wave must contribute a blocker to risks'
+  );
+
+  // path 3: every wave held → must NOT claim the plan is closed
+  const out = NX.render('held.md', w, risks, {});
+  assert.ok(!out.includes('every task in this plan is closed'), out);
+  assert.ok(out.includes('every remaining cell is HELD'), out);
+  assert.ok(out.includes('1 cell carries'), 'verb must agree with the count');
+});
+
+t('a held wave beside a live one renders held, and still refuses --wave=all', () => {
+  // paths 1 + 2: the mixed case, where the inventory table IS rendered.
+  const mixed = [
+    { label: 'E · GATE', cells: 0, spawned: 0, minutes: 0, routed: [], workIds: [],
+      heldCells: 1, heldParsed: [{ command: '/wbWork p.md --id=1', reason: 'no independent lane' }] },
+    { label: 'F', cells: 1, spawned: 1, minutes: 35, routed: [], workIds: [], heldParsed: [] },
+  ];
+  const risks = NX.autopilotRisks(mixed, '');
+  assert.ok(risks.some(function (r) { return r.kind === 'gate' && /is held, not closed/.test(r.text); }),
+    'held wave must produce a gate risk even when another wave is live');
+
+  const out = NX.render('p.md', mixed, risks, {});
+  assert.ok(out.includes('⏸️ **held**'), out);
+  assert.ok(!/\|\s*E[^|\n]*\|[^|\n]*\|[^|\n]*\|[^|\n]*\|\s*✅ closed\s*\|/.test(out),
+    'a held wave must never render as ✅ closed');
+  assert.ok(!out.includes('`--wave=all` is defensible here'),
+    'the all-waves refusal must not flip to an endorsement');
+});
+
 console.log(pass + ' passed, 0 failed');

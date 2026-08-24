@@ -299,13 +299,21 @@ function cliForHeuristic(model) {
   }
   return { bin: 'opencode', argv: ['run', '-m', model, '--dangerously-skip-permissions'], slashCommands: true };
 }
-function resolveModelsFromRoster(text, repoRoot, explicitModels, currentModels, packageRoot) {
+function resolveModelsFromRoster(text, repoRoot, explicitModels, currentModels, packageRoot, opts) {
   const headerRoster = parseHeaderRoster(text);
   const pkgRoot = packageRoot || repoRoot;
-  
-  // Share resolver with model.js (nearest wins, unified root order)
+  opts = opts || {};
+
+  // Share the resolver with model.js so `wb-flow model --show` and
+  // `wb-flow wave --list` can never disagree about which roster is in effect.
+  // Selection is FRESHEST-wins, not nearest-wins: a stale scope-local copy must
+  // not outrank a newer project or user roster.
   const resolveRosterFile = require('./model.js').resolveRosterFile;
-  const rosterPath = resolveRosterFile(null, { pkgRoot: pkgRoot, repoRoot: repoRoot });
+  const rosterPath = resolveRosterFile(null, {
+    pkgRoot: pkgRoot,
+    repoRoot: repoRoot,
+    implicitRoots: opts.implicitRoots,
+  });
   
   let fileRoster = null;
   if (rosterPath) {
@@ -366,8 +374,8 @@ function resolveModelsFromRoster(text, repoRoot, explicitModels, currentModels, 
     if (!sources[key]) sources[key] = 'built-in DEFAULT_MODELS';
   });
 
-  // Name the file the chains actually came from. `wb-flow model --show` and 
-  // `wb-flow wave --list` now both use the same nearest-wins resolver, and
+  // Name the file the chains actually came from. `wb-flow model --show` and
+  // `wb-flow wave --list` both use the same freshest-wins resolver, and
   // `--list` prints the path so this is visible.
   Object.defineProperty(resolved, '__rosterPath', { value: rosterPath, enumerable: false });
   return { models: resolved, sources: sources, rosterPath: rosterPath };

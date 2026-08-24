@@ -11,8 +11,8 @@ It is a zero-dependency CLI that bootstraps an agentic AI control plane into any
 It works with Vue, React, Python, and any other codebase.
 It is compatible with Claude Code, OpenCode, Gemini CLI, Cursor, and other coding agents.
 
-![wb-flow demo](assets/demo.gif)
-*Current demo* <!-- HERO: swap when thought 02 ships hero.gif -->
+![wb-flow demo](assets/hero.gif)
+*wb-flow demo*
 
 ---
 

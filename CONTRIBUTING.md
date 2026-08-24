@@ -21,6 +21,16 @@ Open an issue at [github.com/wissemb11/wb-flow/issues](https://github.com/wissem
 
 Open an issue tagged `enhancement`. Describe the problem you are solving and why the change matters more than what the change is.
 
+### Good First Issues (Freeze-Safe)
+
+We are currently under a **90-day feature freeze**: no new commands (the set of 33 is fixed) and no core-engineering rewrites. This is deliberate — the tool is being stabilised, not extended. There are still many freeze-safe ways to contribute right now:
+
+- **Documentation & Typos:** Fixing typos, broken links, or clarifying instructions in the `docs/` folder or README.
+- **Comparison Page Facts:** Adding or correcting technical facts on our tool comparison pages.
+- **Template Wording:** Improving the clarity of markdown templates used for plans, ideas, and audits.
+
+If you have a larger idea, please register it on the [GitHub Discussions](https://github.com/wissemb11/wb-flow/discussions) **Ideas** board rather than opening a PR — ideas raised there are queued for when the freeze lifts. Please don't open PRs against the deferred core-engineering list.
+
 ### Pull Requests
 
 1. Fork the repo and create a branch from `main`.
@@ -57,4 +67,4 @@ By contributing, you agree that your contributions are licensed under the projec
 
 ## Not this quarter
 
-We are currently under a 90-day feature freeze. Please see [../broadcast/20_FREEZE.md](../broadcast/20_FREEZE.md) for a list of what is allowed versus forbidden during this time. New command suggestions or broad architecture changes will be deferred until this window closes.
+We are currently under a 90-day feature freeze. **Allowed:** bug fixes, documentation, test coverage, comparison-page corrections, template wording. **Deferred:** new commands (the set of 33 is fixed), core-engineering rewrites, and broad architecture changes. New command suggestions are welcome on the [Discussions Ideas board](https://github.com/wissemb11/wb-flow/discussions) and will be picked up when the window closes.

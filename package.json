@@ -1,6 +1,6 @@
 {
   "name": "wb-flow",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "wb-flow turns AI coding into a planned, parallel, validated, and traceable engineering workflow. Zero-dependency CLI that bootstraps an agentic AI workflow system into any repo. Universal — works with Vue, React, Python, or any codebase. Compatible with Claude Code, OpenCode, Gemini CLI, Cursor, and other AI coding assistants.",
   "bin": {
     "wb-flow": "./bin/install.js"
@@ -9,6 +9,7 @@
     "bin/",
     "templates/",
     "assets/demo.gif",
+    "assets/hero.gif",
     "README.md",
     "LICENSE",
     "CHANGELOG.md",

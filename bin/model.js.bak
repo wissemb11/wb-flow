@@ -25,15 +25,6 @@
 
 const fs = require('fs');
 const path = require('path');
-// `os` was never imported at module scope: loadCustomModels() called os.homedir()
-// inside a bare `try {} catch {}`, so it threw ReferenceError on EVERY run and was
-// silently swallowed. Net effect — `~/.wb/models.json` and `~/.config/wb-flow/
-// models.json` were unreachable, and only a `./.wb/models.json` in the CURRENT
-// directory ever loaded. That one missing line removed Step 0, dropped every
-// provider the catalog contributes, and rendered `[unknown]` pools.
-// (`node -e` hides this: Node exposes core modules as globals there, but not in
-// normal module execution — so the bug reproduces only through the real CLI.)
-const os = require('os');
 const { execFileSync, spawnSync } = require('child_process');
 const { prompter, isYes, canPrompt, checkboxPick } = require('./prompt.js');
 
@@ -376,7 +367,7 @@ function credentialedPrefixes(providersOutput, allSlugs) {
 
 function detect(opts) {
   const o = opts || {};
-  const found = { opencode: null, agy: null, codex: null, claude: null, grok: null, slugs: [], providers: [] };
+  const found = { opencode: null, agy: null, codex: null, claude: null, slugs: [], providers: [] };
 
   if (o.hasOpencode !== false && hasCLI('opencode')) {
     const models = tryExec('opencode', ['models']).split('\n').map((l) => l.trim()).filter(Boolean);
@@ -400,22 +391,6 @@ function detect(opts) {
   // caller these are unconfirmed — only --probe can promote them.
   if (o.hasCodex !== false && hasCLI('codex')) {
     found.codex = { models: CODEX_CANDIDATES.slice(), verified: CODEX_VERIFIED.slice(), enumerable: false };
-  }
-
-  // grok CAN list its own models (unlike codex), but decorates them: the default
-  // reads `* <slug> (default)` and the rest `- <slug>`, alongside an auth banner
-  // and a "Default model:" line. Keep only bullet lines, strip the decoration,
-  // and prefix with `xai/` so poolOf() bills them to `supergrok` — a bare
-  // `grok-4.6` has no prefix and would fall through to an `[unknown]` pool.
-  if (o.hasGrok !== false && hasCLI('grok')) {
-    const list = tryExec('grok', ['models'])
-      .split('\n')
-      .map((l) => l.trim())
-      .filter((l) => /^[*-]\s+\S/.test(l))
-      .map((l) => l.replace(/^[*-]\s+/, '').replace(/\s*\(default\)\s*$/i, '').trim())
-      .filter(Boolean)
-      .map((s) => (s.indexOf('/') === -1 ? 'xai/' + s : s));
-    found.grok = { models: list };
   }
 
   found.claude = hasCLI('claude');
@@ -826,19 +801,12 @@ function resolveRosterFile(from, opts) {
   const homedir = process.env.HOME || require('os').homedir();
   const templatesRoot = path.resolve(__dirname, '..');
 
-  // `implicitRoots: false` restricts the search to the roots the CALLER named.
-  // The home and package roots are discovered, not passed in — `templatesRoot`
-  // is `__dirname/..`, i.e. the real installed package — so a caller that wants
-  // a hermetic resolution (tests) has no other way to exclude them. Production
-  // callers never pass this and keep the full search.
-  const roots = opts.implicitRoots === false
-    ? [pkgRoot, repoRoot]
-    : [
-      pkgRoot,
-      repoRoot,
-      path.join(homedir, '.wb-flow'),
-      templatesRoot,
-    ];
+  const roots = [
+    pkgRoot,
+    repoRoot,
+    path.join(homedir, '.wb-flow'),
+    templatesRoot,
+  ];
 
   const uniqueRoots = [];
   for (const r of roots) {
@@ -1185,37 +1153,18 @@ function probeModel(slug, timeoutMs, catIdx) {
  * 4. User global config file: ~/.config/wb-flow/models.json
  */
 function loadCustomModels(opts) {
-  // Documented resolution order (docs/start_here/tutorial_model_picker.md):
-  //   $WB_MODELS_FILE -> ./.wb/models.json -> ~/.wb/models.json -> ~/.config/wb-flow/models.json
-  const searchPath = [path.join(process.cwd(), '.wb', 'models.json')];
-  try {
-    const home = process.env.HOME || os.homedir();
-    if (home) {
-      searchPath.push(path.join(home, '.wb', 'models.json'));
-      searchPath.push(path.join(home, '.config', 'wb-flow', 'models.json'));
-    }
-  } catch (err) {
-    console.warn('⚠️  Could not resolve the home directory: ' + err.message);
-  }
-
-  const explicit = (opts && opts.modelsFile) || process.env.WB_MODELS_FILE || null;
-  let filepath = explicit;
-
-  // An explicit path that does not exist outranked every on-disk default and
-  // returned null WITHOUT A WORD — which silently removed Step 0, dropped every
-  // provider the catalog contributes (grok among them), and left the picker
-  // showing `[unknown]` pools. Three visible symptoms, no diagnostic. Say it
-  // out loud, then fall back rather than losing the catalog entirely.
-  if (explicit && !fs.existsSync(explicit)) {
-    console.warn('\n⚠️  Models catalog not found at: ' + explicit);
-    console.warn('   (from ' + (opts && opts.modelsFile ? '--models-file' : '$WB_MODELS_FILE') + ')');
-    console.warn('   Falling back to the default search path.');
-    filepath = null;
-  }
-
+  let filepath = (opts && opts.modelsFile) || process.env.WB_MODELS_FILE;
   if (!filepath) {
-    for (const cand of searchPath) {
-      if (fs.existsSync(cand)) { filepath = cand; break; }
+    const localFile = path.join(process.cwd(), '.wb', 'models.json');
+    if (fs.existsSync(localFile)) filepath = localFile;
+    else {
+      try {
+        const home = os.homedir();
+        const userDotWb = path.join(home, '.wb', 'models.json');
+        const userConfig = path.join(home, '.config', 'wb-flow', 'models.json');
+        if (fs.existsSync(userDotWb)) filepath = userDotWb;
+        else if (fs.existsSync(userConfig)) filepath = userConfig;
+      } catch {}
     }
   }
   if (!filepath || !fs.existsSync(filepath)) return null;
@@ -1445,13 +1394,11 @@ function candidatesFor(role, found, limit, customCatalog) {
     if (found && found.claude && out.indexOf(IN_SESSION) === -1) out.push(IN_SESSION);
     if (found && found.codex && out.indexOf('Codex (auto)') === -1) out.push('Codex (auto)');
     if (found && found.agy && out.indexOf('Antigravity (auto)') === -1) out.push('Antigravity (auto)');
-    if (found && found.grok && out.indexOf('Grok (auto)') === -1) out.push('Grok (auto)');
     return out;
   }
 
   const slugs = ((found && found.slugs) || [])
     .concat((found && found.agy && found.agy.models) || [])
-    .concat((found && found.grok && found.grok.models) || [])
     .concat((found && found.codex && (found.codex.verified || found.codex.models)) || []);
   const maxLimit = limit || 16;
   const ranked = pickForRole(role, slugs, { limit: maxLimit });
@@ -1461,7 +1408,6 @@ function candidatesFor(role, found, limit, customCatalog) {
   if (found && found.claude && out.indexOf(IN_SESSION) === -1) out.push(IN_SESSION);
   if (found && found.codex && out.indexOf('Codex (auto)') === -1) out.push('Codex (auto)');
   if (found && found.agy && out.indexOf('Antigravity (auto)') === -1) out.push('Antigravity (auto)');
-  if (found && found.grok && out.indexOf('Grok (auto)') === -1) out.push('Grok (auto)');
   return out;
 }
 
@@ -1742,8 +1688,6 @@ async function run(argv) {
       console.log('              ⚠️  codex cannot list its own models — this is a curated list,');
       console.log('                  not a query. Run with --probe to see what your plan serves.');
     } else console.log('   codex    — not installed');
-    if (found.grok) console.log('   grok     — ' + found.grok.models.length + ' models (dispatchable: `grok --model …`)');
-    else console.log('   grok     — not installed');
     console.log('   claude   — ' + (found.claude ? 'present (eligible as in-session root)' : 'not installed'));
     if (found.providers.length) console.log('   credentials: ' + found.providers.join(', '));
     roster = proposeRoster(found);
@@ -1939,7 +1883,7 @@ async function run(argv) {
 }
 
 module.exports = {
-  run, detect, proposeRoster, pickForRole, renderRosterTable, readRoster, loadCustomModels,
+  run, detect, proposeRoster, pickForRole, renderRosterTable, readRoster,
   writeRosterInto, probeModel, probeResponseError, probeResponseText, extractProbeError, resolveRosterFile, familyOf, versionRank, credentialedPrefixes, pickRole, candidatesFor, IN_SESSION, isInSession, autoAliasForProvider, buildRoleTreeFromProviders, laneOf, poolOf, poolRank, POOL_RANK, NOT_A_CHAT_MODEL, AGY_PREFERENCE, agyRank,
   ROLE_ORDER, ROLE_PREFERENCE, AGY_ONLY, ROSTER_HEADING,
   CODEX_ONLY, CODEX_CANDIDATES, CODEX_VERIFIED,

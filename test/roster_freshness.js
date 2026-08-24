@@ -9,6 +9,13 @@ const R = require('../bin/wave_router.js');
 let pass = 0;
 function t(name, fn) { fn(); pass++; console.log('  ✓ ' + name); }
 console.log('🧪 roster freshness -> newest wins');
+// `implicitRoots: false` is REQUIRED here, not cosmetic. resolveRosterFile also
+// searches ~/.wb-flow and `__dirname/..` (the real installed package). This suite
+// builds temp fixtures with pinned mtimes, so a roster at core/.wb/commands/ that
+// is newer than those fixtures silently wins and the assertions below fail — which
+// is exactly what happened on 2026-08-23 when that file was edited. Reassigning
+// process.env.HOME is not sufficient: the package root is __dirname-derived and
+// cannot be overridden any other way.
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'wbroster-'));
 const REAL_HOME = process.env.HOME;
@@ -48,14 +55,14 @@ t('within one root, .wb/commands/ outranks the shipped templates/ seed', () => {
 });
 
 t('across roots, the FRESHEST roster wins — not the nearest', () => {
-  const { models } = R.resolveModelsFromRoster('# a plan with no header roster', repoRoot, {}, {}, pkgRoot);
+  const { models } = R.resolveModelsFromRoster('# a plan with no header roster', repoRoot, {}, {}, pkgRoot, { implicitRoots: false });
   const chain = R.chainFor(models, 'planner').map((m) => m || 'Claude (auto)');
   assert.strictEqual(chain[0], 'Codex (auto)',
     'the newer repo roster must win even when a nearer package roster exists');
 });
 
 t('every role resolves from the same file', () => {
-  const { models } = R.resolveModelsFromRoster('# no header', repoRoot, {}, {}, pkgRoot);
+  const { models } = R.resolveModelsFromRoster('# no header', repoRoot, {}, {}, pkgRoot, { implicitRoots: false });
   for (const role of ['planner', 'selfValidator', 'worker', 'mechanical']) {
     assert.strictEqual(R.chainFor(models, role).map((m) => m || 'Claude (auto)')[0], 'Codex (auto)');
   }

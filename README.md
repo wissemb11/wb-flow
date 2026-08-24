@@ -10,8 +10,8 @@ It is a zero-dependency CLI that bootstraps an agentic AI control plane into any
 It works with Vue, React, Python, and any other codebase.
 It is compatible with Claude Code, OpenCode, Gemini CLI, Cursor, and other coding agents.
 
-![wb-flow demo](assets/demo.gif)
-*Current demo* <!-- HERO: swap when thought 02 ships hero.gif -->
+![wb-flow demo](assets/hero.gif)
+*wb-flow demo*
 
 ---
 
@@ -28,7 +28,7 @@ Our workflow follows this core engineering ladder: Plan → Decompose → Parall
 
 ### Verbs Over Personas
 We orchestrate *what* needs to happen (plan, execute, validate), not *who* does it. The command *is* the contract.
-For a detailed look at how this solves a different problem than tools like BMAD, GSD, or Spec Kit, see our [Agentic Coding Comparisons](https://flow.wbc-ui.com/docs/comparisons/index.html) page.
+For a detailed look at how this solves a different problem than tools like BMAD, GSD, or Spec Kit, see our [Agentic Coding Comparisons](https://flow.wbc-ui.com/comparisons/) page.
 
 ## 🚀 Installation
 
@@ -163,6 +163,14 @@ That's a full cycle: **plan → execute → validate**, guided by your AI assist
 
 ## 🚀 What's New in v1.0.2
 
+> **You are reading v1.0.4.** The deep-dive below covers **v1.0.2**, the last feature release.
+> The two releases since it are maintenance-only and are documented in
+> [CHANGELOG.md](CHANGELOG.md):
+> **1.0.3** — `--command` emission gated to `opencode` (it broke every `/wbValid` wave cell on
+> `claude` and `grok`), the `--no-merge` wave flag, and a publish-runbook dotfile-copy fix ·
+> **1.0.4** — README hero media and a corrected comparisons link; no change to `bin/` or
+> `templates/`.
+
 ![A model fallback chain failing over when a provider hits its quota](assets/FallbackFailoverAnimation.gif)
 
 *Local error guarding in action: when a provider returns an error **with exit code 0**, the chain now detects it and fails over instead of silently reporting success.*
@@ -281,7 +289,8 @@ See the full [What's New Guide](docs/new.md) and [Detailed Technical Release Not
 
 The complete reference — all 33 commands, workflow concepts, daily use patterns, and session lifecycle — is available in two places:
 
-* **[→ What's New in v1.0.2](docs/new.md)** — concise summary of release features
+* **[→ What's New in v1.0.2](docs/new.md)** — concise summary of the last feature release
+* **[→ CHANGELOG](CHANGELOG.md)** — every release including **1.0.3** and **1.0.4** (maintenance)
 * **[→ Detailed Technical Guide](docs/detailed_news.md)** — comprehensive code & terminal examples
 * **[→ GitHub Docs](docs/README.md)** — browse the full documentation hub
 * **[→ flow.wbc-ui.com](https://flow.wbc-ui.com)** — the dedicated documentation website
