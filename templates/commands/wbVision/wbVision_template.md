@@ -68,6 +68,20 @@ Cross-package (`/wbVision <monorepo-root>/`) with a focus on integration ideas �
 - Business / market / user research → `/wbVision` can't see these; do it yourself.
 
 > For deeper reading: [`wbVision_practical.md`](https://flow.wbc-ui.com/commands/wbVision/wbVision_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+
+<!-- FLAGS_TABLE_START -->
+## Flags & shortcuts
+
+| Long form | Shortcut | Meaning |
+|---|---|---|
+| `--depth="<N>"` | `-d` | Limit recursive dependency or import tracing before proposing strategic ideas. |
+| `--diff` | — | Compare current work against the latest vision and report trajectory alignment instead of generating only fresh ideas. |
+| `--archive` | `-A` | Consolidate current vision output, then retire superseded vision folders via `wb-flow archive`. |
+
+`-h` / `--help` / `--h` prints this help block instead of executing.
+
+<!-- FLAGS_TABLE_END -->
+
 ## Self-correct mode (dual-mode invocation)
 
 ```
@@ -83,6 +97,14 @@ When the first arg is an existing output file from a prior `/wbVision` run (dete
 **Archiving is opt-in and never implied.** With `--archive`, and only once consolidation has completed, retire the superseded folders by shelling out to the CLI — `wb-flow archive <this file> --dry-run` first, read the move list, then apply. Without the flag, merely offer it in `What's Next?`. Archiving before consolidating does not delete an open item; it makes it invisible, which is worse. Full contract: [`../_shared/output_conventions.md`](../_shared/output_conventions.md) §13.
 
 <!-- HELP_GATE_END -->
+
+<!-- FLAG_NORMALIZE_START -->
+## Flag normalization (apply BEFORE parsing args)
+
+- `-d` → `--depth`
+- `-A` → `--archive`
+
+<!-- FLAG_NORMALIZE_END -->
 
 **ROLE:** The Strategist
 **TARGET:** The provided component, package, or monorepo root.
@@ -110,6 +132,8 @@ The project has a blank slate. There is no tech debt and no pending tasks. Your 
 ## ━━━ PHASE 1: INGEST IDENTITY ━━━
 1. Read the local `context.md` to understand what this package does.
 2. Read the global `ecosystem_urls.md` to understand where this package fits in the broader market.
+3. If `--depth="<N>"` is present, cap recursive dependency/import tracing at that depth and state the cap in the output.
+4. If `--diff` is present, read the latest prior vision output and compare recent plans/tasks against it before deciding whether to write fresh proposals.
 
 ## ━━━ PHASE 2: STRATEGIC BRAINSTORMING ━━━
 Do not suggest bug fixes or minor refactors. Propose major architectural leaps, premium features, or integrations that would "Wow" the users.
@@ -160,4 +184,3 @@ After writing the vision proposal, you MUST ALSO register each idea in the Ideas
    > **Ideas registered:** N
    ```
 4. **Both files coexist**: The vision file remains the free-form brainstorming artifact. The idea file is the trackable, actionable pipeline. The vision file is the source; the idea file is the tracker.
-

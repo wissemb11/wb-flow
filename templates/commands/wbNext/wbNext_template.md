@@ -40,7 +40,7 @@ Do NOT run it:
 1. **Reads recent `reports/`** (default: `--since=7d`). Looks for the latest `audit`, `plan`, `debug`, `standup`, `review`.
 2. **Reads `git status`** and the last 3 commits. Has anything been started but not committed?
 3. **Reads `dev.md`** for the target package(s). Are there refusals that flag work?
-4. **Computes a single recommendation** with three things: *what* to run, *why* it's the best next move, and *what other options were considered and rejected*.
+4. **Computes a single recommendation** with three things: *what* to run, *why* it's the best next move, and *what other options were considered and rejected*. If `--sort="<metric>"` is present, use that metric only to break ties among already-ready items and state the metric used.
 
 ## The output shape
 
@@ -90,6 +90,7 @@ Both forms are equivalent — pass either:
 |---|---|
 | `--scope` | `-s` |
 | `--since` | `-S` |
+| `--sort="<metric>"` | — | Choose among otherwise-ready recommendations by `complexity`, `risk`, or `priority`; fall back to chronological order if the metadata is absent. |
 | `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
 | `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
 | `--archive` | `-A` | **Universal** (`_shared/output_conventions.md` §13). Consolidate first, then retire every superseded `<DD>/nexts/` folder into `.wb/workflows/archives/` at the same depth. `--archive=all` sweeps every category; `--dry-run` previews. Shell out to `wb-flow archive` — never `mv` by hand. Never implied by another flag. |
@@ -288,3 +289,16 @@ Format required:
 ## Worked Example
 
 See [`wbNext_examples.md`](https://flow.wbc-ui.com/commands/wbNext/wbNext_examples) (or the gemini edition) for full input/output samples.
+
+
+## ━━━ Active Model Roster ━━━
+
+This command emits a `## 🌊 Next Executable Sequence`, so **`../_shared/output_conventions.md`
+§10 rules 5, 5b and 12 apply to its output in full.**
+
+**Read them there.** Nothing about them is restated, summarised or exemplified here — ten copies of
+one rule are ten things to keep in step, which is the duplication rule 5 exists to remove. Even the
+one-line gloss this block used to carry was a summary, and a summary drifts from what it summarises.
+`wb-flow lint` **step-7** gates this command's output on rules 5b and 12.
+
+---

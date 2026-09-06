@@ -30,7 +30,7 @@ Running `/wbSetup` and not reading the output. The AI's inferences are fallible.
 <!-- FLAGS_SHORTCUTS_START -->
 ## Flags & shortcuts
 
-Long-form and short-form are equivalent — `/wbSetup --execute` and `/wbSetup -e` produce the same behavior.
+Documented shortcuts are listed below.
 
 | Long form | Shortcut |
 |---|---|

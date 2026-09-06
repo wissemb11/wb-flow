@@ -30,7 +30,7 @@ Each model entry belongs to exactly one **pool** — a billing and rate-limit do
 | `claude-pro` | the in-session root, `claude -p`, `anthropic/*` | 0 (always preferred) |
 | `google-one` | `agy` — bare model names (`gemini-*`, `claude-opus-*`, `gpt-oss-*`) | 1 |
 | `opencode-go` | the Go subscription (`opencode-go/*`) | 2 |
-| `chatgpt` | `codex` — bare `gpt-5*` names | 3 |
+| `chatgpt` | `codex` — bare `gpt-5*` names **and `openai/*` slugs** | 3 |
 | `opencode-zen` | metered pay-as-you-go (`opencode/*`) | 5 |
 | anything else | incidental credentials | 9 (last) |
 
@@ -98,6 +98,42 @@ correct — and that echo chamber is the single most common way a hollow pass re
 When a paired validation resolves: the orchestrator is Claude, and the `☐ Done` column says Claude
 executed the paired task → delegate the validation to a **different** model. If a non-Claude model
 executed it → Claude validates in-session.
+
+### The boundary is the provider, not the model name
+
+Since 1.0.5 the rule compares **pools**, not model strings. Two models from one house are not two
+opinions: they share a trainer, a tokenizer, and a family of failure modes, so `claude-opus-5`
+graded by `claude-sonnet-5` is an echo chamber that merely changes its voice.
+
+`crossProviderPick()` resolves the executor's pool through the same `poolOf()` classifier the rest
+of the toolchain uses — never a second one — and walks the validator's chain for the first entry
+whose pool differs:
+
+```
+executor anthropic/claude-opus-5   (claude-pro)  ->  validator openai/gpt-5.6-terra  (chatgpt)
+executor openai/gpt-5.5            (chatgpt)     ->  validator anthropic/claude-sonnet-5 (claude-pro)
+```
+
+Because the choice is made **per executor**, the roster does not need four heads from four different
+pools — which is fortunate, since with a lapsed subscription there are often fewer usable pools than
+roles.
+
+**The escape hatch is loud on purpose.** When every candidate in the chain sits in the executor's own
+pool, the head is used anyway and the dispatch line must say so:
+
+```
+same-provider validation — chain offers no alternative
+```
+
+An unavoidable exception is fine. A *silent* one is the defect: it reads exactly like an independent
+pass in the plan file, and nothing distinguishes them afterwards.
+
+> [!WARNING]
+> **An explicit `-M=` is honoured verbatim, and is not pool-checked.** The comparison runs on the
+> routed path — the branch that fires when the `☐ Done` column says Claude executed the paired task.
+> A hand-typed `/wbValid … -M=$VALIDATOR` is an operator override and is taken as given, so if that
+> chain's head shares the executor's pool you get a same-provider validation with no warning. When
+> you pass `-M=` yourself, check the pool yourself.
 
 ### 🧠 Planner exemption
 
@@ -171,3 +207,76 @@ When a model is resolved for a cell, seven sources compete, from highest to lowe
 ---
 
 ← [Concepts Hub](README.md) · [Home](../README.md)
+
+---
+
+## Expressing a chain — the syntax
+
+Everything above describes what a chain *should* be. This is how you write one.
+
+### On the command line
+
+`-M` (and the per-role `--worker=` / `--validator=` / `--planner=` / `--mech=`) accept a **chain**,
+not a single model. Two separators are read; one is emitted.
+
+```bash
+/wbWork $P --id=1 -M=openai/gpt-5.5,anthropic/claude-fable-5,gemini-3.1-pro-high
+```
+
+The `||` separator this page uses in prose is also accepted on input, but it must then be quoted —
+see the note below on why commas are the emitted form.
+
+Each link is dispatched left to right until one answers, **advancing only on a Gate-1/INFRA failure**
+— the agent never ran, so a different one is worth trying. A Gate-2 or Gate-3 failure is the *task*
+failing, and a second model meets the same wall at double the spend.
+
+**Every link is validated when the flag is parsed**, not when it is reached. A chain whose second
+entry is a typo is worse than one that fails immediately: the run looks healthy until the head
+rate-limits, hours in, and the fallback the chain existed for dies on a name nobody checked.
+
+The executed model is reported per attempt:
+
+```
+▶ wbWork 1 [openai/gpt-5.5]
+▶ wbWork 1 [anthropic/claude-fable-5]   # fallback
+```
+
+### In a plan — role variables
+
+A matrix cell names a **role**, never a model:
+
+```markdown
+| **A · 🔨 work** | — | — | `/wbWork $P --id=1,2 -M=$WORKER` | — |
+```
+
+and the four roles are declared once, in the plan's `## 🎛️ Active Model Roster` section — above the
+task table, because the table's `Suggested` columns consume it too. Copy/paste blocks declare them
+beside the `P=` line, **comma-separated and unquoted**, so a role reads exactly like every other
+variable:
+
+```bash
+P=path/to/plan.md
+WORKER=openai/gpt-5.5,anthropic/claude-fable-5,gemini-3.1-pro-high
+/wbWork $P --id=1,2 -M=$WORKER
+```
+
+> **Why a comma and not the `||` this page uses in prose.** `||` is a shell OR operator, so
+> `WORKER=a||b||c` unquoted is **not an assignment**: bash reads `WORKER=a`, then `|| b`, then
+> `|| c`, leaving the variable holding **only the first model** — and exiting 0, which is the
+> direction that hides the failure. Quoting fixes it but makes the roster lines look unlike every
+> other variable in the block. A comma has no meaning to the shell, and it already matches
+> `wb-flow model --set <role>=a,b,c`.
+
+**A cell writing `-M=$WORKER` is a reference to the role's chain.** Only a *literal* model in `-M=` is
+a per-cell override, and the generated run-book marks it as one.
+
+### Why the cell may not name a model
+
+A cell naming one model is wrong the moment a subscription changes — and the matrix is regenerated on
+every `--embed`, so the staleness returns as fast as it is fixed. Measured 2026-09-02: a plan named a
+provider's models for two roles for **ten days**, including a month in which that subscription had
+lapsed. With a role variable it is one roster edit instead of every cell in the file.
+
+`wb-flow lint` **step-7** enforces both halves: the roster block must match the roster file
+`resolveRosterFile()` resolves, and cells sharing a wave, role and routed model must be merged into
+one `--id=X,Y` dispatch.

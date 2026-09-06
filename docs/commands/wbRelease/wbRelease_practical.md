@@ -62,7 +62,7 @@ Consider adding `--restore` to your end-of-day routine even if you're not sure y
 <!-- FLAGS_SHORTCUTS_START -->
 ## Flags & shortcuts
 
-Long-form and short-form are equivalent — `/wbRelease --execute` and `/wbRelease -e` produce the same behavior.
+Documented shortcuts are listed below.
 
 | Long form | Shortcut |
 |---|---|

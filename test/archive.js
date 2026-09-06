@@ -248,6 +248,48 @@ try {
       'a file with no front-matter gets the banner at byte 0');
   }
 
+  // ── referrer: a file OUTSIDE the moving folder that links INTO it blocks it ─
+  if (run('referrer')) {
+    console.log('\nreferrer — a file outside the moving folder that links into it blocks the archive');
+    const root = path.join(tmp, 'referrer');
+    const link = path.relative(
+      path.join(root, R, '2026/08/09/plans'),
+      path.join(root, R, '2026/08/05/plans/plan_x_20260805.md')
+    ).split(path.sep).join('/');
+    scaffold('referrer', {
+      '2026/08/05': { plans: { 'plan_x_20260805.md': '# old' } },
+      '2026/08/09': { plans: { 'plan_x_20260809.md': '# new\n\nsee [prior](' + link + ')\n' } },
+    });
+
+    const rc = A.run([root]);
+    assert(rc !== 0, 'archive refuses when a referrer points into the folder about to move');
+    assert(fs.existsSync(reports(root, '2026/08/05/plans/plan_x_20260805.md')),
+      'the referenced folder is left in place — nothing moved on refusal');
+    assert(!fs.existsSync(path.join(root, '.wb', 'workflows', 'archives')),
+      'no archives/ tree is created on refusal');
+
+    const rc2 = A.run([root, '--force']);
+    assert(rc2 === 0, '--force overrides the refusal and archives anyway');
+    assert(fs.existsSync(archives(root, '2026/08/05/plans')),
+      '--force actually moved the referenced folder once overridden');
+  }
+
+  // ── keepconflict: --keep=N + a file target must not silently drop one ──────
+  if (run('keepconflict')) {
+    console.log('\n--keep + file pin — the two resolve different keeper sets and must not silently pick one');
+    const root = scaffold('keepconflict', {
+      '2026/08/01': { plans: { 'plan_k_20260801.md': '# 1' } },
+      '2026/08/05': { plans: { 'plan_k_20260805.md': '# 5' } },
+      '2026/08/09': { plans: { 'plan_k_20260809.md': '# 9' } },
+    });
+    const rc = A.run([reports(root, '2026/08/05/plans/plan_k_20260805.md'), '--keep=3', '--dry-run']);
+    assert(rc !== 0, '--keep=N with a file target is rejected, not silently honoured or dropped');
+    assert(fs.existsSync(reports(root, '2026/08/01/plans')) &&
+           fs.existsSync(reports(root, '2026/08/05/plans')) &&
+           fs.existsSync(reports(root, '2026/08/09/plans')),
+      'nothing moved — the whole run refused before planning');
+  }
+
   // ── pin: a file target is the keeper, nothing newer is touched ─────────────
   if (run('pin')) {
     console.log('\nfile target — pins itself as keeper, leaves anything NEWER alone');

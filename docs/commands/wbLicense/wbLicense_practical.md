@@ -59,7 +59,7 @@ Every audit also names what it didn't check (notably: runtime bypass, server-sid
 <!-- FLAGS_SHORTCUTS_START -->
 ## Flags & shortcuts
 
-Long-form and short-form are equivalent — `/wbLicense --execute` and `/wbLicense -e` produce the same behavior.
+Documented shortcuts are listed below.
 
 | Long form | Shortcut |
 |---|---|

@@ -61,6 +61,9 @@ function inventory(text, repoRoot, planPath) {
   const packageRoot = WV.findPackageRoot(path.dirname(planPath));
   const resolved = WV.resolveModelsFromRoster(text, repoRoot, {}, WV.DEFAULT_MODELS, packageRoot);
   const models = resolved.models;
+  // Carry the resolved roster onto every wave: render() declares the four role
+  // variables from it, and it is resolved exactly once, here, by the same
+  // resolveModelsFromRoster the dispatcher uses (A15 — one resolver, not two).
   return labels.map(function (label) {
     const cells = (WV.cellsOf(matrix, label, 'work') || [])
       .concat(WV.cellsOf(matrix, label, 'validate') || []);
@@ -118,6 +121,7 @@ function inventory(text, repoRoot, planPath) {
       return arr.indexOf(id) === i && !/✅/.test(validCol[id] || '');
     });
     return {
+      models: models,
       label: label,
       cells: routed.length,
       inSession: routed.filter(function (x) { return x.route.lane === 'claude'; }).length,
@@ -329,8 +333,68 @@ function reasonFor(hits) {
   return 'consumes what the previous wave produces';
 }
 
-function groupDispatches(routed) {
+/**
+ * A role's shell-variable name. The four variables are declared once, beside the
+ * `P=` line, and every dispatch references one instead of naming a model.
+ *
+ * A cell naming a single model is wrong the moment a subscription changes, and
+ * this block is regenerated on every `--embed` — so the staleness came back as
+ * fast as it was fixed. Measured 2026-09-02: a plan named `opencode-go/*` for two
+ * roles for ten days, including a month in which that subscription had lapsed.
+ * With a role variable, that costs one roster edit instead of every line here.
+ * (output_conventions.md §10 rules 5 and 5b.)
+ */
+function roleVar(role) {
+  if (role === 'planner') return 'PLANNER';
+  if (role === 'validator') return 'VALIDATOR';
+  if (role === 'mechanical') return 'MECHANICAL';
+  return 'WORKER';
+}
+
+/**
+ * The quoted assignments that must precede any dispatch referencing them.
+ *
+ * Emitted COMMA-separated and UNQUOTED, so a role reads exactly like `P=`:
+ *
+ *     P=deployement/…/plan.md
+ *     WORKER=openai/gpt-5.5,anthropic/claude-fable-5,xai/grok-4.5
+ *     /wbWork $P --id=1 -M=$WORKER
+ *
+ * The comma is not cosmetic. `||` is a shell OR operator, so `WORKER=a||b||c`
+ * unquoted is NOT an assignment: bash reads `WORKER=a`, then `|| b`, then
+ * `|| c`, leaving the variable holding only the FIRST model — and exiting 0.
+ * Quoting fixed that but made the roster lines look unlike every other variable
+ * in the block. A comma has no meaning to the shell, so the value survives
+ * unquoted, `-M=$WORKER` needs no quotes either, and the form matches
+ * `wb-flow model --set <role>=a,b,c`, which has always used commas.
+ * `||` is still accepted on input for the roster's own prose form.
+ */
+function roleAssignments(models, rolesUsed) {
+  const chainOf = function (key) {
+    const c = (models && models.chains && models.chains[key]) || [];
+    const usable = c.filter(Boolean);
+    if (usable.length) return usable.join(',');
+    return (models && models[key]) || '';
+  };
+  const map = { planner: 'planner', validator: 'selfValidator', worker: 'worker', mechanical: 'mechanical' };
+  const out = [];
+  for (const role of ['planner', 'validator', 'worker', 'mechanical']) {
+    if (rolesUsed && rolesUsed.size && !rolesUsed.has(role)) continue;
+    const chain = chainOf(map[role]);
+    if (!chain) continue;
+    out.push(roleVar(role) + '=' + chain);
+  }
+  return out;
+}
+
+function groupDispatches(routed, models) {
   if (!routed || !routed.length) return [];
+  const roleHead = function (role) {
+    const key = role === 'validator' ? 'selfValidator' : role;
+    const c = (models && models.chains && models.chains[key]) || [];
+    const usable = c.filter(Boolean);
+    return usable.length ? usable[0] : ((models && models[key]) || '');
+  };
   const map = new Map();
   const list = [];
   for (const item of routed) {
@@ -366,12 +430,26 @@ function groupDispatches(routed) {
   }
 
   const lines = [];
+  const rolesUsed = new Set();
   for (const entry of list) {
     let modelFlag;
     if ((entry.model && /human/i.test(entry.model)) || (entry.rawExecutor && /human/i.test(entry.rawExecutor))) {
       modelFlag = '   # manual execution (human)';
     } else if (entry.model) {
-      modelFlag = ' -M="' + entry.model + '"';
+      // The ROLE, not the model — but ONLY when this cell is actually running
+      // the role's own chain. A cell whose routed model differs from the role
+      // head carries a deliberate per-cell override (§10 rule 5: a `Suggested`
+      // cell means "this row departs from the role"), and collapsing it to
+      // `$VALIDATOR` would silently re-route it back onto the role's chain.
+      //
+      // Caught by test/runbook_regressions.js "does not merge validation ids
+      // whose approved models differ": the first version emitted the variable
+      // unconditionally, which erased exactly the distinction that test exists
+      // to protect.
+      const head = roleHead(entry.role);
+      modelFlag = (head && entry.model === head)
+        ? ' -M=$' + roleVar(entry.role)
+        : ' -M="' + entry.model + '"   # per-cell override — not the ' + roleVar(entry.role) + ' chain';
     } else if (entry.lane === 'claude') {
       // NOT `-M="Claude (auto)"`. `-M` means *delegate this run to a named model*,
       // while `Claude (auto)` is the roster's in-session sentinel meaning *do not
@@ -385,7 +463,9 @@ function groupDispatches(routed) {
       modelFlag = '';
     }
     lines.push('/' + entry.cmdName + ' $P --id=' + entry.ids.join(',') + modelFlag);
+    if (entry.model) rolesUsed.add(entry.role === 'validator' ? 'validator' : entry.role);
   }
+  lines.rolesUsed = rolesUsed;
   return lines;
 }
 
@@ -428,6 +508,8 @@ function recommendedCommands(planRel, live, risks) {
 function render(planRel, waves, risks, opts) {
   const o = opts || {};
   const live = waves.filter(function (w) { return w.cells > 0; });
+  // One resolution, carried from inventory() — never re-resolved here (A15).
+  const models = (waves[0] && waves[0].models) || {};
   const L = [];
 
   L.push(HEADING);
@@ -528,8 +610,19 @@ function render(planRel, waves, risks, opts) {
   // ── copy-paste dispatches by scenario ──
   L.push('### 📋 Copy/Paste Execution Scenarios');
   L.push('');
+  // The four role variables are declared HERE, once, beside P= — every dispatch
+  // below references one. Roles that no live cell dispatches to are omitted
+  // rather than declared unused. §10 rule 5b.
+  const allRoles = new Set();
+  for (const w of live) {
+    if (!w.routed) continue;
+    for (const it of w.routed) {
+      if (it.route && it.route.model && it.cell) allRoles.add(it.cell.role === 'validator' ? 'validator' : it.cell.role);
+    }
+  }
   L.push('```bash');
   L.push('P=' + planRel);
+  L.push.apply(L, roleAssignments(models, allRoles));
   L.push('```');
   L.push('');
   if (!live.length) {
@@ -544,7 +637,7 @@ function render(planRel, waves, risks, opts) {
     L.push('#### 2. Next wave dispatches (without `--wave` flag — grouped by model)');
     L.push('');
     if (live[0] && live[0].routed) {
-      const nextWaveLines = groupDispatches(live[0].routed);
+      const nextWaveLines = groupDispatches(live[0].routed, models);
       L.push.apply(L, commandBlock(nextWaveLines));
     }
     L.push('');
@@ -561,7 +654,7 @@ function render(planRel, waves, risks, opts) {
     for (let i = 0; i < live.length; i++) {
       const w = live[i];
       L.push('**Wave ' + w.label + ':**');
-      const waveLines = groupDispatches(w.routed);
+      const waveLines = groupDispatches(w.routed, models);
       L.push.apply(L, commandBlock(waveLines));
       if (w.heldParsed && w.heldParsed.length) {
         for (const h of w.heldParsed) {

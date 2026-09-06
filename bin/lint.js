@@ -20,6 +20,12 @@
 const fs = require('fs');
 const path = require('path');
 const cp = require('child_process');
+// step-7 reads the roster the DISPATCHER would resolve — never its own copy.
+// Two resolvers is A15 ("model --show and wave resolve the roster by two
+// different algorithms and read two different files"), closed 2026-08-15.
+const WV = require('./wave_parser');
+const MODEL = require('./model.js');
+const MATRIX_HEADING_TEXT = '## \u{1F30A} Next Executable Sequence';
 
 const PKG_ROOT = path.resolve(__dirname, '..');
 const SYNC_CHECK = path.join(PKG_ROOT, 'templates', 'commands', '_shared', 'sync_check.sh');
@@ -42,6 +48,8 @@ const HELP = `
     4 · cell batching          (⚠️ partial — D4 self-validation + <placeholder>)
     5 · derived-block sync     (✅ full — shells out to sync_check.sh)
     6 · archive sweep          (❌ not enforceable — invocation state)
+    7 · roster freshness       (✅ full — §10 rule 5b drift + rule 12 Multi-ID batching)
+    8 · task-table column count (✅ full — unescaped pipe check)
 
   Options:
     --help, -h   Show this message
@@ -67,6 +75,25 @@ function scopeName(planPath) {
 
 function splitRow(line) {
   const trimmed = line.trim().replace(/^\|/, '').replace(/\|$/, '');
+  let unescapedBackticks = 0;
+  for (let i = 0; i < trimmed.length; i++) {
+    if (trimmed[i] === '`' && (i === 0 || trimmed[i - 1] !== '\\')) unescapedBackticks++;
+  }
+  if (unescapedBackticks % 2 === 1) {
+    const fallback = [];
+    let fallbackCur = '';
+    for (let i = 0; i < trimmed.length; i++) {
+      if (trimmed[i] === '|' && (i === 0 || trimmed[i - 1] !== '\\')) {
+        fallback.push(fallbackCur.trim());
+        fallbackCur = '';
+      } else {
+        fallbackCur += trimmed[i];
+      }
+    }
+    fallback.push(fallbackCur.trim());
+    return fallback;
+  }
+
   const parts = [];
   let cur = '';
   let inBacktick = false;
@@ -86,43 +113,96 @@ function splitRow(line) {
   return parts;
 }
 
+function isTaskTableHeading(line) {
+  return /^##\s+.*Task\s+(Table|List)\b/i.test(line.trim());
+}
+
+function normalizeHeaderCell(cell) {
+  return String(cell || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/[`*_]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function columnIndex(headers, names) {
+  const normalized = headers.map(normalizeHeaderCell);
+  for (let i = 0; i < normalized.length; i++) {
+    if (names.indexOf(normalized[i]) !== -1) return i;
+  }
+  for (let i = 0; i < headers.length; i++) {
+    const h = normalized[i];
+    for (const name of names) {
+      if (name === '#') continue;
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (new RegExp('(^|\\s)' + escaped + '($|\\s)').test(h)) return i;
+    }
+  }
+  return -1;
+}
+
+function extractTaskId(cell) {
+  const value = String(cell || '').trim();
+  const linked = value.match(/^\[([A-Za-z]?\d+(?:\.\d+)*)\]/);
+  if (linked) return linked[1];
+  const plain = value.match(/^([A-Za-z]?\d+(?:\.\d+)*)\b/);
+  return plain ? plain[1] : null;
+}
+
+function normalizeTaskText(text) {
+  return String(text || '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/[*_`#]|📄/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /** Parse plan table → [{id, done, valid, dep, task}] */
 function parseTaskTable(content) {
   const rows = [];
   const lines = content.split('\n');
 
-  // Find the task table heading
   let inTable = false;
+  let columns = null;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (!inTable && /^##\s+.*Task\s+Table/i.test(line.trim())) {
-      inTable = true;
+    if (!line.trim().startsWith('|')) {
+      inTable = false;
+      columns = null;
       continue;
     }
-    if (!inTable) continue;
-    // End of the task table: next ## section or end of pipe-delimited rows
-    if (line.trim().startsWith('## ')) break;
-    if (!line.trim().startsWith('|')) continue;
 
     const cells = splitRow(line);
     if (cells.length < 4) continue;
 
-    // Header row detection
-    if (/^\s*#\s*$/.test(cells[0])) continue;
+    const maybeColumns = {
+      id: columnIndex(cells, ['#']),
+      dep: columnIndex(cells, ['dep', 'depends']),
+      task: columnIndex(cells, ['task']),
+      done: columnIndex(cells, ['done']),
+      valid: columnIndex(cells, ['valid'])
+    };
+    if (maybeColumns.id >= 0 && maybeColumns.task >= 0 && maybeColumns.done >= 0 && maybeColumns.valid >= 0) {
+      inTable = true;
+      columns = maybeColumns;
+      continue;
+    }
 
-    const idm = (cells[0] || '').match(/^\[?([\w.-]+)\]?/);
-    if (!idm) continue;
-    // Only accept numeric or dotted-numeric ids
-    if (!/^\d+(\.\d+)*$/.test(idm[1])) continue;
+    if (!inTable || !columns) continue;
 
-    const dn = cells[cells.length - 2] || '';
-    const vn = cells[cells.length - 1] || '';
+    if (/^\s*:?-{2,}:?\s*$/.test(cells[0] || '')) continue;
+
+    const id = extractTaskId(cells[columns.id]);
+    if (!id) continue;
+
     rows.push({
-      id: idm[1],
-      done: dn.trim(),
-      valid: vn.trim(),
-      dep: (cells[2] || '').replace(/—/g, '').trim(),
-      task: (cells[4] || '').trim(),
+      id: id,
+      done: (cells[columns.done] || '').trim(),
+      valid: (cells[columns.valid] || '').trim(),
+      dep: columns.dep >= 0 ? (cells[columns.dep] || '').replace(/—/g, '').trim() : '',
+      task: (cells[columns.task] || '').trim(),
     });
   }
   return rows;
@@ -132,9 +212,21 @@ function isDone(doneCell) {
   return /✅/.test(doneCell);
 }
 
-function isOpen(doneCell) {
+function isOpen(doneCell, validCell) {
   // Cancelled and Deferred rows are decided, not open work (§13.2).
-  return /⬜|🔨/.test(doneCell);
+  const done = String(doneCell || '');
+  const valid = String(validCell || '');
+  if (/🚫|Cancelled|⏸️|Deferred/i.test(done) || /🚫|Cancelled|⏸️|Deferred|n\/a/i.test(valid)) {
+    return false;
+  }
+  return /⬜|🔨/.test(done) || /⬜|🔨/.test(valid);
+}
+
+function openColumns(row) {
+  const cols = [];
+  if (/⬜|🔨/.test(row.done || '')) cols.push('Done');
+  if (/⬜|🔨/.test(row.valid || '')) cols.push('Valid');
+  return cols.join('+') || 'unknown';
 }
 
 // ── step 0 — open-task absorption check ───────────────────────────────────────
@@ -205,16 +297,16 @@ function checkStep0(content, planPath, scopeDir) {
         let opContent;
         try { opContent = fs.readFileSync(op, 'utf-8'); } catch (_e) { continue; }
         const opRows = parseTaskTable(opContent);
-        const openRows = opRows.filter(function (r) { return isOpen(r.done); });
+        const openRows = opRows.filter(function (r) { return isOpen(r.done, r.valid); });
         for (const or of openRows) {
-          const taskText = or.task.replace(/[*_`#]|📄/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
+          const taskText = normalizeTaskText(or.task).slice(0, 80);
           const foundInCurrent = rows.some(function (cr) {
-            const ct = cr.task.replace(/[*_`#]|📄/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
+            const ct = normalizeTaskText(cr.task).slice(0, 80);
             return ct === taskText;
           });
           if (!foundInCurrent) {
             const shortName = path.basename(op);
-            fails.push('step-0: open row ' + or.id + ' (' + taskText.slice(0, 60) + '…) from ' + shortName + ' is not absorbed into this plan');
+            fails.push('step-0: open row ' + or.id + ' (' + openColumns(or) + ' open: ' + taskText.slice(0, 60) + '…) from ' + shortName + ' is not absorbed into this plan');
           }
         }
       }
@@ -230,11 +322,19 @@ function checkStep1(content, planPath) {
   const fails = [];
   const planDir = path.dirname(planPath);
 
-  // Collect ALL markdown links: [label](href)
+  // Collect ALL markdown links: [label](href) — but NOT inside inline code.
+  //
+  // A `Verify` oracle is a backticked shell/JS command, and JS regularly writes
+  // `[...]` immediately followed by `(`. Row 5's oracle contains
+  //   ['claude-pro'/.test(src))throw new Error(…)
+  // which the naive scan read as a link with a "slash in label" and failed a
+  // perfectly valid plan. A gate that cries wolf on its own task table is a gate
+  // people learn to ignore, so code spans are masked out before scanning.
+  const masked = content.replace(/`[^`\n]*`/g, function (s) { return ' '.repeat(s.length); });
   const linkRe = /\[([^\]]*)\]\(([^)]+)\)/g;
   let m;
   const links = [];
-  while ((m = linkRe.exec(content)) !== null) {
+  while ((m = linkRe.exec(masked)) !== null) {
     links.push({ label: m[1], href: m[2], index: m.index });
   }
 
@@ -536,6 +636,42 @@ function checkStep5(planPath) {
   return fails;
 }
 
+// ── step 8 — task-table column count ──────────────────────────────────────────
+
+function checkStep8(content) {
+  const fails = [];
+  const lines = content.split('\n');
+  let inTable = false;
+  let headerCount = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!inTable && isTaskTableHeading(line)) {
+      inTable = true;
+      continue;
+    }
+    if (!inTable) continue;
+    if (line.trim().startsWith('#')) break;
+    if (!line.trim().startsWith('|')) continue;
+    if (/^\s*\|?\s*:?-+:?\s*\|/.test(line.trim()) || line.includes('---')) continue;
+
+    const parts = line.split(/(?<!\\)\|/);
+    if (headerCount === 0) {
+      headerCount = parts.length;
+      continue;
+    }
+
+    const idm = (parts[1] || '').trim().match(/^\[?([A-Za-z]?\d+(?:\.\d+)*)\]?/);
+    if (!idm) continue;
+    const rowId = idm[1];
+
+    if (parts.length !== headerCount) {
+      fails.push('step-8: column count mismatch in task row ' + rowId + ' — got ' + parts.length + ' columns, expected ' + headerCount);
+    }
+  }
+  return fails;
+}
+
 // ── task folder collision check (N15) ──────────────────────────────────────────
 
 function checkTaskCollisions(planPath, silent) {
@@ -679,7 +815,8 @@ function run(argv) {
         function () { return checkStep3(content, planPath); },
         function () { return checkStep4(content); },
         function () { return checkStep5(planPath); },
-        function () { return checkTaskCollisions(planPath, silent); }
+        function () { return checkTaskCollisions(planPath, silent); },
+        function () { return checkStep8(content); }
       ];
       
       for (const fn of checks) {
@@ -808,6 +945,132 @@ function run(argv) {
   let totalPassed = 0;
   let totalFailed = 0;
 
+
+/**
+ * step-7 — roster freshness + Multi-ID batching.
+ *
+ * Two rules that were WRITTEN and never ENFORCED, which is why both drifted:
+ *
+ *  (a) §10 rule 5b: the Active Model Roster block must match the roster file
+ *      `resolveRosterFile()` picks. Nothing checked it, and this repo's own plan
+ *      named `opencode-go/*` for two roles for ten days — including a month in
+ *      which that subscription had lapsed.
+ *
+ *  (b) §10 rule 12: cells sharing a wave, scope, role AND routed model MUST be
+ *      one `--id=X,Y` dispatch. `next.js` obeys it when it generates the
+ *      run-book; the hand-authored matrix did not, and the same violation was
+ *      caught by the owner three times running (waves A, B and C) because no
+ *      gate looked.
+ *
+ * Keyed on "the file carries a 🌊 matrix", NOT on "the file is a plan":
+ * `--wbPlan` on /wbActOn, /wbAudit, /wbReview and /wbStandup all write plans.
+ */
+/** Index of the 🌊 matrix SECTION heading — a line that begins with it. */
+function matrixSectionStart(content) {
+  const lines = content.split('\n');
+  let at = 0;
+  for (const line of lines) {
+    if (/^##\s+\u{1F30A}\s+Next Executable Sequence\s*$/u.test(line)) return at;
+    at += line.length + 1;
+  }
+  return -1;
+}
+
+function checkStep7(content, planPath) {
+  const fails = [];
+  // Anchor on the HEADING LINE, never on a substring. `indexOf` matched a prose
+  // MENTION of "## 🌊 Next Executable Sequence" in a task description and sliced
+  // 4 KB of Executive Summary instead of the matrix, so the batching half passed
+  // on a plan containing the very defect it was written for. That is the same
+  // mistake as task 19's oracle (`grep … | head -1` hitting prose) — twice in one
+  // day, in two different files, both times "find the section" done by search.
+  const matrixStart = matrixSectionStart(content);
+  if (matrixStart === -1) return fails;   // no matrix, nothing to check
+
+  // ── (a) roster block vs the resolved roster file ──────────────────────────
+  //
+  // ONLY for a plan with open work. A CLOSED plan's roster is a historical
+  // record of what actually ran — `Claude (auto) || Codex (auto)` on an 08-09
+  // plan is correct history, not drift, and failing it would make every
+  // archived plan lint red forever. Caught by the existing smoke suite
+  // ("embed then lint exits 0 on a real 08-09 plan"), which is exactly the kind
+  // of over-reach a new gate makes and an old suite exists to stop.
+  let hasOpenWork = false;
+  try {
+    const done = WV.parseDoneColumn(content) || {};
+    // Only real TASK ids count. `parseDoneColumn` also returns prose rows from
+    // narrative tables — the wb-flow 08-09 plan yields key "row" whose value is
+    // "⬜ **OPEN**", a legend entry, not work. Counting it made a closed plan
+    // look open and re-introduced the very failure this scoping removed.
+    hasOpenWork = Object.keys(done).some(function (id) {
+      return /^[A-Za-z]?\d/.test(id) && /⬜/.test(String(done[id] || ''));
+    });
+  } catch (_) { hasOpenWork = false; }
+
+  let declared = hasOpenWork ? null : false;
+  if (hasOpenWork) declared = null;
+  if (hasOpenWork) {
+    try { declared = WV.parseHeaderRoster(content); } catch (_) { declared = null; }
+  }
+  if (hasOpenWork && declared) {
+    let rosterFile = null;
+    try { rosterFile = MODEL.resolveRosterFile(path.dirname(planPath), {}); } catch (_) {}
+    if (rosterFile && fs.existsSync(rosterFile)) {
+      let live = null;
+      try { live = MODEL.readRoster(fs.readFileSync(rosterFile, 'utf8')); } catch (_) {}
+      if (live) {
+        const pairs = [['planner', 'planner'], ['validator', 'validator'],
+                       ['worker', 'worker'], ['mechanical', 'mechanical']];
+        for (const [declKey, liveKey] of pairs) {
+          const a = (declared[declKey] || []).join(' || ');
+          const b = (live[liveKey] || []).join(' || ');
+          if (!a || !b) continue;
+          if (a !== b) {
+            fails.push('step-7: roster drift — ' + declKey + ' declares "' + a +
+                       '" but ' + path.basename(rosterFile) + ' says "' + b +
+                       '" (self-correct must re-resolve the Active Model Roster block)');
+          }
+        }
+      }
+    }
+  }
+
+  // ── (b) Multi-ID batching in the matrix (§10 rule 12) ─────────────────────
+  const after = content.slice(matrixStart);
+  const end = after.search(/\n<!-- HOW_TO_RUN_START -->|\n## (?!🌊)/);
+  const matrix = end === -1 ? after : after.slice(0, end);
+  const groups = new Map();
+  for (const line of matrix.split('\n')) {
+    const rowM = line.match(/^\|\s*\*\*([A-Z])\s*·\s*(\S+)\s*(work|validate)\*\*\s*\|(.*)$/);
+    if (!rowM) continue;
+    const wave = rowM[1], kind = rowM[3];
+    const cells = rowM[4].split('|');
+    cells.forEach(function (cell, col) {
+      const cmds = cell.match(/\/wb\w+[^`<]*--id=[\w.,-]+[^`<]*/g);
+      if (!cmds || cmds.length < 2) return;
+      // Two or more dispatches in ONE cell = same wave, same role column. If they
+      // also name the same model they are the unmerged case rule 12 forbids.
+      const models = cmds.map(function (c) {
+        const m = c.match(/-M=("?)(\$?[\w./-]+)\1/);
+        return m ? m[2] : '';
+      });
+      const ids = cmds.map(function (c) { return (c.match(/--id=([\w.,-]+)/) || [])[1] || '?'; });
+      const uniq = Array.from(new Set(models));
+      if (uniq.length === 1 && uniq[0]) {
+        const key = wave + '·' + kind + '·' + col + '·' + uniq[0];
+        if (!groups.has(key)) groups.set(key, { wave: wave, kind: kind, model: uniq[0], ids: ids });
+      }
+    });
+  }
+  for (const g of groups.values()) {
+    fails.push('step-7: unmerged dispatches — wave ' + g.wave + ' · ' + g.kind +
+               ' has ' + g.ids.length + ' cells all routed to ' + g.model +
+               ' (--id=' + g.ids.join(' and --id=') + '); §10 rule 12 requires --id=' +
+               g.ids.join(','));
+  }
+  return fails;
+}
+
   const runCheck = function (step, label, checkable, fn) {
     let failures;
     try {
@@ -855,6 +1118,14 @@ function run(argv) {
     return checkStep5(planPath);
   });
 
+  runCheck(7, 'roster freshness & Multi-ID batching', true, function () {
+    return checkStep7(content, planPath);
+  });
+
+  runCheck(8, 'task-table column count', true, function () {
+    return checkStep8(content);
+  });
+
   runCheck('tasks', 'task folder collision', true, function () {
     return checkTaskCollisions(planPath, false);
   });
@@ -872,7 +1143,13 @@ function run(argv) {
   }
 }
 
-module.exports = { run };
+module.exports = {
+  run,
+  splitRow,
+  parseTaskTable,
+  isOpen,
+  normalizeTaskText
+};
 
 // Keep the module importable for the installer while making the documented
 // direct oracle invocation real: `node bin/lint.js <plan>` must execute the

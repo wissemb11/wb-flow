@@ -17,7 +17,8 @@ This folder answers the question *"how do I begin using the wb-labs agentic work
 2. **[`getting_started`](getting_started.md)** — the 30-day onboarding plan. Belt-system-style ramp from "3 commands cover 80% of the work" up to occasional-use orchestration commands. Read this first if you've never opened the system before.
 3. **[`first_run_walkthrough`](first_run_walkthrough.md)** — annotated transcript of someone running the system for the first time. Read after `getting_started` when you want to *see* what the commands actually produce, before running them yourself.
 4. **[`bootstrapping_existing_project`](bootstrapping_existing_project.md)** — what to do when you inherit a codebase that never had `/wbSetup` run on it. Read this only when applicable; not part of the linear onboarding.
-5. **[`tutorial_zero_to_app`](tutorial_zero_to_app.md)** — **The Master Tutorial**: Build a complete Personal Finance Tracker from `mkdir` to production in 9 steps. The best end-to-end demonstration of the full `/wb*` lifecycle.
+5. **[`tutorial_setting_the_roster`](tutorial_setting_the_roster.md)** — set the model roster by hand with `--set` instead of the interactive picker: what the model tiers mean, why the best model belongs on the Validator, and how to build a chain that survives a provider outage. Read when `--pick` starts feeling like a questionnaire.
+6. **[`tutorial_zero_to_app`](tutorial_zero_to_app.md)** — **The Master Tutorial**: Build a complete Personal Finance Tracker from `mkdir` to production in 9 steps. The best end-to-end demonstration of the full `/wb*` lifecycle.
 
 ---
 
@@ -30,6 +31,7 @@ This folder answers the question *"how do I begin using the wb-labs agentic work
 | Returning after a long absence | [`getting_started`](getting_started.md) (skip to "30-day plan" — pick a belt) |
 | Curious what a session actually looks like before committing | [`first_run_walkthrough`](first_run_walkthrough.md) |
 | Inheriting code that has no `.wb/workflows/` folder | [`bootstrapping_existing_project`](bootstrapping_existing_project.md) |
+| Know which models you want and are tired of the picker | [`tutorial_setting_the_roster`](tutorial_setting_the_roster.md) |
 | Want the full power demo — zero to deployed app | [`tutorial_zero_to_app`](tutorial_zero_to_app.md) |
 | Already running commands daily | Skip this folder. Go to [`../daily_use/`](../daily_use/README.md) |
 

@@ -37,7 +37,7 @@ The wildcard form returns **one task per plan**, not one task across all plans. 
 
 | Flag | Shortcut | Purpose |
 |---|---|---|
-| `--sort="<metric>"` | `-s` | Overrides chronological selection. Accepts `complexity`, `risk`, `priority`. |
+| `--sort="<metric>"` | — | Overrides chronological selection. Accepts `complexity`, `risk`, `priority`. |
 | `--act` | `-a` | Auto-executes `/wbWork --id="<selected>"` on the returned task. No confirmation prompt. |
 
 **`--act` is the autonomous mode.** It's the only flag in the orchestration group that triggers code changes. `/wbNext -a` is equivalent to running `/wbNext` to get the ID, then `/wbWork --id="<that ID>"` — but without the human step between. Use it in automated chains; avoid it when the plan state is uncertain.

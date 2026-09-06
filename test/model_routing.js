@@ -154,6 +154,21 @@ t("agy's -p is the LAST flag before the prompt (Go flag package trap)", () => {
   assert.strictEqual(argv[argv.length - 2], '-p', 'agy: -p must immediately precede the prompt');
 });
 
+t('sandbox argv omits permission and sandbox bypass flags', () => {
+  const REG = require('../bin/cli_registry.js');
+  const cases = [
+    REG.CLI_SPEC.codex.argv('gpt-5.6-terra', null, { sandbox: true }),
+    REG.CLI_SPEC.grok.argv('grok-4.6', null, { sandbox: true }),
+    REG.CLI_SPEC.agy.argv('gemini-3.1-pro-high', null, { sandbox: true }),
+    REG.CLI_SPEC.opencode.argv('opencode-go/deepseek-v4-pro', null, { sandbox: true }),
+    REG.CLI_SPEC.copilot.argv('github-copilot/auto', null, { sandbox: true }),
+  ];
+  for (const argv of cases) {
+    const line = argv.join(' ');
+    assert.ok(!/dangerously|bypassPermissions|--allow-all/.test(line), 'sandbox leaked a bypass flag: ' + line);
+  }
+});
+
 t('the wave dispatcher resolves identically to the picker', () => {
   // The whole point of bin/cli_registry.js: one table, two consumers. If these
   // ever diverge a model is probed through one CLI and dispatched through

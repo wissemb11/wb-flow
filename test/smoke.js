@@ -1842,11 +1842,25 @@ const closedPlan = path.join(
 const closedEmbedLintTmp = path.join(
   path.dirname(closedPlan), '.wb-embed-lint-closed-' + process.pid + '.md'
 );
+function escapeInlineCodePipesOnTaskRows(s) {
+  return s.split('\n').map(function (line) {
+    if (!/^\|\s+\[?\d/.test(line)) return line;
+    let out = '';
+    let inCode = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '`' && line[i - 1] !== '\\') { inCode = !inCode; out += ch; continue; }
+      if (inCode && ch === '|' && line[i - 1] !== '\\') { out += '\\|'; continue; }
+      out += ch;
+    }
+    return out;
+  }).join('\n');
+}
 try {
   // Use a fully closed real plan as the fixture, but remove its authored
   // copy/paste/recommendation blocks so the probe starts from a clean derived
   // surface. The copy remains beside the plan, preserving all relative hrefs.
-  const closedFixture = fs.readFileSync(closedPlan, 'utf8').replace(
+  const closedFixture = escapeInlineCodePipesOnTaskRows(fs.readFileSync(closedPlan, 'utf8')).replace(
     /### 📋 Copy\/Paste Execution Scenarios[\s\S]*?<!-- HOW_TO_RUN_END -->/,
     '## ▶️ How to run this plan\n\n<!-- HOW_TO_RUN_END -->'
   );

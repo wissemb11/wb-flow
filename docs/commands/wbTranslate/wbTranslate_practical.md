@@ -57,7 +57,7 @@ If you don't speak FR/AR, defer to native speakers before shipping. AI translati
 <!-- FLAGS_SHORTCUTS_START -->
 ## Flags & shortcuts
 
-Long-form and short-form are equivalent — `/wbTranslate --execute` and `/wbTranslate -e` produce the same behavior.
+Documented shortcuts are listed below.
 
 | Long form | Shortcut |
 |---|---|

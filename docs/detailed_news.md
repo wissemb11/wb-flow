@@ -5,6 +5,13 @@ description: "This document provides a comprehensive deep-dive with code example
 
 # `wb-flow` (v1.0.2) — Detailed Release Innovations & Technical Guide
 
+> **Current release is v1.0.5.** This page documents **v1.0.2**, the last release with a full
+> write-up. The two releases between them were maintenance only; **1.0.5** is a feature release —
+> a self-maintaining model catalog (`wb-flow model --sync-catalog` / `--add`), model fallback chains
+> on every dispatch flag, and role-variable wave matrices. See
+> [`CHANGELOG.md`](https://github.com/wissemb11/wb-flow/blob/main/CHANGELOG.md) for the full entry.
+
+
 This document provides a comprehensive deep-dive with code examples, terminal traces, script logic, and matrix specifications for all new capabilities introduced in `wb-flow` (v1.0.2) compared to `v1.0.1`.
 
 ---
@@ -35,7 +42,7 @@ This document provides a comprehensive deep-dive with code examples, terminal tr
 **`-M` delegates a single invocation** and outranks role routing, the roster, *and* the executor≠validator rule. Run from the Claude CLI, it means Claude dispatches instead of executing:
 
 ```bash
-/wbWork <folder>/ --id="<i>" -M="go:DSV4pro"
+/wbWork <folder>/ --id="<i>" -M=$WORKER
 # → opencode run -m opencode-go/deepseek-v4-pro --dangerously-skip-permissions "/wbWork …"
 ```
 
@@ -45,7 +52,7 @@ Because `-M` can override the executor≠validator rule, the override is **print
 
 ```bash
 /wbWork <folder>/ --wave="A:W"                      # only A's Worker cell
-/wbWork <folder>/ --wave="A:W" -M="claude:opus 5"   # …delegated
+/wbWork <folder>/ --wave="A:W" -M=$WORKER   # …delegated
 /wbWork <folder>/ --wave="A:V" -v="go:ds4pro"       # …and persist the roster
 ```
 

@@ -75,6 +75,22 @@ Don't quiz a model you've already verified on this package with no code changes 
 > **Who runs it**: **You** (the human orchestrator).
 > **Note on conventions**: `/wbCheck` does NOT produce a structured output report — it runs a quiz interactively. The shared [`output_conventions.md`](../_shared/output_conventions.md) (relative links, full-syntax commands, self-correct mode) does **not** apply here. The quiz ends with a verdict, not a report file.
 
+<!-- FLAGS_TABLE_START -->
+## Flags & shortcuts
+
+| Long form | Shortcut | Meaning |
+|---|---|---|
+| `--fix` | `-f` | Static-analysis mode only: permit conservative auto-correction of trivial issues. Not used by the context-quiz flow. |
+
+<!-- FLAGS_TABLE_END -->
+
+<!-- FLAG_NORMALIZE_START -->
+## Flag normalization (apply BEFORE parsing args)
+
+- `-f` → `--fix`
+
+<!-- FLAG_NORMALIZE_END -->
+
 ---
 
 ## How It Works — Two Parts

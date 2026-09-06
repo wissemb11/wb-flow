@@ -53,10 +53,10 @@ const CLI_SPEC = {
   claude: {
     bin: 'claude',
     slashCommands: true,
-    argv: function (model, prompt) {
+    argv: function (model, prompt, opts) {
       const a = ['-p'];
       if (model) a.push('--model', model);
-      a.push('--permission-mode', 'auto');
+      if (!(opts && opts.sandbox)) a.push('--permission-mode', 'auto');
       if (prompt != null) a.push(prompt);
       return a;
     },
@@ -66,10 +66,11 @@ const CLI_SPEC = {
     slashCommands: false,
     inlineTemplate: true, // codex expands no slash-command; name the template
     stdinNull: true,      // codex reads stdin even with a prompt arg → hangs in a script
-    argv: function (model, prompt) {
+    argv: function (model, prompt, opts) {
       const a = ['exec'];
       if (model) a.push('-m', model);
-      a.push('--dangerously-bypass-approvals-and-sandbox', '--skip-git-repo-check');
+      if (!(opts && opts.sandbox)) a.push('--dangerously-bypass-approvals-and-sandbox');
+      a.push('--skip-git-repo-check');
       if (prompt != null) a.push(prompt);
       return a;
     },
@@ -83,7 +84,7 @@ const CLI_SPEC = {
     // Measured: `grok -p "/wbhelp"` printed the full catalog after reading the
     // template; `/wbHelp wbGit` (mixed case) resolved too.
     slashCommands: true,
-    argv: function (model, prompt) {
+    argv: function (model, prompt, opts) {
       // `-p` is clap's `--single <PROMPT>`, so the prompt is its VALUE and must
       // follow immediately. bypassPermissions is the `--dangerously-skip-
       // permissions` analogue: without it a delegated cell can be stopped by an
@@ -92,7 +93,8 @@ const CLI_SPEC = {
       // here so a dispatch does not depend on that file.)
       const a = [];
       if (model) a.push('--model', model);
-      a.push('--permission-mode', 'bypassPermissions', '-p');
+      if (!(opts && opts.sandbox)) a.push('--permission-mode', 'bypassPermissions');
+      a.push('-p');
       if (prompt != null) a.push(prompt);
       return a;
     },
@@ -100,7 +102,7 @@ const CLI_SPEC = {
   agy: {
     bin: 'agy',
     slashCommands: false,
-    argv: function (model, prompt) {
+    argv: function (model, prompt, opts) {
       // ⚠️ `-p` MUST BE LAST before the prompt. agy parses with Go's `flag`
       // package where `-p` aliases `--print` and consumes the NEXT argv entry
       // as its value. Until 2026-08-10 this read ['-p','--dangerously-skip-
@@ -108,7 +110,8 @@ const CLI_SPEC = {
       // "--dangerously-skip-permissions" and the real prompt was dropped.
       const a = [];
       if (model) a.push('--model', model);
-      a.push('--dangerously-skip-permissions', '-p');
+      if (!(opts && opts.sandbox)) a.push('--dangerously-skip-permissions');
+      a.push('-p');
       if (prompt != null) a.push(prompt);
       return a;
     },
@@ -116,10 +119,10 @@ const CLI_SPEC = {
   opencode: {
     bin: 'opencode',
     slashCommands: true,
-    argv: function (model, prompt) {
+    argv: function (model, prompt, opts) {
       const a = ['run'];
       if (model) a.push('-m', model);
-      a.push('--dangerously-skip-permissions');
+      if (!(opts && opts.sandbox)) a.push('--dangerously-skip-permissions');
       if (prompt != null) a.push(prompt);
       return a;
     },
@@ -127,7 +130,7 @@ const CLI_SPEC = {
   gemini: {
     bin: 'gemini',
     slashCommands: false,
-    argv: function (model, prompt) {
+    argv: function (model, prompt, opts) {
       const a = [];
       if (model) a.push('-m', model);
       a.push('-p');
@@ -138,8 +141,9 @@ const CLI_SPEC = {
   copilot: {
     bin: 'copilot',
     slashCommands: false,
-    argv: function (model, prompt) {
-      const a = ['--allow-all'];
+    argv: function (model, prompt, opts) {
+      const a = [];
+      if (!(opts && opts.sandbox)) a.push('--allow-all');
       if (model) a.push('--model', model);
       a.push('-p');
       if (prompt != null) a.push(prompt);
@@ -247,10 +251,10 @@ function resolveCli(slug, catIdx, heuristic) {
 }
 
 /** Build the argv for a resolved route. */
-function argvFor(route, prompt) {
+function argvFor(route, prompt, opts) {
   const spec = CLI_SPEC[route.cli];
   if (!spec) return null;
-  return { bin: spec.bin, argv: spec.argv(route.modelArg, prompt), spec: spec };
+  return { bin: spec.bin, argv: spec.argv(route.modelArg, prompt, opts), spec: spec };
 }
 
 // Deterministic wb-flow commands that are also useful as direct registry

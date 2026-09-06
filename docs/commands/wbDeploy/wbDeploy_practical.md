@@ -86,7 +86,7 @@ If the live site is broken but local-test passed, the issue is deploy-specific (
 <!-- FLAGS_SHORTCUTS_START -->
 ## Flags & shortcuts
 
-Long-form and short-form are equivalent — `/wbDeploy --execute` and `/wbDeploy -e` produce the same behavior.
+Documented shortcuts are listed below.
 
 | Long form | Shortcut |
 |---|---|

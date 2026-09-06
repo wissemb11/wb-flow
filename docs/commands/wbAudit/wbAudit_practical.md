@@ -67,7 +67,7 @@ Every good audit names these limits in its "did NOT check" section.
 <!-- FLAGS_SHORTCUTS_START -->
 ## Flags & shortcuts
 
-Long-form and short-form are equivalent — `/wbAudit --execute` and `/wbAudit -e` produce the same behavior.
+Documented shortcuts are listed below.
 
 | Long form | Shortcut |
 |---|---|

@@ -14,7 +14,7 @@ function parseMatrix(text) {
     if (lines[i].indexOf('## ') === 0 && i > start) break; // left the section
     if (/^\|\s*Wave\s*\|/.test(lines[i])) { header = i; break; }
   }
-  if (header === -1) return null;
+  if (header === -1) return { rows: [] };
 
   const cols = splitRow(lines[header]);
   const roleOf = cols.map((c) => {
@@ -382,11 +382,30 @@ function splitCommand(command) {
     delegateModel: cellModel,
   };
 }
+/**
+ * Read the plan's Active Model Roster.
+ *
+ * Two accepted forms, because the block moved:
+ *   - legacy, inside the 🌊 section:  `> **Active Model Roster for this Plan:**`
+ *   - current, its own section above the Task Table:  `## 🎛️ Active Model Roster`
+ *     (output_conventions.md §10 rule 5b — the task table consumes the roster
+ *     too, so a definition sitting 60 lines below its first use is one nobody
+ *     reads.)
+ *
+ * The scan also tolerates BLANK LINES inside the block. The heading form puts a
+ * blank between the heading and the first `>` line, and prose callouts split the
+ * role lines from the notes below them — the original `if (!line.startsWith('>'))
+ * break` stopped at the first of those and returned null, so relocating the block
+ * silently dropped the whole roster to DEFAULT_MODELS. It ends at a horizontal
+ * rule or the next heading, which is where the section genuinely ends.
+ */
 function parseHeaderRoster(text) {
   let inBlock = false;
   const roster = {};
   for (const line of text.split('\n')) {
     if (inBlock) {
+      if (/^\s*$/.test(line)) continue;
+      if (/^\s*---\s*$/.test(line) || /^#{1,6}\s/.test(line)) break;
       if (!line.startsWith('>')) break;
       let roleKey = null;
       for (const [emoji, role] of Object.entries(ROLE_EMOJI_MAP)) {
@@ -408,7 +427,8 @@ function parseHeaderRoster(text) {
       // left-to-right fallback, and nothing implemented it.
       if (chain.length && !roster[roleKey]) roster[roleKey] = chain;
     }
-    if (/\*\*Active Model Roster for this Plan:\*\*/.test(line)) inBlock = true;
+    if (/\*\*Active Model Roster for this Plan:\*\*/.test(line) ||
+        /^#{1,6}\s.*Active Model Roster\s*$/.test(line)) inBlock = true;
   }
   return Object.keys(roster).length >= 4 ? roster : null;
 }

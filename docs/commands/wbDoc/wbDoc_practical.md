@@ -50,7 +50,7 @@ After `/wbDoc`, check that `context.md` API section matches what you just docume
 <!-- FLAGS_SHORTCUTS_START -->
 ## Flags & shortcuts
 
-Long-form and short-form are equivalent — `/wbDoc --execute` and `/wbDoc -e` produce the same behavior.
+Documented shortcuts are listed below.
 
 | Long form | Shortcut |
 |---|---|

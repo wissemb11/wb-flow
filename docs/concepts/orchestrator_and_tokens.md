@@ -100,7 +100,7 @@ specific cell.
 When several rows in the same wave share a plan, a role and a routed model, merge them:
 
 ```bash
-/wbWork <plan> --id=10,13 -M="gemini-3.1-pro-high"     # one agent, two rows
+/wbWork <plan> --id=10,13 -M=$WORKER     # one agent, two rows
 ```
 
 instead of two dispatches. The agent pays its start-up context **once**. Gates are still evaluated

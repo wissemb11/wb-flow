@@ -81,6 +81,7 @@ Both forms are equivalent — pass either:
 
 | Long form | Shortcut |
 |---|---|
+| `--audit` | `-a` | Force folder audit mode: scan for tier leaks and pattern drift without injecting a component gate. |
 | `--scope` | `-s` |
 | `--snap` | — | **Universal.** Pin this run's output into `.wb/snaps/<YYYYMMDD>_<label>/` (symlink). `--snap=<label>` names it; `--snap-copy` freezes the content instead. Shell out to `wb-flow snap` — never hand-roll the link. See `_shared/output_conventions.md` §11. |
 | `--next` | — | **Universal.** After the command's own output, print what to run next: the `/wbNext <scope>` recommendation, plus — when a plan is in play — the derived **▶️ How to run this plan** block (wave inventory · ordered command list · why not `--wave=all` · flags). Shell out to `wb-flow next <plan.md>`; do not hand-write it. See `_shared/output_conventions.md` §12. |
@@ -104,6 +105,7 @@ When the first arg is an existing output file from a prior `/wbLicense` run (det
 
 Before processing `$ARGUMENTS`, normalize these short-form flags to their long equivalents:
 
+- `-a` → `--audit`
 - `-s` → `--scope`
 
 The rest of this template documents only the long forms; the substitution above is the only place short forms are mentioned.

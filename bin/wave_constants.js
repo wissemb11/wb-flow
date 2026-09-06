@@ -47,6 +47,7 @@ const GATE_LINE_PATTERN = '^▶|^  (G[0-9]|VERDICT|PER-ID|session)';
 // covers 400 entitlement refusals, 401 auth, 429 usage-limit and 5xx alike,
 // without guessing at wording that OpenAI can reword at any time.
 const INFRA_GREP_PATTERN = '^(Error: (Model not found|Insufficient (credits|balance|funds)|Rate limit|Quota|Authentication|Payment)|ERROR: \\{"type":"error")';
+const REFUSAL_GREP_PATTERN = '^(G[0-9]+: REFUSED\\b|VERDICT: REFUSED\\b|Error: .*\\b(approval|permission|permissions|sandbox|tool)\\b.*\\b(denied|refused|required|blocked|not allowed)\\b|Tool use blocked\\b|Permission denied\\b|Approval required\\b|Sandbox.*\\b(denied|refused|blocked|not allowed)\\b)';
 
 const NAME_TO_SLUG = new Map([
   ['deepseek v4 pro', 'opencode-go/deepseek-v4-pro'],
@@ -122,9 +123,11 @@ const HELP = `
                              W = Worker    M = Mechanical
                            e.g. --wave=A    -> the whole A row
                                 --wave=A:W  -> only A's Worker cell
-      --model=<m>, -M=<m>  Delegate THIS run to one model. Highest priority:
+    --model=<m>, -M=<m>  Delegate THIS run to one model. Highest priority:
                            outranks role routing AND the executor!=validator
                            rule. Use when you are choosing the agent yourself.
+    --sandbox            Emit dispatches without permission/sandbox bypass
+                           flags. Refusals are reported as REFUSED, not PASS.
   Model overrides (canonical — match the role keys in the 🌊 matrix):
     --planner=<m>        Override the 🧠 Planner model
     --worker=<m>         Override the 🔨 Worker model    (default ${DEFAULT_MODELS.worker})
@@ -156,6 +159,6 @@ const ROLE_EMOJI_MAP = {
 
 module.exports = {
   PKG_ROOT, ROLES, DEFAULT_MODELS, INFRA_FATAL_MESSAGES,
-  GATE_LINE_PATTERN, INFRA_GREP_PATTERN, NAME_TO_SLUG,
+  GATE_LINE_PATTERN, INFRA_GREP_PATTERN, REFUSAL_GREP_PATTERN, NAME_TO_SLUG,
   CODEX_ONLY_RE, AGY_ONLY_SLUGS, MATRIX_HEADING, HELP, ROLE_EMOJI_MAP
 };

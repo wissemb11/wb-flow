@@ -66,7 +66,7 @@ That said: `/wbNext` doesn't know about external pressure (deadlines, support ti
 <!-- FLAGS_SHORTCUTS_START -->
 ## Flags & shortcuts
 
-Long-form and short-form are equivalent — `/wbNext --execute` and `/wbNext -e` produce the same behavior.
+Documented shortcuts are listed below.
 
 | Long form | Shortcut |
 |---|---|

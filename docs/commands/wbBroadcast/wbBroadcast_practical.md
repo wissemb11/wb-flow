@@ -64,7 +64,7 @@ These are proposals. Apply manually if you agree.
 <!-- FLAGS_SHORTCUTS_START -->
 ## Flags & shortcuts
 
-Long-form and short-form are equivalent — `/wbBroadcast --execute` and `/wbBroadcast -e` produce the same behavior.
+Documented shortcuts are listed below.
 
 | Long form | Shortcut |
 |---|---|

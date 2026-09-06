@@ -218,3 +218,14 @@ Every terminal command dispatched by `wb-flow` automatically includes the approp
 ---
 
 ← [Home](../../README.md) · [Commands](../../README.md#the-command-catalog) · [Install](../../../README.md) | [wb-flow on npm](https://www.npmjs.com/package/wb-flow) · [flow.wbc-ui.com](https://flow.wbc-ui.com) · [wi-bg.com](https://www.wi-bg.com)
+
+## Filling the catalog
+
+`/wbModel` picks from what the catalog holds. To change what it holds:
+
+```bash
+wb-flow model --sync-catalog     # refresh every known provider
+wb-flow model --add=zen,codex    # add specific ones (aliases accepted)
+```
+
+`--add codex --from-picker` handles Codex, which cannot enumerate itself.

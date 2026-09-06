@@ -97,7 +97,7 @@ In the `## 🌊 Next Executable Sequence` matrix table, each task dispatch cell 
 | `--wave=<L>:<R>` | `-W` | Run **one cell** — `:P` Planner · `:V` Validator · `:W` Worker · `:M` Mechanical |
 
 ```bash
-/wbWork <folder>/ --wave="A:W" -M="claude:opus 5"      # one cell, delegated
+/wbWork <folder>/ --wave="A:W" -M=$WORKER      # one cell, delegated
 /wbValid <folder>/ --id="<i>" -v="go:ds4pro"           # persists the validator roster, then runs
 ```
 

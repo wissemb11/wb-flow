@@ -142,6 +142,10 @@ Every command whose template defines an output file supports **self-correct mode
    - any other field the template requires but the file lacks
 4. **Do not alter the file's structure** — same sections, same columns, same task rows. Only fill gaps and normalize.
 5. **Append or Update "What Next" section** — even if the template usually delegates this to `/wbNext`, in self-correct mode you MUST add a section `## 🧭 What's Next?` with either a list of suggested commands or a **Suggested Tasks Table** if the findings warrant it.
+6. **Re-resolve the Active Model Roster block.** If the file carries a `## 🌊 Next Executable Sequence` matrix, re-read the roster file `resolveRosterFile()` picks and rewrite each role's chain in the roster block to match it. **Keyed on "the file carries a matrix", not on "the file is a plan"** — `--wbPlan` on `/wbActOn`, `/wbAudit`, `/wbReview` and `/wbStandup` all write plans, `/wbIdea` promotes rows into them, and `/wbWork` + `/wbValid` write their state columns.
+
+   *Why this is a self-correct duty and not a nicety:* nothing else refreshes it. A plan written in August proposes an August lineup in September, every `--embed` regenerates the staleness, and `wb-flow lint` **step-7** now fails on the divergence — so a file that skips this step no longer passes.
+
 6. **Checklist & Validator Update**:
    - blank `☐ Done` for a task whose `tasks/task_<N>/task_<N>_report_*.md` exists → check it (`✅<br><worker>`).
    - blank `☐ Valid` for a task whose worker report has a validator score appended → fill `✅ <Score>/10<br><validator>`.
@@ -482,7 +486,38 @@ When a `/wb*` command runs in self-correct mode (§3) on a file written before v
 2. **Columns = the four canonical roles** (§9.1), always all four, always in this order: `🧠 Planner` · `✅ Validator` · `🔨 Worker` · `📋 Mechanical`. An action's column is **its existing `Requires` tag** — never re-derived, never a fifth column. This is what makes the matrix delegable: hand one whole column to one agent.
 3. **Waves come from the dependency graph, not from priority.** Wave A = every unfinished action whose blockers are all resolved; Wave B = those unblocked by A. A `P1` item with an unmet dependency is **not** in Wave A — priority orders work *within* a wave, it never jumps the DAG. Commands without an explicit `Dep` column derive blocking from their findings' stated prerequisites.
 4. **Cells hold full invocable commands** (§2): target path present, `--id=`/`--scope=` present where the command takes one. A bare `/wbWork` is forbidden. Multiple commands in a cell are separated by `<br><br>`. An empty cell is `—`, never blank.
-5. **Every command names a concrete recommended agent**, formatted `<br>→ *ModelName · ~$cost*`. Take 🔨/✅ picks from the row's `Worker (Suggested)` / `Validator (Suggested)` column when the source table has one, else from [`model_recommendations.md`](../model_recommendations.md). 🧠 Planner → a big thinker (never cheap out on decomposition). 📋 Mechanical → the cheapest fast model (there is no judgment to buy). Never "any model" or a bare tier name.
+5. **Every command names a ROLE VARIABLE, never a single model.** A cell carries `-M="$WORKER"` (or `$PLANNER` / `$VALIDATOR` / `$MECHANICAL`), and the four variables are declared once in the **Active Model Roster** block — see rule 5b. The annotation stays: `<br>→ *$WORKER · ~$cost*`, where the cost is quoted **at the chain's first pick** and must say so.
+
+   **Why a role variable and not a model name.** A cell naming one model is wrong the moment a subscription changes, and the matrix is *regenerated* on every `--embed`, so the staleness returns as fast as it is fixed. Measured 2026-09-02: a plan whose cells named `opencode-go/*` for two roles kept naming them for ten days — including a month in which that subscription had lapsed — while the active roster routed those roles somewhere else entirely. A role variable holds the roster's full `||` fallback chain, so **a lapsed subscription costs one roster edit instead of every cell in the file.**
+
+   Role → tier is unchanged and still binding: 🧠 Planner → a big thinker (never cheap out on decomposition); ✅ Validator → a big thinker (its failures are *silent*, which is why the best model belongs here rather than on the code); 🔨 Worker → a coder-tier model (its failures are loud and cheap — the oracle catches them in minutes); 📋 Mechanical → the cheapest fast model (there is no judgment to buy). Never "any model" or a bare tier name.
+
+   **A per-row `Worker (Suggested)` / `Validator (Suggested)` cell is now an OVERRIDE, not a copy.** It means *"this row deliberately departs from the role"*. Re-typing the role's chain there creates a second copy of one fact, and the copy a reader meets first is the one nothing regenerates.
+
+5b. **The Active Model Roster block is a top-level section, above the Task Table.** Not inside `## 🌊 Next Executable Sequence`: the task table's `Suggested` columns consume it too, and a definition placed ~60 lines *below* its first use is a definition nobody reads. Shape:
+
+   ```markdown
+   ## 🎛️ Active Model Roster
+
+   > 🧠 **Planner:** `a || b || c`
+   > ✅ **Validator:** `d || e || f`
+   > 🔨 **Worker:** `g || h || i`
+   > 📋 **Mechanical:** `j || k || l`
+   ```
+
+   Copy/paste blocks declare the same four beside the `P=` line, **comma-separated and unquoted — the same shape as `P=` itself**:
+
+   ```bash
+   P=<plan path>
+   WORKER=g,h,i
+   /wbWork $P --id=1 -M=$WORKER
+   ```
+
+   **Why a comma and not the `||` the roster prose uses.** `||` is a shell OR operator, so `WORKER=g||h||i` unquoted is *not* an assignment: bash reads `WORKER=g`, then `|| h`, then `|| i`, leaving the variable holding **only the first model** — and exiting 0, which is the direction that hides the failure. Quoting fixes it but makes the roster lines look unlike every other variable in the block, and the block's whole value is that it can be pasted without thinking. A comma has no meaning to the shell: the value survives unquoted, `-M=$WORKER` needs no quotes either, and the form already matches `wb-flow model --set <role>=a,b,c`, which has always used commas. **`-M` accepts either separator on input**; only the emitted form is normalized to commas.
+
+   ⚠️ A cell writing `-M=$WORKER` is a **reference to the role's chain**, not a per-cell override. Only a literal model name in `-M=` is an override.
+
+   **Self-correct (§3) MUST re-resolve this block** from the roster file `resolveRosterFile()` picks, rewriting each role's chain. A plan written in August otherwise proposes an August lineup in September with nothing objecting.
 
    **Sanctioned per-command extension — duration.** `/wbPlan` (template v5.3+) appends an estimate to every cell: `→ *ModelName · ~$cost* *(⏱️ <N> min)*`. It may do this because a plan's task table owns an `Est. Time (mins)` column to read the value from. **No other command adds ⏱️**, and none may synthesize one: an audit finding, review comment or idea has no duration column, and a guessed minute-count reads as measured data. If a future command grows a real duration column, extend it here rather than inventing a local convention.
 6. **Collision check — mandatory before publishing a row.** Two commands may share a wave ONLY if their file sets are disjoint, *including* files one writes that another reads as a fixture. If they collide, demote one to the next wave and say why in Wave notes. A row that claims parallelism it doesn't have is worse than no matrix at all.
@@ -492,7 +527,7 @@ When a `/wb*` command runs in self-correct mode (§3) on a file written before v
 10. **Every dispatch gets a paired validation in its own wave's `validate` row.** For each 🧠 / 🔨 / 📋 command in `<label> · 🔨 work`, emit a `✅ Validator` cell in `<label> · ✅ validate` holding `/wbValid <same file> --id=<same id>`, assigned to a **different agent than the executor**. The pairing sits directly under the work it checks, so a wave is a complete unit — dispatch, then verdict — rather than a promise redeemed a wave later. This is the worker≠validator invariant — a model validating its own work is an echo chamber, and it is the single most common way a hollow pass reaches a plan file.
     - Pair **every** role, not just 🔨 Worker. Mechanical rows carry a `☐ Valid` column too, and a "run the command and report" task can still report the wrong thing.
     - Mark paired cells so they're distinguishable from tasks whose own `Requires` tag is `✅ Validator`: append `<br><sub>pairs Wave <N> · <id></sub>`. A `✅ Validator`-tagged *task* is scheduled by its own dependencies; a *paired* validation is auto-generated by this rule.
-    - Choose the validator by flipping tier, not by rotating names: if a fast model executed, a big thinker validates; if a big thinker executed, a *different* big thinker (or a different provider) validates. Never the same model string on both sides of one id — **except on 🧠 Planner rows**, see next bullet.
+    - Choose the validator by flipping tier **and provider**, not by rotating names: if a fast model executed, a big thinker validates; if a big thinker executed, a *different-provider* big thinker validates. Two models from one provider are not independent. Resolve pools through `poolOf()` and choose the first validator-chain entry whose pool differs from the executor's. Only when the chain offers no alternative may it fall back to the same provider, and the dispatch line MUST say `same-provider validation — chain offers no alternative`. Never the same model string on both sides of one id — **except on 🧠 Planner rows**, see next bullet.
     - **🧠 Planner rows are exempt: they may be validated by the model that executed them**, and their pairing stays in-session. The invariant protects *edits* — a model re-reading a diff it just wrote will call it correct. A Planner row produces a **decision**, and its validation is a re-read of reasoning already in the orchestrator's context; handing that to a second model buys a spawn and a cold re-read, not independence. 🔨 Worker and 📋 Mechanical rows — the ones that touch files — keep the rule with no exception. Assign a different model to a Planner pairing when you *want* an outside opinion on the decision; that is now a choice, not a requirement.
     - **Not paired:** rows that were never dispatched — `⏸️ HELD`, human-gated, or blocked. They get their pairing when they actually run.
     - If the executor is the user's choice rather than a named model, write the validator as `any agent ≠ executor`.

@@ -50,7 +50,7 @@ If (3), mark the test as `xit()` with a comment referencing the open decision. D
 <!-- FLAGS_SHORTCUTS_START -->
 ## Flags & shortcuts
 
-Long-form and short-form are equivalent — `/wbTest --execute` and `/wbTest -e` produce the same behavior.
+Documented shortcuts are listed below.
 
 | Long form | Shortcut |
 |---|---|

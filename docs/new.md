@@ -4,6 +4,16 @@ description: "Compared to `v1.0.1`, `wb-flow` (v1.0.2) introduces native local e
 ---
 # What's New in `wb-flow` (v1.0.2)
 
+> **Current release is v1.0.5.** This page documents **v1.0.2**, the last release with a full
+> write-up. The two releases between them were maintenance only; **1.0.5** is a feature release —
+> a self-maintaining model catalog (`wb-flow model --sync-catalog` / `--add`), model fallback chains
+> on every dispatch flag, role-variable wave matrices, and **cross-provider validation** — the
+> executor≠validator rule now compares billing *pools* rather than model names, so one house cannot
+> grade its own work. See
+> [`CHANGELOG.md`](https://github.com/wissemb11/wb-flow/blob/main/CHANGELOG.md) for the full entry, or
+> **[`RELEASE_1.0.5.md`](https://github.com/wissemb11/wb-flow/blob/main/RELEASE_1.0.5.md)** for the narrative write-up.
+
+
 Compared to `v1.0.1`, `wb-flow` (v1.0.2) introduces native local error guarding, autonomous wave execution, per-role model override flags, persistent plan model rosters, matrix auto-correction, and a standardized 9-file documentation suite across all 34 agentic commands.
 
 ---
@@ -72,7 +82,7 @@ explicit and keep the projections honest.
 | **How-to-run block relocated** | `## ▶️ How to run this plan` now sits **directly beneath the 🌊 matrix table** it is computed from, not below unrelated prose. |
 | **Multi-ID merged dispatches** | Cells sharing a wave, scope, role and model merge into `--id=X,Y` — one context read instead of N, with per-ID gating preserved. Validators merge on *their own* model and scope, not on how the work was grouped. |
 | **`--wave=A` = work then validate** | Running a label runs `A.work` then `A.valid`. A wave is a complete unit — dispatch, then verdict — rather than a promise redeemed a wave later. `A.work` / `A.valid` still address one sub-row. |
-| **Four copy/paste scenarios** | Next wave orchestrated · next wave as individual dispatches · all remaining waves orchestrated · all remaining as dispatches. Individual dispatches always carry their explicit `-M="…"`. |
+| **Four copy/paste scenarios** | Next wave orchestrated · next wave as individual dispatches · all remaining waves orchestrated · all remaining as dispatches. Individual dispatches always carry their explicit `-M=$WORKER`. |
 | **`/wbPlan <plan_file.md>` repairs everything** | Links, section order, missing sections, checkbox gap-fill, cell batching, matrix recompute, how-to-run re-embed — and now open-task absorption from older plans. |
 | **The sync oracle** | `sync_check.sh` exits non-zero and names the derived block that drifted. Run it after **every** edit to a plan file. |
 
@@ -139,7 +149,7 @@ than "verify" them by reproducing the old arithmetic.
 **`-M` delegates a single invocation** and outranks role routing, the roster, *and* the executor≠validator rule. Run from the Claude CLI, it means Claude dispatches instead of executing:
 
 ```bash
-/wbWork <folder>/ --id="<i>" -M="go:DSV4pro"
+/wbWork <folder>/ --id="<i>" -M=$WORKER
 # → opencode run -m opencode-go/deepseek-v4-pro --dangerously-skip-permissions "/wbWork …"
 ```
 
@@ -149,7 +159,7 @@ Because `-M` can override the executor≠validator rule, the override is **print
 
 ```bash
 /wbWork <folder>/ --wave="A:W"                      # only A's Worker cell
-/wbWork <folder>/ --wave="A:W" -M="claude:opus 5"   # …delegated
+/wbWork <folder>/ --wave="A:W" -M=$WORKER   # …delegated
 /wbWork <folder>/ --wave="A:V" -v="go:ds4pro"       # …and persist the roster
 ```
 

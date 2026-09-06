@@ -2,6 +2,83 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.5] - 2026-09-04
+
+> Narrative release notes: [RELEASE_1.0.5.md](RELEASE_1.0.5.md)
+
+### Added — the plan trust model, a sandboxed dispatch mode, and a real no-op gate
+
+A plan file is markdown that other agents write, and every dispatch hands that file's task text and
+`Verify` cell — both executable — to a model running with approvals and sandbox explicitly disabled,
+then judges the result with an oracle taken from the same file. This release writes down what to do
+about that and ships the first two mitigations.
+
+- **[The plan trust model](docs/concepts/plan-trust-model.md)** — an accepted decision documenting
+  that plan text and the `Verify` column are both untrusted, executable input, and the contract
+  `--sandbox` and the no-op gate below implement against. Demonstrated concretely: a task description
+  containing a shell payload produced a wave script that executed it, and separately a `Verify` cell
+  alone — no model in the loop — proved to be a deterministic shell-execution sink whose side effect
+  gets scored as its own proof of success.
+- **`wb-flow wave --sandbox`** emits dispatches with the permission/sandbox bypass flags omitted
+  across all seven lanes (`claude`, `codex`, `grok`, `agy`, `opencode`, `gemini`, `copilot`). A
+  refusal under `--sandbox` is reported as `REFUSED`, never scored `PASS` — `agy` in particular
+  auto-denies every tool headlessly without the bypass and silently no-ops otherwise.
+- **A real content-hash no-op gate.** The previous check compared `bin/`-only mtimes and only
+  `echo`ed a line nothing consumed. It is now a content diff over the whole workspace (excluding each
+  task's own report folder, so a written report never masks a no-op), and it feeds a `NO-OP` verdict
+  into the wave's own scoring instead of printing an inert line.
+- **A same-provider `-M=` warning.** An explicit `-M=` override is still honoured verbatim and not
+  pool-checked, but `wave_router.js` now exports `sameProviderWarning()`: when the operator's chosen
+  validator head shares a billing pool with the row's executor, the routing reason says so instead of
+  silently reading back as an independent pass.
+
+### Added — a self-maintaining model catalog
+
+Triggered by two new subscriptions — **opencode Zen** and **Codex Plus** — both of which had to be
+added by hand-editing `~/.wb/models.json`, because the catalog had no writer at all.
+
+- **`wb-flow model --sync-catalog`** fills `models.json` from what the machine can actually reach:
+  enumerates each installed CLI, curates the result, three-way-merges it. Atomic write with a `.bak`.
+- **`--add=<a,b,c>` / `--remove=<a,b,c>`** — a scoped sync over named providers, alias-aware
+  (`codex`=openai, `zen`=opencode-zen, `go`, `agy`, `grok`). **Per-provider transactional**: one
+  provider failing does not abort the others.
+- **`--from-picker` / `--from-file=`** fill a provider that cannot enumerate itself. `codex models`
+  is interactive-only, so its own picker text is the source of truth — no API calls.
+- **`--probe`** confirms entitlements and stamps `verified` + `checkedAt`. Never runs under a plain
+  `--sync-catalog`: a sync that quietly spends money is a sync nobody runs twice.
+- **`--prune` / `--force`** — retire marks by default; prune deletes, and both refuse a slug the live
+  roster still dispatches to.
+
+### Changed
+
+- **The shipped `templates/models.json` is now a skeleton** — providers, pools and `(auto)` aliases,
+  zero concrete model names. It was previously byte-identical to a developer's personal catalog, so
+  every install inherited someone else's subscriptions and lost dispatches at Gate 1.
+- **Pool classification is data-driven.** `SUBSCRIPTION_POOLS` and `POOL_RANK` derive from the
+  persisted provider selection instead of being literals — which is why `opencode-zen` could never be
+  proposed for a role.
+- **Step 0's provider defaults are derived**, and the selection persists to `selected.json`.
+- **`wb-flow init` fills the catalog** instead of copying a snapshot, reusing the enumeration it
+  already runs for the roster.
+
+### Fixed
+
+- `CODEX_VERIFIED` was missing `gpt-5.6-sol` — Codex's own default — and `gpt-5.4`, while the shipped
+  catalog advertised `gpt-5.3-codex`, which Codex Plus does not serve.
+- `agy models` output was stored with its display name attached, so rosters written by `init` could
+  name a model that does not exist.
+- `poolOf()` had no `openai` prefix rule, so `openai/*` slugs fell through to a phantom pool
+  `openai` that no catalog entry uses — while the catalog's own `openai` provider carries
+  `pool: "chatgpt"` and holds those slugs. Two effects: cross-provider validation treated an
+  `openai/*` executor and `Codex (auto)` as two independent houses when they are one ChatGPT
+  subscription, and `--sync-catalog` would have written `pool: "openai"` back over the correct
+  `chatgpt`.
+- `bin/model.js.bak` — an **86 KB / 1 902-line backup artifact**, 12 days stale and referenced by
+  nothing — was being packed into every published tarball, ~12% of the unpacked size. `files[]`
+  allowed all of `bin/` and carried only two hand-written negations, neither covering `*.bak`.
+  Removed, and `prepublishOnly` now asserts the pack manifest contains no `*.bak`, `*.orig`,
+  `*.rej` or `*~`, so the class cannot recur silently.
+
 ## [1.0.4] - 2026-08-24
 
 ### Changed — README hero media

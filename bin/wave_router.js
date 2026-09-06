@@ -24,6 +24,83 @@ function isClaudeExecutor(doneCell) {
 }
 
 /**
+ * Choose the first validator from `chain` that is billed to a different pool
+ * than the executor.  Model names are not an independence boundary: two Claude
+ * models remain one provider/pool.  Keep the shared classifier in model.js as
+ * the sole source of that fact rather than growing another prefix map here.
+ *
+ * When every candidate is in the executor's pool, return the chain head and
+ * mark it forced.  Callers render that fact in their routing reason so a
+ * same-provider validation is an explicit, reviewable exception.
+ */
+function crossProviderPick(chain, executorModel) {
+  const candidates = (Array.isArray(chain) ? chain : [chain])
+    .map(function (model) { return String(model || '').trim(); })
+    .filter(Boolean);
+  const poolOf = require('./model.js').poolOf;
+  const executorPool = poolOf(executorModel);
+  const head = candidates[0] || '';
+  const picked = candidates.find(function (model) {
+    return executorPool && executorPool !== 'unknown' && poolOf(model) !== executorPool;
+  }) || head;
+  const validatorPool = picked ? poolOf(picked) : 'unknown';
+  return {
+    model: picked,
+    forced: !!picked && (!executorPool || executorPool === 'unknown' || validatorPool === executorPool),
+    executorPool: executorPool,
+    validatorPool: validatorPool,
+  };
+}
+
+function executorPoolsFromDoneCell(doneCell) {
+  const text = String(doneCell || '')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!text || /^⬜|^—|^$/.test(text)) return [];
+
+  const poolOf = require('./model.js').poolOf;
+  const candidates = [];
+  const slugs = text.match(/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/g) || [];
+  candidates.push.apply(candidates, slugs);
+
+  // Done cells may carry display names from older plans rather than catalog
+  // slugs. Use broad sentinels only to identify the provider pool for a warning.
+  if (/claude|opus|sonnet|haiku/i.test(text)) candidates.push('Claude (auto)');
+  if (/codex|chatgpt|openai|gpt-5/i.test(text)) candidates.push('Codex (auto)');
+  if (/agy|antigravity|gemini/i.test(text)) candidates.push('Antigravity (auto)');
+  if (/grok|xai|supergrok/i.test(text)) candidates.push('Grok (auto)');
+
+  const pools = [];
+  candidates.forEach(function (candidate) {
+    const pool = poolOf(candidate);
+    if (pool && pool !== 'unknown' && pools.indexOf(pool) === -1) pools.push(pool);
+  });
+  return pools;
+}
+
+function sameProviderWarning(delegateChain, ids, doneColumn) {
+  const chain = splitModelChain(Array.isArray(delegateChain) ? delegateChain.join('||') : delegateChain);
+  const head = chain[0] || String(Array.isArray(delegateChain) ? delegateChain[0] || '' : delegateChain || '').trim();
+  if (!head || !doneColumn || !ids || !ids.length) return '';
+
+  const poolOf = require('./model.js').poolOf;
+  const validatorPool = poolOf(head);
+  if (!validatorPool || validatorPool === 'unknown') return '';
+
+  const matched = [];
+  ids.forEach(function (id) {
+    const pools = executorPoolsFromDoneCell(doneColumn[id]);
+    if (pools.indexOf(validatorPool) !== -1 && matched.indexOf(id) === -1) matched.push(id);
+  });
+  if (!matched.length) return '';
+
+  return ' — same-provider validation — operator --model head pool ' + validatorPool +
+    ' matches executor pool for id(s) ' + matched.join(', ');
+}
+
+/**
  * Decide who runs a cell.
  * Returns { lane: 'claude'|'opencode', model, chain, cli, reason }
  *
@@ -31,10 +108,28 @@ function isClaudeExecutor(doneCell) {
  * and the generator always agree on the dispatch CLI (bug 4 — routing
  * divergence). Null when lane is 'claude'.
  */
-function route(cell, dispatchIndex, models, doneColumn, delegateModel, requiresColumn) {
+/** Same `||` grammar the roster uses; kept local so wave_router imports nothing from wave.js. */
+function splitModelChain(raw) {
+  return String(raw == null ? '' : raw)
+    .split(/\s*(?:\|\||,)\s*/)
+    .map(function (s) { return s.trim(); })
+    .filter(function (s, i, a) { return s && a.indexOf(s) === i; });
+}
+
+function route(cell, dispatchIndex, models, doneColumn, delegateModel, requiresColumn, delegateChain, opts) {
   let result;
   const cellCommand = splitCommand(cell.command);
-  const hasCellDelegateModel = !!(cellCommand && cellCommand.delegateModel);
+  const routedIds = cell.pairsIds && cell.pairsIds.length
+    ? cell.pairsIds
+    : (cellCommand ? cellCommand.ids : []);
+  // A cell may write the ROLE VARIABLE rather than a model — `-M=$WORKER`,
+  // which the shell expands at paste time from the assignments emitted beside
+  // `P=`. That is a reference to the role's own chain, NOT a per-cell override,
+  // so it must not take the delegate branch: doing so labelled every cell
+  // "per-cell override — not the WORKER chain", which is the exact opposite of
+  // what it says.
+  const cellRefsRole = !!(cellCommand && /^\$[A-Z_]+$/.test(String(cellCommand.delegateModel || '')));
+  const hasCellDelegateModel = !cellRefsRole && !!(cellCommand && cellCommand.delegateModel);
   const resolvedCellDelegateModel = hasCellDelegateModel
     ? resolveDisplayName(cellCommand.delegateModel)
     : undefined;
@@ -47,14 +142,27 @@ function route(cell, dispatchIndex, models, doneColumn, delegateModel, requiresC
   // executor!=validator rule. Stated explicitly because silently overriding that
   // rule is exactly the kind of thing that should never be implicit.
   if (delegateModel) {
-    result = { lane: 'opencode', model: effectiveDelegateModel,
-               reason: '--model=' + effectiveDelegateModel + ' — explicitly delegated by the operator' };
+    // Carry the operator's whole `||` chain, not just its head. The generator
+    // already emits a left-to-right fallback loop from `chain` (advancing only
+    // on a G1/INFRA failure) — but these delegate branches used to set `model`
+    // alone, so `chain` was undefined and every -M dispatch ran with no
+    // fallback at all, while the roster-routed cells beside it had one.
+    const opChain = (delegateChain && delegateChain.length ? delegateChain : [effectiveDelegateModel])
+      .filter(Boolean);
+    result = { lane: 'opencode', model: effectiveDelegateModel, chain: opChain,
+               reason: '--model=' + opChain.join(' || ') +
+                       (opChain.length > 1 ? ' — operator chain, ' + opChain.length + ' deep' : '') +
+                       ' — explicitly delegated by the operator' +
+                       (cell.role === 'validator' ? sameProviderWarning(opChain, routedIds, doneColumn) : '') };
   } else if (hasCellDelegateModel && resolvedCellDelegateModel === '') {
     result = { lane: 'claude', model: null,
                reason: 'cell --model=' + cellCommand.delegateModel + ' — explicitly runs in-session' };
   } else if (effectiveDelegateModel) {
-    result = { lane: 'opencode', model: effectiveDelegateModel,
-               reason: 'cell --model=' + effectiveDelegateModel + ' — explicitly delegated by the operator' };
+    // A cell may carry its own chain: `-M="a||b"` written into the matrix.
+    const cellChain = splitModelChain(effectiveDelegateModel);
+    result = { lane: 'opencode', model: cellChain[0] || effectiveDelegateModel, chain: cellChain,
+               reason: 'cell --model=' + cellChain.join(' || ') + ' — explicitly delegated by the operator' +
+                       (cell.role === 'validator' ? sameProviderWarning(cellChain, routedIds, doneColumn) : '') };
   } else if (cell.role === 'planner') {
     result = { lane: 'claude', model: null, reason: 'Planner — deep reasoning stays with Claude in-session' };
   } else if (cell.role === 'worker') {
@@ -155,12 +263,18 @@ function route(cell, dispatchIndex, models, doneColumn, delegateModel, requiresC
         if (executedByClaude.length > 0) {
           // If ANY id was executed by Claude, Claude cannot validate the batch.
           const fallbackChain = chainFor(models, 'selfValidator');
-          const fallbackModel = fallbackChain.find(function(m) { return m !== ''; }) || models.selfValidator;
+          const pick = crossProviderPick(fallbackChain, 'Claude (auto)');
           result = {
             lane: 'opencode',
-            model: fallbackModel,
-            chain: fallbackChain,
-            reason: 'Done column says Claude executed id(s) ' + executedByClaude.join(', ') + ' — validate with a different model',
+            model: pick.model,
+            // Keep the selected model first: a failed cross-provider choice
+            // must not fall back to a same-provider candidate before another
+            // independent candidate has been tried.
+            chain: [pick.model].concat(fallbackChain.filter(function (model) { return model !== pick.model; })),
+            reason: 'Done column says Claude executed id(s) ' + executedByClaude.join(', ') +
+              (pick.forced
+                ? ' — same-provider validation — chain offers no alternative'
+                : ' — validator pool ' + pick.validatorPool + ' differs from executor pool ' + pick.executorPool),
           };
         } else {
           // NONE were executed by Claude. Claude can validate.
@@ -192,7 +306,10 @@ function route(cell, dispatchIndex, models, doneColumn, delegateModel, requiresC
     }
   }
 
-  result.cli = result.lane === 'opencode' ? cliFor(result.model) : null;
+  if (opts && opts.sandbox && result.lane === 'opencode') {
+    result.reason += ' — sandboxed dispatch (permission bypass flags omitted)';
+  }
+  result.cli = result.lane === 'opencode' ? cliFor(result.model, opts) : null;
   return result;
 }
 
@@ -233,21 +350,21 @@ function catalogRoutes() {
   return _catIdx;
 }
 
-function cliFor(model) {
+function cliFor(model, opts) {
   const route = REG.resolveCli(model, catalogRoutes());
   if ((route.source === 'catalog' || route.source === 'sentinel') && route.cli !== 'opencode' && route.cli !== 'in-session') {
     const spec = REG.CLI_SPEC[route.cli];
     if (spec) {
-      const out = { bin: spec.bin, argv: spec.argv(route.modelArg, null), slashCommands: !!spec.slashCommands };
+      const out = { bin: spec.bin, argv: spec.argv(route.modelArg, null, opts), slashCommands: !!spec.slashCommands };
       if (spec.inlineTemplate) out.inlineTemplate = true;
       if (spec.stdinNull) out.stdinNull = true;
       return out;
     }
   }
-  return cliForHeuristic(model);
+  return cliForHeuristic(model, opts);
 }
 
-function cliForHeuristic(model) {
+function cliForHeuristic(model, opts) {
   const name = String(model);
   // ⚠️ `-p` MUST BE LAST. agy parses with Go's `flag` package, where `-p` is an
   // alias for `--print` and takes the **next argv entry as its value** — the
@@ -260,12 +377,14 @@ function cliForHeuristic(model) {
   // nothing, while Gate 1 scored it PASS. Go's flag parsing also stops at the
   // first non-flag argument, so every real flag has to precede `-p` as well.
   if (/^(agy|antigravity)\s*\(auto\)$/i.test(name) || name === 'Antigravity (auto)') {
-    return { bin: 'agy', argv: ['--dangerously-skip-permissions', '-p'], slashCommands: false };
+    return { bin: 'agy', argv: (opts && opts.sandbox) ? ['-p'] : ['--dangerously-skip-permissions', '-p'], slashCommands: false };
   }
   if (/^codex\s*\(auto\)$/i.test(name) || name === 'Codex (auto)') {
     return {
       bin: 'codex',
-      argv: ['exec', '--dangerously-bypass-approvals-and-sandbox', '--skip-git-repo-check'],
+      argv: (opts && opts.sandbox)
+        ? ['exec', '--skip-git-repo-check']
+        : ['exec', '--dangerously-bypass-approvals-and-sandbox', '--skip-git-repo-check'],
       slashCommands: false,
       inlineTemplate: true,
       stdinNull: true,
@@ -277,14 +396,16 @@ function cliForHeuristic(model) {
     // `-p` last — see the `(auto)` branch above for why. This affects all 11
     // AGY_ONLY_SLUGS identically; the `(auto)` name was simply the one that
     // happened to be dispatched when it was caught.
-    return { bin: 'agy', argv: ['--model', name, '--dangerously-skip-permissions', '-p'], slashCommands: false };
+    return { bin: 'agy', argv: (opts && opts.sandbox) ? ['--model', name, '-p'] : ['--model', name, '--dangerously-skip-permissions', '-p'], slashCommands: false };
   }
   // codex. Bare names again, so AGY_ONLY_SLUGS is consulted first — `gpt-oss-*`
   // is agy's, not OpenAI's, despite the `gpt` prefix.
   if (name.indexOf('/') === -1 && CODEX_ONLY_RE.test(name)) {
     return {
       bin: 'codex',
-      argv: ['exec', '-m', name, '--dangerously-bypass-approvals-and-sandbox', '--skip-git-repo-check'],
+      argv: (opts && opts.sandbox)
+        ? ['exec', '-m', name, '--skip-git-repo-check']
+        : ['exec', '-m', name, '--dangerously-bypass-approvals-and-sandbox', '--skip-git-repo-check'],
       // Verified 2026-08-03: `codex exec` expands NOTHING. Given a prompt file
       // at ~/.codex/prompts/x.md and the prompt "/x", it treated the text as
       // literal and searched the filesystem for a matching entrypoint. So the
@@ -297,7 +418,7 @@ function cliForHeuristic(model) {
       stdinNull: true,
     };
   }
-  return { bin: 'opencode', argv: ['run', '-m', model, '--dangerously-skip-permissions'], slashCommands: true };
+  return { bin: 'opencode', argv: (opts && opts.sandbox) ? ['run', '-m', model] : ['run', '-m', model, '--dangerously-skip-permissions'], slashCommands: true };
 }
 function resolveModelsFromRoster(text, repoRoot, explicitModels, currentModels, packageRoot, opts) {
   const headerRoster = parseHeaderRoster(text);
@@ -382,6 +503,6 @@ function resolveModelsFromRoster(text, repoRoot, explicitModels, currentModels, 
 }
 
 module.exports = {
-  resolveDisplayName, isClaudeExecutor, route, chainFor, cliFor, resolveModelsFromRoster,
+  resolveDisplayName, isClaudeExecutor, crossProviderPick, sameProviderWarning, route, chainFor, cliFor, resolveModelsFromRoster, splitModelChain,
   cliForHeuristic, catalogRoutes, PROVIDER_CLI
 };

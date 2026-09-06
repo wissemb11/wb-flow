@@ -13,13 +13,49 @@ const { parseMatrix, splitRow, parseCell, cellsOf, indexDispatches, keyOf, parse
 const { resolveDisplayName, isClaudeExecutor, route, chainFor, cliFor, resolveModelsFromRoster } = require('./wave_router');
 const { sessionArgsShell, shq, templatePathFor, inlineTemplatePrompt, sessionKeyFor, keyFileOf, emitDispatchGates, buildScript, resolveWbRun } = require('./wave_generator');
 
+/**
+ * A model flag may name a FALLBACK CHAIN, not a single model:
+ *
+ *     -M="openai/gpt-5.5||anthropic/claude-fable-5||xai/grok-4.5"
+ *
+ * That is the same `||` spelling the roster and `model_recommendations.md`
+ * already use for their dispatch chains, so the flag and the roster describe a
+ * chain the same way. Before this, `-M=` was `arg.slice(3).trim()` — one opaque
+ * string — so a chain became a lookup for a model literally named `a||b||c`,
+ * and every generated dispatch carried a single model with no fallback while
+ * `concepts/model-fallback-chains.md` documented the opposite.
+ *
+ * Split, trim, drop empties, de-duplicate while preserving order.
+ */
+function splitModelChain(raw) {
+  return String(raw == null ? '' : raw)
+    .split(/\s*(?:\|\||,)\s*/)
+    .map(function (s) { return s.trim(); })
+    .filter(function (s, i, a) { return s && a.indexOf(s) === i; });
+}
+
+/**
+ * `--worker="a||b||c"` pins the whole chain for a role, not just its head:
+ * `models.<key>` is the head (what every existing caller reads) and
+ * `models.chains.<key>` is the sequence `chainFor()` already knows how to
+ * consume. Keeping both in sync here is what makes an explicit role flag
+ * behave exactly like a roster-derived chain.
+ */
+function setRoleChain(opts, key, raw) {
+  const chain = splitModelChain(raw);
+  opts.models[key] = chain[0] || '';
+  opts.models.chains = opts.models.chains || {};
+  opts.models.chains[key] = chain;
+  opts._explicitModels[key] = true;
+}
+
 function parseArgs(argv) {
   const opts = {
     plan: null, wave: null, waveRole: null, kind: null, out: null, print: false, jobs: 4,
-    delegateModel: '',
+    delegateModel: '', delegateChain: [],
     models: Object.assign({}, DEFAULT_MODELS), _explicitModels: {}, list: false, help: false,
     selfTestGates: false, selfTestLogFile: '', selfTestExitCode: 0,
-    selfTestOracle: false, selfTestOracleCmd: '', sessions: false, summary: false,
+    selfTestOracle: false, selfTestOracleCmd: '', sessions: false, summary: false, sandbox: false,
   };
   const positionals = [];
   for (const arg of argv) {
@@ -29,6 +65,7 @@ function parseArgs(argv) {
     else if (arg === '--validate') opts.kind = 'validate';
     else if (arg === '--sessions') opts.sessions = true;
     else if (arg === '--summary') opts.summary = true;
+    else if (arg === '--sandbox') opts.sandbox = true;
     // Accepted explicitly so a `/wbWork … --wave=A --no-summary` pass-through
     // doesn't land in positionals and get mistaken for the plan path.
     else if (arg === '--no-summary') opts.summary = false;
@@ -51,22 +88,22 @@ function parseArgs(argv) {
         opts.waveRole = map[r];
       }
     }
-    else if (arg.indexOf('--model=') === 0) opts.delegateModel = arg.slice(8).trim();
-    else if (arg.indexOf('-M=') === 0) opts.delegateModel = arg.slice(3).trim();
+    else if (arg.indexOf('--model=') === 0) opts.delegateChain = splitModelChain(arg.slice(8));
+    else if (arg.indexOf('-M=') === 0) opts.delegateChain = splitModelChain(arg.slice(3));
     // (resolution happens after the loop — see resolveDelegate below)
     else if (arg.indexOf('--out=') === 0) opts.out = arg.slice(6).trim();
     else if (arg.indexOf('--jobs=') === 0) opts.jobs = parseInt(arg.slice(7), 10) || 0;
-    else     if (arg.indexOf('--worker-model=') === 0) { opts.models.worker = arg.slice(15).trim(); opts._explicitModels.worker = true; }
-    else if (arg.indexOf('--worker=') === 0) { opts.models.worker = arg.slice(9).trim(); opts._explicitModels.worker = true; }
-    else if (arg.indexOf('--mech-model=') === 0) { opts.models.mechanical = arg.slice(13).trim(); opts._explicitModels.mechanical = true; }
-    else if (arg.indexOf('--mechanical=') === 0) { opts.models.mechanical = arg.slice(13).trim(); opts._explicitModels.mechanical = true; }
-    else if (arg.indexOf('--validator-model=') === 0) { opts.models.selfValidator = arg.slice(18).trim(); opts._explicitModels.selfValidator = true; }
-    else if (arg.indexOf('--validator=') === 0) { opts.models.selfValidator = arg.slice(12).trim(); opts._explicitModels.selfValidator = true; }
-    else if (arg.indexOf('--planner=') === 0) { opts.models.planner = arg.slice(10).trim(); opts._explicitModels.planner = true; }
-    else if (arg.indexOf('-p=') === 0) { opts.models.planner = arg.slice(3).trim(); opts._explicitModels.planner = true; }
-    else if (arg.indexOf('-v=') === 0) { opts.models.selfValidator = arg.slice(3).trim(); opts._explicitModels.selfValidator = true; }
-    else if (arg.indexOf('-m=') === 0) { opts.models.mechanical = arg.slice(3).trim(); opts._explicitModels.mechanical = true; }
-    else if (arg.indexOf('-w=') === 0) { opts.models.worker = arg.slice(3).trim(); opts._explicitModels.worker = true; }
+    else     if (arg.indexOf('--worker-model=') === 0) { setRoleChain(opts, 'worker', arg.slice(15)); }
+    else if (arg.indexOf('--worker=') === 0) { setRoleChain(opts, 'worker', arg.slice(9)); }
+    else if (arg.indexOf('--mech-model=') === 0) { setRoleChain(opts, 'mechanical', arg.slice(13)); }
+    else if (arg.indexOf('--mechanical=') === 0) { setRoleChain(opts, 'mechanical', arg.slice(13)); }
+    else if (arg.indexOf('--validator-model=') === 0) { setRoleChain(opts, 'selfValidator', arg.slice(18)); }
+    else if (arg.indexOf('--validator=') === 0) { setRoleChain(opts, 'selfValidator', arg.slice(12)); }
+    else if (arg.indexOf('--planner=') === 0) { setRoleChain(opts, 'planner', arg.slice(10)); }
+    else if (arg.indexOf('-p=') === 0) { setRoleChain(opts, 'planner', arg.slice(3)); }
+    else if (arg.indexOf('-v=') === 0) { setRoleChain(opts, 'selfValidator', arg.slice(3)); }
+    else if (arg.indexOf('-m=') === 0) { setRoleChain(opts, 'mechanical', arg.slice(3)); }
+    else if (arg.indexOf('-w=') === 0) { setRoleChain(opts, 'worker', arg.slice(3)); }
     else if (arg.charAt(0) !== '-') positionals.push(arg);
   }
   // --model/-M must resolve to a real dispatchable slug. Passing the raw string
@@ -74,23 +111,39 @@ function parseArgs(argv) {
   // — the F18 failure exactly, in the flag added to prevent guessing. Accept a
   // display name from NAME_TO_SLUG, or a slug that already contains a provider
   // prefix; anything else is rejected loudly rather than dispatched broken.
-  if (opts.delegateModel) {
-    const raw = opts.delegateModel;
-    const mapped = resolveDisplayName(raw);
-    if (mapped) {
-      opts.delegateModel = mapped;
-    } else if (mapped === '') {
-      console.error('❌ --model=' + raw + ' names the in-session Claude sentinel, which cannot be dispatched.');
-      console.error('   Omit --model to run in-session, or name a dispatchable model.');
-      process.exit(1);
-    } else if (raw.indexOf('/') === -1) {
-      console.error('❌ --model=' + raw + ' is not a known model.');
-      console.error('   Use a provider-prefixed slug (e.g. opencode/claude-opus-5,');
-      console.error('   opencode-go/deepseek-v4-pro) or a display name from');
-      console.error('   templates/commands/model_recommendations.md:');
-      console.error('     ' + Array.from(NAME_TO_SLUG.keys()).join(', '));
-      process.exit(1);
+  // Validate EVERY link in the chain, not just its head. A chain whose second
+  // entry is a typo is worse than one that fails immediately: the run looks
+  // healthy until the first model rate-limits, hours in, and the fallback the
+  // chain existed to provide dies on a name nobody checked.
+  if (opts.delegateChain.length) {
+    const resolvedChain = [];
+    for (const raw of opts.delegateChain) {
+      const mapped = resolveDisplayName(raw);
+      if (mapped) {
+        resolvedChain.push(mapped);
+      } else if (mapped === '') {
+        console.error('❌ --model=' + raw + ' names the in-session Claude sentinel, which cannot be dispatched.');
+        console.error('   Omit --model to run in-session, or name a dispatchable model.');
+        process.exit(1);
+      } else if (raw.indexOf('/') === -1) {
+        console.error('❌ --model=' + raw + ' is not a known model.');
+        if (opts.delegateChain.length > 1) {
+          console.error('   (link ' + (opts.delegateChain.indexOf(raw) + 1) + ' of ' +
+                        opts.delegateChain.length + ' in the chain ' + opts.delegateChain.join(' || ') + ')');
+        }
+        console.error('   Use a provider-prefixed slug (e.g. opencode/claude-opus-5,');
+        console.error('   opencode-go/deepseek-v4-pro) or a display name from');
+        console.error('   templates/commands/model_recommendations.md:');
+        console.error('     ' + Array.from(NAME_TO_SLUG.keys()).join(', '));
+        process.exit(1);
+      } else {
+        resolvedChain.push(raw);
+      }
     }
+    opts.delegateChain = resolvedChain;
+    // The head stays in `delegateModel` so every existing reader is unchanged;
+    // a single-model -M therefore behaves byte-identically to before.
+    opts.delegateModel = resolvedChain[0] || '';
   }
 
   if (opts.selfTestGates) {
@@ -233,6 +286,10 @@ function run(argv) {
     console.error('   Run `/wbPlan ' + opts.plan + '` first — self-correct adds it (output_conventions §10.5).');
     return 1;
   }
+  if (matrix.rows.length === 0) {
+    console.log('every row is closed — nothing to schedule');
+    return 0;
+  }
 
   const cells = cellsOf(matrix, opts.wave, opts.kind, opts.waveRole);
   if (!cells) {
@@ -291,7 +348,7 @@ function run(argv) {
         console.log('');
         continue;
       }
-      const r = route(cell, dispatchIndex, opts.models, doneColumn, opts.delegateModel, requiresColumn);
+      const r = route(cell, dispatchIndex, opts.models, doneColumn, opts.delegateModel, requiresColumn, opts.delegateChain, { sandbox: opts.sandbox });
       const lane = cell.held ? 'SKIPPED (held)' : (r.lane === 'claude' ? 'claude (in-session)' : r.cli.bin + ' ' + r.model);
       // The cell's own fallback chain — what runs if the first model cannot.
       var cellChain = (r.chain && r.chain.length > 1)
@@ -316,8 +373,9 @@ function run(argv) {
     planPath: planPath, wave: opts.wave, cells: cells, dispatchIndex: dispatchIndex,
     models: opts.models, jobs: opts.jobs, repoRoot: repoRoot, doneColumn: doneColumn,
     requiresColumn: requiresColumn, sessions: opts.sessions, summary: opts.summary,
+    sandbox: opts.sandbox,
     scopeName: path.basename(packageRoot || repoRoot || '.'),
-    delegateModel: opts.delegateModel,
+    delegateModel: opts.delegateModel, delegateChain: opts.delegateChain,
     verifyColumn: verifyColumn, planDirRel: planDirRel, estTime: estTime,
   });
 
@@ -346,7 +404,8 @@ module.exports = {
   splitRow, parseDoneColumn, parseValidColumn, parseVerifyColumn, parseRequiresColumn, parseTaskText, parseEstTime, sessionKeyFor,
   parseModelRecommendations, extractVerifyCommand, isClaudeExecutor, resolveWbRun,
   parseHeaderRoster, resolveModelsFromRoster, findRepoRoot, findPackageRoot, selfTestGatesMode, selfTestOracleMode, stripAnsi,
-  resolveDisplayName, NAME_TO_SLUG, DEFAULT_MODELS, INFRA_FATAL_MESSAGES, INFRA_GREP_PATTERN 
+  resolveDisplayName, NAME_TO_SLUG, DEFAULT_MODELS, INFRA_FATAL_MESSAGES, INFRA_GREP_PATTERN,
+  splitModelChain 
 };
 
 if (require.main === module) {

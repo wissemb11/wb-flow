@@ -60,7 +60,7 @@ If the plan file is missing, malformed, or if the current code state has no dete
 <!-- FLAGS_SHORTCUTS_START -->
 ## Flags & shortcuts
 
-Long-form and short-form are equivalent — `/wbReview --execute` and `/wbReview -e` produce the same behavior.
+Documented shortcuts are listed below.
 
 | Long form | Shortcut |
 |---|---|

@@ -68,6 +68,22 @@ Maintenance runs include an advisory pass: "feature X could be promoted to Pro",
 **Re-running bootstrap by editing the marker out.** If you want to re-bootstrap a package (rare), do it intentionally: revert the package, delete the marker, run `/wbMonetize` again. Don't half-strip the marker and hope the heuristic catches it — that's the abort case, and you'll have to confirm the override anyway.
 
 > For deeper reading: [`wbMonetize_practical.md`](https://flow.wbc-ui.com/commands/wbMonetize/wbMonetize_practical) (or the `_eli5_`, `_expert_`, `_examples_` siblings).
+
+<!-- FLAGS_TABLE_START -->
+## Flags & shortcuts
+
+| Long form | Shortcut | Meaning |
+|---|---|---|
+| `--stripe` | `-s` | Bootstrap Stripe Checkout wiring as part of the monetization pass. If Stripe configuration is absent, report the missing prerequisite instead of fabricating credentials. |
+
+<!-- FLAGS_TABLE_END -->
+
+<!-- FLAG_NORMALIZE_START -->
+## Flag normalization (apply BEFORE parsing args)
+
+- `-s` → `--stripe`
+
+<!-- FLAG_NORMALIZE_END -->
 <!-- HELP_GATE_END -->
 
 **ROLE:** The Monetization Bootstrapper

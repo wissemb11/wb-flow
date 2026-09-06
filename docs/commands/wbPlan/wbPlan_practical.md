@@ -65,7 +65,7 @@ When refused, answer the question the AI asks. Don't work around it.
 <!-- FLAGS_SHORTCUTS_START -->
 ## Flags & shortcuts
 
-Long-form and short-form are equivalent — `/wbPlan --execute` and `/wbPlan -e` produce the same behavior.
+Documented shortcuts are listed below.
 
 | Long form | Shortcut |
 |---|---|

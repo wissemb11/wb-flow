@@ -152,7 +152,7 @@ const ROLE_PREFERENCE = {
  * (Zen, metered) or `github-copilot/gemini-3.1-pro-preview` — instead of the
  * `agy` one covered by Google One. Same model, wrong wallet.
  */
-const POOL_RANK = {
+const POOL_RANK_FALLBACK = {
   'claude-pro': 0,      // Claude Pro — the in-session root and `claude -p`
   'google-one': 1,      // agy — bare model names
   'opencode-go': 2,     // the Go subscription
@@ -160,9 +160,89 @@ const POOL_RANK = {
   'supergrok': 4,       // grok — SuperGrok, a fifth limit window (xAI)
   'opencode-zen': 5,    // metered, pay-as-you-go
 };
+
+/**
+ * The active provider set, read from `.wb/selected.json`. This is what makes
+ * pool classification DATA-DRIVEN instead of a literal.
+ *
+ * A hard-coded set cannot describe a subscription that starts or lapses. It is
+ * why `opencode-zen` could never fill a role slot (defect #3) and why the same
+ * shape recurs in `CODEX_VERIFIED` and the Step 0 provider defaults. Cached per process:
+ * this is read inside ranking comparators.
+ */
+let _activeProvidersCache;
+function activeProviders() {
+  if (_activeProvidersCache !== undefined) return _activeProvidersCache;
+  _activeProvidersCache = null;
+  const roots = [path.join(process.cwd(), '.wb', 'selected.json')];
+  try {
+    const home = process.env.HOME || os.homedir();
+    if (home) roots.push(path.join(home, '.wb', 'selected.json'));
+  } catch (_) { /* no home is survivable */ }
+  for (const f of roots) {
+    try {
+      if (!fs.existsSync(f)) continue;
+      const j = JSON.parse(fs.readFileSync(f, 'utf8'));
+      if (Array.isArray(j.providers) && j.providers.length) { _activeProvidersCache = j.providers.slice(); break; }
+    } catch (_) { /* unreadable selection falls back, never throws */ }
+  }
+  return _activeProvidersCache;
+}
+/** Test seam — the suite sets the active set without touching disk. */
+function _setActiveProviders(list) { _activeProvidersCache = list === undefined ? undefined : list; }
+
+/**
+ * The POOLS the active providers resolve to.
+ *
+ * `selected.json.providers` holds PROVIDER names (`anthropic`, `openai`), while
+ * classification keys on POOLS (`claude-pro`, `chatgpt`). Mapping between them
+ * is the whole job of this function, and the first version did not do it: it
+ * asked `catalogIndex()` with no argument, which returns `{}`, so every name
+ * fell through to `|| name` and only providers whose name *happens* to equal
+ * their pool worked.
+ *
+ * `opencode-zen` is exactly such a name — which is why the Zen test passed and
+ * `anthropic/claude-opus-5` still classified as NOT a subscription with
+ * `anthropic` in the active set. A test written with the pool name confirmed
+ * itself. Found by the cross-provider validator, not by the suite.
+ *
+ * Reads the catalog's own `providers[]` (the same file `loadCustomModels()`
+ * reads) and falls back to `poolOf('<provider>/x')` — the shared classifier —
+ * before finally accepting the name itself.
+ */
+function poolsOfActiveProviders() {
+  const active = activeProviders();
+  if (!active) return null;
+  let byName = {};
+  try {
+    const cat = loadCustomModels({}) || {};
+    const groups = cat.masterProviders || (cat.raw && cat.raw.providers) || [];
+    for (const p of groups) if (p && p.provider && p.pool) byName[p.provider] = p.pool;
+  } catch (_) { byName = {}; }
+  const pools = [];
+  for (const name of active) {
+    let p = byName[name];
+    if (!p) {
+      const guess = poolOf(String(name) + '/x');
+      p = (guess && guess !== 'unknown') ? guess : name;
+    }
+    if (pools.indexOf(p) === -1) pools.push(p);
+  }
+  return pools.length ? pools : null;
+}
+
 function poolRank(entry) {
-  const r = POOL_RANK[poolOf(entry)];
-  return r === undefined ? 9 : r;   // unnamed credentials sort last
+  const pool = poolOf(entry);
+  // Ranked by the ORDER of the persisted active set, so a user's own priority
+  // decides; unlisted pools sort last. Falls back to the literal above when no
+  // selection exists, so a bare install behaves exactly as before.
+  const active = poolsOfActiveProviders();
+  if (active) {
+    const i = active.indexOf(pool);
+    return i === -1 ? 9 : i;
+  }
+  const r = POOL_RANK_FALLBACK[pool];
+  return r === undefined ? 9 : r;
 }
 
 /**
@@ -175,10 +255,56 @@ function poolRank(entry) {
  * subscription, but the rank test classed it as metered and dropped it from the
  * only two passes that can fill a slot, so no codex model could ever be
  * proposed. Preference and payment are now separate facts.
+ * **No longer a literal (2026-09-02).** A hard-coded set is a claim about which
+ * subscriptions exist, frozen at the moment someone typed it — so it was wrong
+ * the day `opencode-zen` was bought and wrong again the month `opencode-go`
+ * lapsed. `opencode-zen` was absent, so `proposeRoster()` could never propose a
+ * Zen model no matter what the user held: defect #3, and the same shape as
+ * `CODEX_VERIFIED` and the Step 0 provider defaults. The set is now DERIVED from the
+ * user's own persisted provider selection, with the literal kept only as the
+ * bare-install fallback. Preference and payment remain separate facts.
  */
-const SUBSCRIPTION_POOLS = new Set(['claude-pro', 'google-one', 'opencode-go', 'chatgpt', 'supergrok']);
+const SUBSCRIPTION_POOLS_FALLBACK = new Set(['claude-pro', 'google-one', 'opencode-go', 'chatgpt', 'supergrok']);
 function isSubscription(entry) {
-  return SUBSCRIPTION_POOLS.has(poolOf(entry));
+  const pool = poolOf(entry);
+  const active = poolsOfActiveProviders();
+  if (active) return active.indexOf(pool) !== -1;
+  return SUBSCRIPTION_POOLS_FALLBACK.has(pool);
+}
+
+let _catalogPoolCacheKey = null;
+let _catalogPoolCache = null;
+function catalogPoolFor(name, prefix) {
+  let cat = null;
+  try { cat = loadCustomModels({}) || null; } catch (_) { cat = null; }
+  if (!cat || !cat.filepath) return null;
+
+  let key = cat.filepath;
+  try {
+    const st = fs.statSync(cat.filepath);
+    key += ':' + st.mtimeMs + ':' + st.size;
+  } catch (_) { /* an unreadable catalog simply misses the cache */ }
+
+  if (_catalogPoolCacheKey !== key) {
+    const byProvider = Object.create(null);
+    const byModel = new Map();
+    const groups = cat.masterProviders || (cat.raw && cat.raw.providers) || [];
+    if (Array.isArray(groups)) {
+      for (const g of groups) {
+        if (!g || !g.provider || !g.pool) continue;
+        byProvider[g.provider] = g.pool;
+        for (const m of g.models || []) {
+          const slug = typeof m === 'string' ? m : (m && (m.name || m.model));
+          if (slug) byModel.set(slug, g.pool);
+        }
+      }
+    }
+    _catalogPoolCache = { byProvider: byProvider, byModel: byModel };
+    _catalogPoolCacheKey = key;
+  }
+
+  if (!_catalogPoolCache) return null;
+  return _catalogPoolCache.byModel.get(name) || _catalogPoolCache.byProvider[prefix] || null;
 }
 
 function poolOf(entry) {
@@ -198,11 +324,21 @@ function poolOf(entry) {
     return CODEX_ONLY.test(name) ? 'chatgpt' : 'unknown';
   }
   const prefix = name.split('/')[0];
+  const catalogPool = catalogPoolFor(name, prefix);
+  if (catalogPool) return catalogPool;
   if (prefix === 'opencode-go') return 'opencode-go';
   if (prefix === 'opencode') return 'opencode-zen';
   if (prefix === 'anthropic') return 'claude-pro';
   if (prefix === 'xai') return 'supergrok';
-  return prefix;
+  // The `openai/` slugs are served by the ChatGPT/Codex subscription: the
+  // catalog's own `openai` provider carries `pool: "chatgpt"`. Without this
+  // line the prefix falls through to `return prefix`, minting a phantom pool
+  // `openai` that no catalog entry uses — which lets crossProviderPick() score
+  // `Codex (auto)` as an independent validator for an `openai/*` executor
+  // (one subscription, graded as two), and makes a --sync-catalog write
+  // `pool: "openai"` over the catalog's correct `chatgpt`.
+  if (prefix === 'openai') return 'chatgpt';
+  return 'unknown';
 }
 
 /**
@@ -273,8 +409,40 @@ const CODEX_CANDIDATES = [
   'gpt-5.1-codex-mini',
 ];
 
-/** Verified against the owner's plan 2026-08-03 — the safe default seeds. */
-const CODEX_VERIFIED = ['gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-5.4-mini'];
+/**
+ * A first-run seed only; superseded by `--sync-catalog --probe`.
+ *
+ * Codex cannot enumerate itself — `codex models` exists but is interactive-only
+ * (piped: "stdin is not a terminal"; through a pty it renders nothing and exits
+ * 0), so entitlement is knowable only by probing or by reading the picker.
+ * A frozen constant therefore describes whichever plan someone had on the day
+ * they typed it: this list was captured 2026-08-03 and, measured 2026-09-02
+ * against Codex Plus, was **missing `gpt-5.6-sol` — Codex's own default — and
+ * `gpt-5.4`**. That is the failure mode of every hard-coded list in this file.
+ *
+ * `detect()` prefers the PERSISTED set (`verified` + `checkedAt` in models.json)
+ * and falls back here only when the catalog carries no `checkedAt`.
+ */
+const CODEX_VERIFIED = ['gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini'];
+
+/**
+ * The persisted Codex entitlements, if `--sync-catalog --probe` has ever run.
+ * Returns null when the catalog has no `checkedAt`, which is what makes
+ * CODEX_VERIFIED a seed rather than an authority.
+ */
+function persistedCodexVerified() {
+  try {
+    const cat = loadCustomModels({}) || {};
+    for (const p of cat.providers || []) {
+      if (p.provider !== 'openai') continue;
+      const models = (p.models || []).filter(function (m) { return m && typeof m === 'object' && m.checkedAt; });
+      if (!models.length) return null;
+      return models.filter(function (m) { return m.verified; })
+                   .map(function (m) { return String(m.slug).replace(/^openai\//, ''); });
+    }
+  } catch (_) { /* unreadable catalog falls back to the seed */ }
+  return null;
+}
 
 const HELP = `
   wb-flow model — inspect and rewrite the /wb* model roster
@@ -288,6 +456,36 @@ const HELP = `
   Options:
     --detect             Re-read the installed CLIs' catalogs and propose a
                          roster from what is actually credentialed.
+    --sync-catalog       Fill models.json from what THIS machine can reach.
+      (alias --sync)     Enumerates every installed CLI, curates the result, and
+                         three-way-merges it: new models are added, missing ones
+                         are MARKED retired (not deleted — an empty enumeration
+                         is usually a CLI failure), and "pinned": true is immune.
+                         Writes atomically, keeping the previous file as .bak.
+                         Respects --dry-run / --json (both write nothing).
+    --probe              With --sync-catalog: confirm entitlements for providers
+                         that cannot enumerate themselves (codex), stamping
+                         "verified" + "checkedAt" per model. REAL CALLS — never
+                         runs under a plain --sync-catalog.
+    --add=<a,b,c>        Fill ONE OR MORE providers from what this machine can
+                         reach — a scoped --sync-catalog. Accepts the provider
+                         name or its alias (codex=openai, zen=opencode-zen,
+                         agy=antigravity, go=opencode-go, grok=xai).
+                         Per-provider transactional: writes what succeeded,
+                         reports what did not with its remedy, and exits 0 unless
+                         EVERY provider failed. --strict fails on any.
+    --remove=<a,b,c>     Drop providers from the catalog. Refuses one the live
+                         roster still names unless --force.
+    --from-picker        With --add: read a provider's model list from the CLI's
+                         own interactive picker, pasted on stdin (or --from-file).
+                         The only non-probing way to fill codex, which cannot
+                         enumerate itself. Marks each model verified + checkedAt.
+    --from-file=<path>   Read the picker text from a file instead of stdin.
+    --strict             With --add: fail if any named provider could not be filled.
+    --prune              With --sync-catalog: DELETE retired models instead of
+                         marking them. Refuses any slug the live roster still
+                         dispatches to unless --force is also given.
+    --force              Allow --prune to remove a roster-referenced slug.
     --reset              Alias for --detect. The shipped roster is neutral by
                          design, so there is no packaged baseline to restore to
                          — a reset re-derives from what THIS machine can reach.
@@ -318,6 +516,8 @@ const HELP = `
 
 // ─── detection ──────────────────────────────────────────────────────────────
 
+const DEFAULT_ENUM_TIMEOUT_MS = Math.max(1000, parseInt(process.env.WB_FLOW_ENUM_TIMEOUT_MS || '3000', 10) || 3000);
+
 function hasCLI(bin) {
   // `which`, not `command -v` under a shell: shell:true concatenates rather than
   // escapes its args (Node DEP0190) and buys nothing here.
@@ -329,7 +529,7 @@ function tryExec(bin, args, timeout) {
   try {
     return execFileSync(bin, args, {
       encoding: 'utf8',
-      timeout: timeout || 45000,
+      timeout: timeout || DEFAULT_ENUM_TIMEOUT_MS,
       stdio: ['ignore', 'pipe', 'ignore'],
     });
   } catch (_) {
@@ -377,10 +577,17 @@ function credentialedPrefixes(providersOutput, allSlugs) {
 function detect(opts) {
   const o = opts || {};
   const found = { opencode: null, agy: null, codex: null, claude: null, grok: null, slugs: [], providers: [] };
+  const injected = typeof o.hasCLI === 'function' || typeof o.tryExec === 'function';
+  if (!injected && o.noEnum !== false && (o.noEnum === true || process.env.WB_FLOW_NO_ENUM === '1')) {
+    found.noEnum = true;
+    return found;
+  }
+  const canRun = typeof o.hasCLI === 'function' ? o.hasCLI : hasCLI;
+  const execEnum = typeof o.tryExec === 'function' ? o.tryExec : tryExec;
 
-  if (o.hasOpencode !== false && hasCLI('opencode')) {
-    const models = tryExec('opencode', ['models']).split('\n').map((l) => l.trim()).filter(Boolean);
-    const providers = tryExec('opencode', ['providers', 'list']);
+  if (o.hasOpencode !== false && canRun('opencode')) {
+    const models = execEnum('opencode', ['models'], o.timeout).split('\n').map((l) => l.trim()).filter(Boolean);
+    const providers = execEnum('opencode', ['providers', 'list'], o.timeout);
     const cred = credentialedPrefixes(providers, models);
     found.providers = cred.names;
     const usable = models.filter((m) => cred.prefixes.has(m.split('/')[0]));
@@ -390,16 +597,37 @@ function detect(opts) {
     found.slugs = usable.length ? usable : models;
   }
 
-  if (o.hasAgy !== false && hasCLI('agy')) {
-    const list = tryExec('agy', ['models']).split('\n').map((l) => l.trim()).filter(Boolean);
+  if (o.hasAgy !== false && canRun('agy')) {
+    // `agy models` prints "<slug>\t<Display Name>". Keep ONLY the slug.
+    //
+    // Storing the whole line put the display name into every consumer:
+    // proposeRoster() wrote roster entries like
+    //   `claude-opus-4-6-thinking\tClaude Opus 4.6 (Thinking)`
+    // and a dispatch built from that names a model that does not exist. It was
+    // invisible on a machine whose top picks were not agy models — surfaced by a
+    // sandboxed clean install during task 17, not by any test.
+    // `enumerateLive()` had already worked around this locally; the workaround
+    // stays as defence, but the fix belongs here, at the source.
+    const list = execEnum('agy', ['models'], o.timeout)
+      .split('\n')
+      .map((l) => String(l).split('\t')[0].trim())
+      .filter(Boolean);
     found.agy = { models: list };
   }
 
   // codex cannot list its own models (no `codex models` subcommand), so this is
   // the curated candidate set rather than a query. `enumerable: false` tells the
   // caller these are unconfirmed — only --probe can promote them.
-  if (o.hasCodex !== false && hasCLI('codex')) {
-    found.codex = { models: CODEX_CANDIDATES.slice(), verified: CODEX_VERIFIED.slice(), enumerable: false };
+  if (o.hasCodex !== false && canRun('codex')) {
+    // Persisted entitlements outrank the seed — that is the whole point of
+    // writing checkedAt. `fromSeed` lets the caller say which it is showing.
+    const persisted = persistedCodexVerified();
+    found.codex = {
+      models: CODEX_CANDIDATES.slice(),
+      verified: persisted || CODEX_VERIFIED.slice(),
+      fromSeed: !persisted,
+      enumerable: false,
+    };
   }
 
   // grok CAN list its own models (unlike codex), but decorates them: the default
@@ -407,8 +635,8 @@ function detect(opts) {
   // and a "Default model:" line. Keep only bullet lines, strip the decoration,
   // and prefix with `xai/` so poolOf() bills them to `supergrok` — a bare
   // `grok-4.6` has no prefix and would fall through to an `[unknown]` pool.
-  if (o.hasGrok !== false && hasCLI('grok')) {
-    const list = tryExec('grok', ['models'])
+  if (o.hasGrok !== false && canRun('grok')) {
+    const list = execEnum('grok', ['models'], o.timeout)
       .split('\n')
       .map((l) => l.trim())
       .filter((l) => /^[*-]\s+\S/.test(l))
@@ -418,7 +646,7 @@ function detect(opts) {
     found.grok = { models: list };
   }
 
-  found.claude = hasCLI('claude');
+  found.claude = o.hasClaude !== false && canRun('claude');
   return found;
 }
 
@@ -444,7 +672,13 @@ function familyOf(slug) {
     // terra/luna/sol are OpenAI's gpt-5.6 variant names. Stripping them folds
     // the whole codex family to one key, so a chain cannot be gpt-5.6-terra →
     // gpt-5.6-luna → gpt-5.5: three names, one subscription, no real fallback.
-    tail = tail.replace(/[-_](high|medium|low|max|plus|pro|flash|mini|nano|code|codex|preview|customtools|terra|luna|sol)$/i, '');
+    // `lite` and `spark` join the list for the same reason terra/luna/sol did:
+    // they are variant names, not families. Measured 2026-09-03, their absence
+    // let `opencode/gemini-3.5-flash-lite` (family "gemini35flashlite") and
+    // `opencode/gpt-5.3-codex-spark` ("gpt53codexspark") escape the flat-rate
+    // dedupe — metered copies of gemini and gpt surviving in a curated list
+    // while the plain variants of both were correctly dropped.
+    tail = tail.replace(/[-_](high|medium|low|max|plus|pro|flash|mini|nano|lite|spark|code|codex|preview|customtools|terra|luna|sol)$/i, '');
     tail = tail.replace(/([-_.]\d+(\.\d+)*)+$/g, '');
   }
   return tail.replace(/[^a-z0-9]/gi, '').toLowerCase();
@@ -1184,6 +1418,27 @@ function probeModel(slug, timeoutMs, catIdx) {
  * 3. Local workspace file: .wb/models.json
  * 4. User global config file: ~/.config/wb-flow/models.json
  */
+/**
+ * Where `--sync-catalog` writes. Same documented order `loadCustomModels()`
+ * reads by, so the file that is read is the file that is written — resolving
+ * them differently is A15 in a new place.
+ */
+function resolveCatalogPath(opts) {
+  const explicit = (opts && opts.modelsFile) || process.env.WB_MODELS_FILE || null;
+  if (explicit) return explicit;
+  const local = path.join(process.cwd(), '.wb', 'models.json');
+  if (fs.existsSync(local)) return local;
+  const home = process.env.HOME || os.homedir();
+  if (home) {
+    const user = path.join(home, '.wb', 'models.json');
+    if (fs.existsSync(user)) return user;
+    const cfg = path.join(home, '.config', 'wb-flow', 'models.json');
+    if (fs.existsSync(cfg)) return cfg;
+    return user;
+  }
+  return local;
+}
+
 function loadCustomModels(opts) {
   // Documented resolution order (docs/start_here/tutorial_model_picker.md):
   //   $WB_MODELS_FILE -> ./.wb/models.json -> ~/.wb/models.json -> ~/.config/wb-flow/models.json
@@ -1256,10 +1511,23 @@ function saveSelectedRoster(roster, opts) {
     const targetDir = path.join(process.cwd(), '.wb');
     if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
     const selectedFile = path.join(targetDir, 'selected.json');
+    // `providers` is what makes pool classification data-driven (task 5) AND
+    // what pre-checks Step 0 next time (defect #6). Without it the owner
+    // re-toggled every checkbox on every --pick run, and `isSubscription()` had
+    // nothing to derive from.
     const payload = {
       updatedAt: new Date().toISOString(),
       roster: roster,
     };
+    if (opts && Array.isArray(opts.providers) && opts.providers.length) {
+      payload.providers = opts.providers.slice();
+    } else {
+      // Never silently drop a selection a previous run persisted.
+      try {
+        const prev = JSON.parse(fs.readFileSync(selectedFile, 'utf8'));
+        if (Array.isArray(prev.providers) && prev.providers.length) payload.providers = prev.providers;
+      } catch (_) { /* first write, or unreadable — fine */ }
+    }
     fs.writeFileSync(selectedFile, JSON.stringify(payload, null, 2));
   } catch (_) { /* non-fatal */ }
 }
@@ -1665,11 +1933,21 @@ function getAllCatalogModels(customObj, roster) {
 // ─── CLI ────────────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const o = { detect: false, pick: false, set: {}, probe: false, all: false, timeout: 45000, file: null, modelsFile: null, json: false, yes: false, dryRun: false, help: false };
+  const o = { detect: false, pick: false, set: {}, probe: false, all: false, timeout: 45000, file: null, modelsFile: null, json: false, yes: false, dryRun: false, help: false, syncCatalog: false, prune: false, force: false, add: null, remove: null, strict: false, fromPicker: false, fromFile: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--help' || a === '-h') o.help = true;
     else if (a === '--detect' || a === '--reset') o.detect = true;
+    else if (a === '--sync-catalog' || a === '--sync') o.syncCatalog = true;
+    else if (a.indexOf('--add=') === 0) o.add = splitProviderList(a.slice(6));
+    else if (a === '--add') { o.add = splitProviderList(argv[++i] || ''); }
+    else if (a.indexOf('--remove=') === 0) o.remove = splitProviderList(a.slice(9));
+    else if (a === '--remove') { o.remove = splitProviderList(argv[++i] || ''); }
+    else if (a === '--strict') o.strict = true;
+    else if (a === '--from-picker') o.fromPicker = true;
+    else if (a.indexOf('--from-file=') === 0) { o.fromPicker = true; o.fromFile = a.slice(12); }
+    else if (a === '--prune') o.prune = true;
+    else if (a === '--force') o.force = true;
     else if (a === '--pick' || a === '-i') o.pick = true;
     else if (a === '--probe') o.probe = true;
     else if (a === '--all' || a === '-a') o.all = 'default';
@@ -1698,9 +1976,246 @@ function applySet(o, kv) {
   o.set[role] = m[2].split(',').map((s) => s.trim()).filter(Boolean);
 }
 
+/**
+ * `wb-flow model --sync-catalog [--prune] [--force] [--dry-run] [--json] [--yes]`
+ *
+ * Enumerate what THIS machine can reach, curate it, merge it into models.json.
+ * All I/O lives here; the merge itself is bin/catalog_sync.js, which is pure so
+ * the suite can exercise it with no CLIs installed (spec §10).
+ *
+ * The write is atomic — `.tmp` then rename — after copying the previous file to
+ * `.bak`. A half-written catalog is worse than a stale one: the stale file still
+ * routes, the truncated one breaks every dispatch with a JSON parse error.
+ */
+/**
+ * Provider aliases, because a user types what they call the thing.
+ * `codex` is the CLI; `openai` is the provider. `zen` / `go` / `agy` likewise.
+ */
+const PROVIDER_ALIAS = {
+  codex: 'openai', chatgpt: 'openai',
+  zen: 'opencode-zen', opencode: 'opencode-zen',
+  go: 'opencode-go',
+  agy: 'antigravity', google: 'antigravity', gemini: 'antigravity',
+  claude: 'anthropic', grok: 'xai', supergrok: 'xai',
+  copilot: 'github-copilot',
+};
+function resolveProviderName(name) {
+  const k = String(name || '').trim().toLowerCase();
+  return PROVIDER_ALIAS[k] || k;
+}
+function splitProviderList(raw) {
+  return String(raw == null ? '' : raw)
+    .split(/\s*[,|]+\s*/)
+    .map(function (s) { return resolveProviderName(s); })
+    .filter(function (s, i, a) { return s && a.indexOf(s) === i; });
+}
+
+/**
+ * Parse the `codex` interactive picker's own output into slugs.
+ *
+ * Codex is the one provider that cannot be enumerated: `codex models` exists
+ * but is interactive-only (piped it exits "stdin is not a terminal"; through a
+ * pty it renders nothing and exits 0, both measured 2026-09-02). So the picker's
+ * text IS the source of truth, and pasting it is cheaper and more reliable than
+ * probing — which costs real calls.
+ *
+ * Tolerates the `›` cursor, the ` (default)` / ` (current)` markers, and the
+ * trailing description column:
+ *
+ *     1. gpt-5.6-sol (default)    Reliable agentic workhorse for everyday tasks.
+ *   › 2. gpt-5.6-terra (current)  Balanced agentic coding model for everyday work.
+ */
+function parsePickerModels(text) {
+  const out = [];
+  for (const raw of String(text || '').split('\n')) {
+    const line = raw.replace(/^[\s\u203a>*]+/, '').trim();
+    const m = /^\d+\.\s+([A-Za-z0-9][\w.\-]*)/.exec(line);
+    if (!m) continue;
+    const slug = m[1];
+    if (out.indexOf(slug) === -1) out.push(slug);
+  }
+  return out;
+}
+
+function runSyncCatalog(opts) {
+  const CS = require('./catalog_sync.js');
+  const target = resolveCatalogPath(opts);
+
+  // Roster-referenced slugs, needed by both --remove and the merge.
+  let referencedSlugs = [];
+  try {
+    const rf0 = opts.file || resolveRosterFile(null, {});
+    if (rf0 && fs.existsSync(rf0)) {
+      const r0 = readRoster(fs.readFileSync(rf0, 'utf8')) || {};
+      referencedSlugs = ROLE_ORDER.reduce(function (a, role) { return a.concat(r0[role] || []); }, []);
+    }
+  } catch (_) { /* no roster yet */ }
+
+  let existing = { providers: [] };
+  if (fs.existsSync(target)) {
+    try { existing = JSON.parse(fs.readFileSync(target, 'utf8')); }
+    catch (err) {
+      console.error('❌ ' + target + ' is not valid JSON: ' + err.message);
+      console.error('   Refusing to overwrite a file I cannot read — fix or move it first.');
+      return 1;
+    }
+  }
+
+  const known = (existing.providers || []).map(function (p) { return p.provider; });
+
+  // `--add=<list>` is a SCOPED sync: same pipeline, one or more named providers.
+  // `--sync-catalog` alongside it is redundant and accepted — --add already
+  // implies it for the named providers, while a bare --sync-catalog refreshes
+  // everything already in the catalog.
+  const scope = (opts.add && opts.add.length) ? opts.add.slice() : null;
+  if (opts.remove && opts.remove.length) {
+    const gone = [];
+    const kept = (existing.providers || []).filter(function (p) {
+      if (opts.remove.indexOf(p.provider) === -1) return true;
+      const named = (p.models || []).some(function (m) {
+        return referencedSlugs.indexOf(typeof m === 'string' ? m : m.slug) !== -1;
+      });
+      if (named && !opts.force) {
+        console.error('❌ ' + p.provider + ' is named by the live roster — pass --force to remove it.');
+        return true;
+      }
+      gone.push(p.provider);
+      return false;
+    });
+    if (gone.length) {
+      existing = Object.assign({}, existing, { providers: kept });
+      (opts.json ? console.error : console.log)('\n🗑️  removed: ' + gone.join(', '));
+    }
+  }
+  if (scope) {
+    const unknownToCatalog = scope.filter(function (p) { return known.indexOf(p) === -1; });
+    const catalogPools = (existing.providers || []).map(function (p) { return p.pool; });
+    const bad = unknownToCatalog.filter(function (p) { return catalogPools.indexOf(p) === -1 && !PROVIDER_CLI[p]; });
+    if (bad.length === scope.length) {
+      console.error('❌ Unknown provider(s): ' + bad.join(', '));
+      console.error('   Known: ' + (known.join(', ') || '(catalog is empty — run --sync-catalog first)'));
+      return 1;
+    }
+  }
+  const found = detect();
+  // Hand the pool of each catalogued provider across, so enumerateLive can map
+  // a slug prefix back to the NAME this catalog uses (opencode/ -> opencode-zen).
+  const poolOfProvider = {};
+  for (const p of existing.providers || []) if (p.provider && p.pool) poolOfProvider[p.provider] = p.pool;
+  const live = CS.enumerateLive(found, { knownProviders: known, poolOfProvider: poolOfProvider });
+  const held = CS.heldFamiliesOf(live.groups);
+  for (const g of live.groups) g.models = CS.curate(g.models, { heldFamilies: held });
+
+  // A slug the live roster dispatches to must not be pruned out from under it.
+  const referenced = referencedSlugs;
+
+  const merged = CS.mergeCatalog(existing, live, {
+    prune: opts.prune, force: opts.force, referenced: referenced, only: scope,
+  });
+
+  // ── --from-picker: paste the interactive list instead of probing ─────────
+  if (opts.fromPicker) {
+    let text = '';
+    try {
+      text = opts.fromFile ? fs.readFileSync(opts.fromFile, 'utf8') : fs.readFileSync(0, 'utf8');
+    } catch (err) {
+      console.error('❌ --from-picker needs the picker text on stdin or via --from-file=<path>.');
+      return 1;
+    }
+    const slugs = parsePickerModels(text);
+    if (!slugs.length) {
+      console.error('❌ No models parsed from the picker text.');
+      console.error('   Expected lines like:  1. gpt-5.6-sol (default)   <description>');
+      return 1;
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    const targets = scope && scope.length ? scope : Object.keys(CS.NON_ENUMERABLE);
+    for (const name of targets) {
+      let g = merged.providers.filter(function (p) { return p.provider === name; })[0];
+      if (!g) { g = { provider: name, pool: name === 'openai' ? 'chatgpt' : name, cli: PROVIDER_CLI[name] || '', models: [] }; merged.providers.push(g); }
+      const autos = (g.models || []).filter(function (m) { return /\(auto\)$/.test(String(typeof m === 'string' ? m : m.slug)); });
+      g.models = autos.concat(slugs.map(function (s) {
+        return { slug: name === 'openai' ? 'openai/' + s : s, verified: true, checkedAt: today };
+      }));
+      (opts.json ? console.error : console.log)('\n📋 ' + name + ' — ' + slugs.length + ' models from the picker, marked verified ' + today);
+    }
+    merged.catalog.providers = merged.providers;
+  }
+
+  // ── entitlement probe, --probe ONLY ──────────────────────────────────────
+  // Codex cannot enumerate itself, so its group is a candidate list until
+  // something confirms it. `--probe` dispatches one trivial call per candidate
+  // and stamps `verified` + `checkedAt`, which `detect()` then prefers over the
+  // CODEX_VERIFIED seed.
+  //
+  // ⛔ NEVER under a plain --sync-catalog. Probes are real, billable calls, and
+  // a sync that quietly spends money is a sync nobody runs twice.
+  if (opts.probe) {
+    const today = new Date().toISOString().slice(0, 10);
+    for (const g of merged.providers) {
+      if (!CS.NON_ENUMERABLE[g.provider]) continue;
+      (opts.json ? console.error : console.log)('\n🔎 Probing ' + g.provider + ' — real calls, one per candidate…');
+      g.models = (g.models || []).map(function (entry) {
+        const slug = typeof entry === 'string' ? entry : entry.slug;
+        if (/\(auto\)$/.test(String(slug))) return entry;
+        let ok = false;
+        try { ok = !!(probeModel(slug, opts.timeout) || {}).ok; } catch (_) { ok = false; }
+        (opts.json ? console.error : console.log)('   ' + (ok ? '✅' : '❌') + ' ' + slug);
+        const meta = typeof entry === 'string' ? { slug: slug } : Object.assign({}, entry);
+        meta.verified = ok;
+        meta.checkedAt = today;
+        return meta;
+      });
+    }
+    merged.catalog.providers = merged.providers;
+  }
+
+  if (opts.json) {
+    // Under a SCOPED --add, report only what this invocation touched. The
+    // written catalog stays complete — mergeCatalog carries untouched providers
+    // through, which is right for the file and wrong for the report: `--add zen`
+    // answering with all 8 providers cannot be distinguished from a full sync.
+    const reported = scope
+      ? merged.providers.filter(function (p) { return scope.indexOf(p.provider) !== -1; })
+      : merged.providers;
+    console.log(JSON.stringify({ providers: reported, changes: merged.changes }, null, 2));
+    return 0;                                   // --json implies no write
+  }
+
+  console.log('\n🔄 Catalog sync — ' + target + '\n');
+  console.log(CS.diffCatalog(merged.changes));
+  if (merged.changes.reported.length) {
+    console.log('\nℹ️  Credentialed but not in your catalog — add explicitly if you want them:');
+    for (const p of merged.changes.reported) console.log('     wb-flow model --add=' + p);
+  }
+  for (const p of Object.keys(CS.NON_ENUMERABLE)) {
+    if (known.indexOf(p) !== -1) console.log('\n⚠️  ' + p + ': ' + CS.NON_ENUMERABLE[p]);
+  }
+
+  if (opts.dryRun) { console.log('\n--dry-run: nothing written.\n'); return 0; }
+
+  try {
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    if (fs.existsSync(target)) fs.copyFileSync(target, target + '.bak');
+    const tmp = target + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(merged.catalog, null, 2) + '\n');
+    fs.renameSync(tmp, target);
+  } catch (err) {
+    console.error('❌ Could not write ' + target + ': ' + err.message);
+    return 1;
+  }
+  console.log('\n✅ ' + target + (fs.existsSync(target + '.bak') ? '   (previous kept as .bak)' : '') + '\n');
+  return 0;
+}
+
 async function run(argv) {
   const opts = parseArgs(argv || []);
   if (opts.help) { console.log(HELP); return 0; }
+
+  // --sync-catalog writes models.json, not the roster — handled before the
+  // roster is even resolved, so a machine with no model_recommendations.md can
+  // still fill its catalog.
+  if (opts.syncCatalog || (opts.add && opts.add.length) || (opts.remove && opts.remove.length)) return runSyncCatalog(opts);
 
   const needsWrite = opts.detect || opts.pick || Object.keys(opts.set).length > 0 || opts.probe;
   const file = opts.file || resolveRosterFile(null, { forWrite: needsWrite });
@@ -1867,7 +2382,12 @@ async function run(argv) {
       }
     }
 
-    let activeProviders = null;
+    // Named `selectedProviders`, NOT `activeProviders`: the module-level helper
+    // of that name is called a few lines below, and a `let` in this scope
+    // shadows it for the WHOLE block — so `activeProviders()` threw
+    // "activeProviders is not a function" and Step 0 could not run at all.
+    // Invisible to a --yes install, which never reaches the interactive branch.
+    let selectedProviders = null;
     const masterProviders = customObj && (customObj.masterProviders || (customObj.raw && customObj.raw.providers));
 
     if (masterProviders && Array.isArray(masterProviders) && masterProviders.length && process.stdin.isTTY) {
@@ -1880,15 +2400,46 @@ async function run(argv) {
         };
       });
 
-      const defaultProviders = ['anthropic', 'openai', 'xai', 'google', 'antigravity', 'opencode-go'];
+      // DERIVED, never a literal. The old array named `google` (a provider that
+      // does not exist in the catalog — the `gemini` CLI is dead) and omitted
+      // `opencode-zen`, so a Zen subscriber had to hand-check it on every run
+      // while a dead provider was pre-checked for everyone. That is defect #5,
+      // and it is the same shape as SUBSCRIPTION_POOLS and CODEX_VERIFIED.
+      //
+      // Order of preference:
+      //   1. what THIS user persisted last time  (selected.json.providers)
+      //   2. else every catalog provider this machine has a credential for
+      //   3. else everything, so a first run is not an empty checklist
+      const persisted = activeProviders();
+      const credentialed = (found.providers || []).map(function (d) {
+        return String(d).toLowerCase().replace(/\s+/g, '-');
+      });
+      const preferred = persisted && persisted.length
+        ? persisted
+        : masterProviders
+            .map(function (p) { return p.provider; })
+            .filter(function (name) {
+              const key = String(name).toLowerCase();
+              return credentialed.some(function (c) { return c === key || c.indexOf(key) !== -1 || key.indexOf(c) !== -1; });
+            });
       const defaultIndexes = masterProviders
-        .map((p, idx) => (defaultProviders.indexOf(p.provider) !== -1 ? idx : -1))
+        .map((p, idx) => (preferred.indexOf(p.provider) !== -1 ? idx : -1))
         .filter((idx) => idx !== -1);
 
+      // A provider in the catalog that the persisted selection does not enable
+      // is invisible otherwise — the exact way opencode-zen stayed off.
+      if (persisted && persisted.length) {
+        for (const p of masterProviders) {
+          if (persisted.indexOf(p.provider) === -1) {
+            console.log('   ℹ️  ' + p.provider + ' is in your catalog but not enabled — press Space to turn it on.');
+          }
+        }
+      }
+
       const chosenIndexes = await checkboxPick(step0Title, step0Items, defaultIndexes.length ? defaultIndexes : masterProviders.map((_, i) => i));
-      activeProviders = chosenIndexes.map((idx) => step0Items[idx].value);
-      if (activeProviders.length) {
-        console.log('   ✓ Enabled subscriptions: ' + activeProviders.join(', '));
+      selectedProviders = chosenIndexes.map((idx) => step0Items[idx].value);
+      if (selectedProviders.length) {
+        console.log('   ✓ Enabled subscriptions: ' + selectedProviders.join(', '));
       }
     }
 
@@ -1904,15 +2455,15 @@ async function run(argv) {
       // pre-checked default chain, tier-collapsed to one entry per stem.
       const pickIdx = catalogIndex(customObj);
       for (const role of ROLE_ORDER) {
-        const fromProbe = suggestFromProbe(role, probeResults, activeProviders, pickIdx);
-        roster[role] = await pickRole(io, role, found, fromProbe || base[role] || [], meta.unreachable || [], customObj, activeProviders, probeResults);
+        const fromProbe = suggestFromProbe(role, probeResults, selectedProviders, pickIdx);
+        roster[role] = await pickRole(io, role, found, fromProbe || base[role] || [], meta.unreachable || [], customObj, selectedProviders, probeResults);
       }
     } catch (err) {
       if (err && err.wbAbort) { console.log('\n\nAborted — input closed. Nothing was written.'); return 1; }
       throw err;
     } finally { io.close(); }
 
-    saveSelectedRoster(roster, opts);
+    saveSelectedRoster(roster, Object.assign({}, opts, { providers: selectedProviders }));
   }
 
   if (opts.json) { console.log(JSON.stringify({ file: file, roster: roster, meta: meta }, null, 2)); return 0; }
@@ -1940,10 +2491,11 @@ async function run(argv) {
 
 module.exports = {
   run, detect, proposeRoster, pickForRole, renderRosterTable, readRoster, loadCustomModels,
-  writeRosterInto, probeModel, probeResponseError, probeResponseText, extractProbeError, resolveRosterFile, familyOf, versionRank, credentialedPrefixes, pickRole, candidatesFor, IN_SESSION, isInSession, autoAliasForProvider, buildRoleTreeFromProviders, laneOf, poolOf, poolRank, POOL_RANK, NOT_A_CHAT_MODEL, AGY_PREFERENCE, agyRank,
+  writeRosterInto, probeModel, probeResponseError, probeResponseText, extractProbeError, resolveRosterFile, familyOf, versionRank, credentialedPrefixes, pickRole, candidatesFor, IN_SESSION, isInSession, autoAliasForProvider, buildRoleTreeFromProviders, laneOf, poolOf, poolRank, POOL_RANK_FALLBACK, POOL_RANK: POOL_RANK_FALLBACK, NOT_A_CHAT_MODEL, AGY_PREFERENCE, agyRank,
   ROLE_ORDER, ROLE_PREFERENCE, AGY_ONLY, ROSTER_HEADING,
   CODEX_ONLY, CODEX_CANDIDATES, CODEX_VERIFIED,
-  resolveCli, catalogIndex, PROVIDER_CLI, dispatchFor,
+  resolveCli, catalogIndex, PROVIDER_CLI, dispatchFor, isSubscription, persistedCodexVerified, saveSelectedRoster, parsePickerModels, resolveProviderName, splitProviderList, poolRank, activeProviders, _setActiveProviders,
+  hasCLI, tryExec, DEFAULT_ENUM_TIMEOUT_MS,
   selectProbeTargets, renderGrouped, ROLE_TAGS, qualifyModel, getAllCatalogModels,
   collapseTiers, suggestFromProbe, TAG_ROLES,
 };

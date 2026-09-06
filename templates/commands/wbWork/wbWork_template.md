@@ -373,6 +373,57 @@ When the first arg is an existing output file from a prior `/wbWork` run (detect
 - `-W` → `--wave`      *(⚠️ `-w` is `--worker`, NOT `--wave` — superseded 2026-08-01)*
 <!-- FLAG_NORMALIZE_END -->
 
+## ━━━ THE TRAILING-ELLIPSIS CONTRACT (mandatory) ━━━
+
+**If work is still in flight when you finish speaking, the response MUST end with `…` (three dots).**
+Its absence is a promise that nothing is running.
+
+| Ending | Means | The reader should |
+|---|---|---|
+| `…` | ⏳ a dispatch, background job or agent is **still running** | wait — a result is coming |
+| no `…` | ⏹️ you have **stopped** | act: resume, redirect, or accept the result |
+
+**Why this is a rule and not a habit.** A turn can end between the two halves of one row — a file
+written but its oracle not yet run, a cell dispatched but not yet reported — and read exactly like a
+turn that finished. A habit is what fails there; it failed on 2026-09-02, mid-Wave C, and the owner
+had to ask *"is it still running?"* to find out. The marker costs one character and removes the
+question.
+
+Three states, three shapes:
+
+```
+⏳ Running    …ends with an ellipsis, and names what is running and where its output lands…
+⏸️ Paused     no ellipsis. State which row, WHICH HALF of it landed, and the exact resume command.
+✅ Complete   no ellipsis. Rows closed, oracles re-run by hand, next command offered.
+```
+
+**Rules:**
+
+1. **Only a real, live process earns the `…`.** Never as a stylistic trail-off, never on a finished
+   turn. A false `…` is worse than none: it makes the reader wait for something that will never land.
+
+   ⛔ **"I will do it next" is NOT running.** In-session work stops when the turn stops — there is no
+   process continuing between messages. Only a genuinely detached job earns the marker: a spawned
+   agent, a backgrounded shell command, a delegated CLI dispatch. If the next step is something *you*
+   will do, the turn is **⏸️ Paused**, and it owes a resume command.
+
+   | You are about to say | Correct marker |
+   |---|---|
+   | "dispatched row 19 to grok, output → `grok_v19.log`" | ⏳ `…` — a process is detached and alive |
+   | "starting T21 now" | ⏸️ **Paused** — nothing is running; give the resume command |
+   | "T3 and T4 landed, oracles green" | ✅ Complete |
+
+   *Recorded because it happened: on 2026-09-02 this rule was written, and the very next message
+   ended `Starting T21 now …` with no process running. The owner had to ask twice.*
+2. **Name what is running** — the row id, the model or agent, and the file its output goes to. *"Still
+   working…"* is not enough to act on.
+3. **A paused turn owes a resume command**, copy-pasteable, with the `P=` and role assignments it
+   needs. Pausing is legitimate; pausing silently is not.
+4. **Not machine-checkable.** This is a rule about the chat response, not about a file, so `lint`
+   cannot enforce it — stated plainly rather than pretending a gate covers it.
+
+---
+
 **ROLE:** The Worker / Executor
 **TARGET:** The provided plan file (absolute path, relative path, or just the filename).
 **Read first:** [`../_shared/output_conventions.md`](../_shared/output_conventions.md)

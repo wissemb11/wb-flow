@@ -35,6 +35,7 @@ This folder is **not** about how to use commands — it's about the architectura
 - **[`wave-gating`](wave-gating.md)** — the three-gate verdict contract (G1 infra · G2 artifact · G3 oracle), per-id gating for merged cells, and why output text is never a success signal.
 - **[`orchestrator_and_tokens`](orchestrator_and_tokens.md)** — who may root a run (and the temporary `codex` fallback when Claude is limited), plus how to spend the orchestrator's context: `--summary`, merged dispatches, and what is measured versus merely reasoned.
 - **[`model-fallback-chains`](model-fallback-chains.md)** — pool alternation, the `agy` lane, the no-self-delegation rule, and why fallback advances on Gate 1 only.
+- **[`plan-trust-model`](plan-trust-model.md)** — plan files are **untrusted data**: the two execution sinks (task text → model instruction, `Verify` cell → `bash -c`), why the three gates certify a payload that writes its own oracle, and the layered decision (oracle containment · plan-independent evidence · not-a-directive framing · provenance approval).
 
 ### The wbWorkflow architecture
 

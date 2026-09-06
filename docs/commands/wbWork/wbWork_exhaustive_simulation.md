@@ -92,7 +92,7 @@ const workSimPipelines = [
 const wavePipelines = [
   {
     title: "Executing a Wave Cell (--wave=A:W)",
-    cmd: '/wbWork plan.md --wave="A:W" -M="claude:opus 5"',
+    cmd: '/wbWork plan.md --wave="A:W" -M=$WORKER',
     logs: [
       { text: "[SYSTEM] Reading plan.md for Wave A, Worker cell...", type: "sys" },
       { text: "[TRIAGE] Delegating to claude:opus 5 (overriding default roster).", type: "warn" },

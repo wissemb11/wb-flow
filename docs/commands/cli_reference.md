@@ -132,3 +132,37 @@ Below is a comprehensive list of all native `wb-flow` subcommands and their supp
 | `--embed` | | Modifies the target `plan.md` in place to embed the block |
 | `--json` | | Outputs the calculated next state in JSON |
 | `--help` | `-h` | Show usage |
+
+### `wb-flow model --sync-catalog`
+
+Fills `models.json` from what this machine can actually reach — enumerating each installed CLI,
+curating the result, and three-way-merging it into the existing catalog.
+
+| Flag | Effect |
+|---|---|
+| `--sync-catalog` (`--sync`) | refresh every provider already in the catalog |
+| `--add=<a,b,c>` | scoped sync over named providers; aliases accepted (`codex`=openai, `zen`=opencode-zen, `go`=opencode-go, `agy`=antigravity, `grok`=xai) |
+| `--remove=<a,b,c>` | drop providers; refuses one the live roster names without `--force` |
+| `--strict` | with `--add`, fail if any named provider could not be filled (default: partial success exits 0) |
+| `--from-picker` / `--from-file=<p>` | fill a non-enumerable provider from its own interactive picker text |
+| `--probe` | confirm entitlements by dispatching one call per candidate — **real API calls**, never under a plain sync |
+| `--prune` | delete retired models instead of marking them |
+| `--force` | allow `--prune`/`--remove` to touch a roster-referenced slug |
+| `--dry-run` / `--json` | both write nothing |
+
+Writes atomically (`.tmp` + rename) keeping the previous file as `.bak`, and refuses to overwrite a
+catalog it cannot parse.
+
+### Model chains on any dispatch flag
+
+`-M` / `--model=` and the per-role `--planner=` `--validator=` `--worker=` `--mech=` (short: `-p= -v=
+-w= -m=`) all accept a **fallback chain**:
+
+```bash
+-M=openai/gpt-5.5,anthropic/claude-fable-5,gemini-3.1-pro-high   # commas — the emitted form
+-M=$WORKER                                                        # a role variable
+```
+
+Links are tried left to right, advancing only on a Gate-1/INFRA failure, and **every link is
+validated at parse time** — a typo in position 3 is reported immediately, not hours later when the
+head rate-limits. See [`model-fallback-chains.md`](../concepts/model-fallback-chains.md).

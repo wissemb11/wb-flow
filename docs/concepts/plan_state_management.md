@@ -160,7 +160,7 @@ It exits non-zero and names the block that drifted. A plan that fails it is not 
 Two dispatches in the same wave sharing a **scope**, a **role** and a **routed model** merge into one command:
 
 ```bash
-/wbWork plan.md --id=5,6 -M="DeepSeek V4 Pro"   # not two separate invocations
+/wbWork plan.md --id=5,6 -M=$WORKER   # not two separate invocations
 ```
 
 One context read per model per wave instead of *N* — while per-ID report checking and gate verification stay independent, so a merged cell still reports `5 ✓ / 6 ✗`.
@@ -190,7 +190,7 @@ Below every matrix, four explicit non-overlapping scenarios — because "here is
 | # | Scenario | Shape |
 |---|---|---|
 | 1 | Next wave, orchestrated | `/wbWork plan.md --wave=A -y` (work + valid) |
-| 2 | Next wave, individual dispatches | grouped by model, each with its explicit `-M="…"` |
+| 2 | Next wave, individual dispatches | grouped by model, each with its explicit `-M=$WORKER` |
 | 3 | All remaining waves, orchestrated | `--wave=all`, **or** its closest safe equivalent |
 | 4 | All remaining waves, individual dispatches | every wave's commands, in order |
 
@@ -205,3 +205,21 @@ The state machine above governs one file. Across days, `/wbPlan <plan_file.md>` 
 See [Report Lifecycle](report_lifecycle.md) for the full model, including `--archive`.
 
 ---
+
+---
+
+## The Active Model Roster is derived state
+
+A plan's `## 🎛️ Active Model Roster` block is **not** authored once and left. It mirrors the roster
+file that `resolveRosterFile()` resolves, and it is re-derived like any other derived block.
+
+- **Self-correct re-resolves it.** Running a plan-emitting command on an existing file rewrites each
+  role's chain from the roster file. Without this a plan written in August proposes an August lineup
+  in September, and every `--embed` regenerates the staleness.
+- **`wb-flow lint` step-7 — *roster freshness & Multi-ID batching* — fails on drift**, naming the role and both chains, and on cells sharing a
+  wave, role and routed model that were not merged into one `--id=X,Y` dispatch.
+- **Keyed on "the file carries a 🌊 matrix", not "the file is a plan."** `--wbPlan` on `/wbActOn`,
+  `/wbAudit`, `/wbReview` and `/wbStandup` all write plans; `/wbIdea` promotes rows into them; and
+  `/wbWork` + `/wbValid` write their state columns.
+- **A closed plan is exempt.** Its roster is a record of what actually ran, not a claim about now —
+  failing an archived plan for drift would make every historical file permanently red.

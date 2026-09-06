@@ -93,3 +93,14 @@ Run `/wbModel` in zero-touch print mode without stopping for manual decision pro
 ```bash
 .wb/bin/wbRun claude -p --permission-mode auto "/wbModel frontEnd/wbc-ui3/packages/ --wave --as='expert,steps' -y"
 ```
+
+## Filling the catalog
+
+`/wbModel` picks from what the catalog holds. To change what it holds:
+
+```bash
+wb-flow model --sync-catalog     # refresh every known provider
+wb-flow model --add=zen,codex    # add specific ones (aliases accepted)
+```
+
+`--add codex --from-picker` handles Codex, which cannot enumerate itself.

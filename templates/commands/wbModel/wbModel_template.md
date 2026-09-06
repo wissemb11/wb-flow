@@ -136,3 +136,19 @@ When parsing model names (whether simple names like `claude-opus-5`, `fable`, or
 
 5. **Output Confirmation**:
    - Output a summary confirmation table showing the updated `User Models (Active Contractual Reference)` table.
+
+---
+
+## ━━━ CATALOG SYNC ━━━
+
+`/wbModel` edits the **roster** (which model each role dispatches to). The **catalog** — which models
+exist at all — is filled separately:
+
+```bash
+wb-flow model --sync-catalog        # refresh from this machine's CLIs
+wb-flow model --add=zen,codex       # fill specific providers
+```
+
+A role can only be pointed at a model the catalog knows, so a roster edit that names something absent
+will not route. Sync first, then pick. Full flag reference:
+[`cli_reference.md`](../../../docs/commands/cli_reference.md).

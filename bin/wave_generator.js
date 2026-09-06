@@ -4,7 +4,7 @@ const path = require('path');
 const os = require('os');
 const { splitCommand, parseTaskText, extractVerifyCommand } = require('./wave_parser');
 const { route, cliFor } = require('./wave_router');
-const { PKG_ROOT, GATE_LINE_PATTERN, INFRA_GREP_PATTERN, ROLES } = require('./wave_constants');
+const { PKG_ROOT, GATE_LINE_PATTERN, INFRA_GREP_PATTERN, REFUSAL_GREP_PATTERN, ROLES } = require('./wave_constants');
 
 /** The `-s <id> --fork` / `--title <key>` preamble, as one shell line. */
 function sessionArgsShell(key) {
@@ -135,10 +135,51 @@ function emitDispatchGates(L, cmdInfo) {
 
   L.push('  _g9_out=$(mktemp)');
   L.push('  _g9_ran=0; _g9_model=""; _g9_rc=1');
-  L.push('  [ -d "bin/" ] && find bin/ -type f -exec stat -c "%n %Y" {} + | sort > "$_g9_out.mbefore" 2>/dev/null || true');
+  // Snapshot file CONTENT, rather than VCS metadata. `git diff` cannot see the
+  // contents of a pre-existing untracked or ignored file, so it can report a
+  // false NO-OP.
+  //
+  // SCOPED, not workspace-wide — deliberately. Walking $REPO (the monorepo root)
+  // covered 814 153 files, 614 550 of them node_modules, at ~936 s per snapshot
+  // and two snapshots per cell: it hung every dispatch before the agent spawned
+  // (measured 2026-09-04). The contract is therefore "no content changed inside
+  // the plan's own scope, excluding build output", which is checkable in ~4.5 s.
+  // A change made outside the scope is out of contract and will NOT be detected;
+  // that limit is stated rather than silently hoped away. The task_<i>/ report folder is deliberately excluded because
+  // every wbWork agent must write its report there; otherwise the report itself
+  // would make every dispatch look productive. Runner logs and metadata are
+  // excluded for the same reason. The `task_\\d+\\/` spelling is retained in
+  // this comment as the contract's human-readable exclusion pattern.
+  // Resolve the scope AT GENERATION TIME, not at runtime. `$PLAN` exists only as a
+  // line inside each cell's `_meta` heredoc — it is never a shell variable — so a
+  // runtime `dirname "$PLAN"` dies under `set -u` with `PLAN: unbound variable`
+  // (measured 2026-09-04). The scope is the directory owning the `.wb/` tree.
+  var _g9scope = (function () {
+    var p = String(cmdInfo.planPath || '');
+    var k = p.indexOf('/.wb/');
+    if (k > 0) return p.slice(0, k);
+    return cmdInfo.repoRoot;
+  })();
+  L.push('  _g9_scope=' + shq(_g9scope));
+  L.push('  _g9_snapshot_workspace() {');
+  L.push('    local _g9_snapshot="$1" _g9_file _g9_rel _g9_hash');
+  L.push('    find "$_g9_scope" \\');
+  L.push('      \\( -name node_modules -o -name .git -o -name dist -o -name dist-pro \\');
+  L.push('         -o -name dist-free -o -name coverage -o -name build -o -name .next \\');
+  L.push('         -o -name .cache -o -name .vitepress \\) -prune -o \\');
+  L.push('      -type f \\');
+  L.push('      ! -path "$RUN_DIR/*" \\');
+  L.push('      ! -path \'*/tasks/task_[0-9]*/*\' \\');
+  L.push('      -print0 | sort -z | while IFS= read -r -d "" _g9_file; do');
+  L.push('        _g9_rel=${_g9_file#"$_g9_scope"/}');
+  L.push('        _g9_hash=$(sha256sum -- "$_g9_file" | awk \'{print $1}\') || exit 1');
+  L.push('        printf "%s\\t%s\\n" "$_g9_hash" "$_g9_rel"');
+  L.push('      done > "$_g9_snapshot"');
+  L.push('  }');
+  L.push('  _g9_snapshot_workspace "$_g9_out.wbefore"');
 
   chain.forEach(function (m, idx) {
-    const cli = cliFor(m);
+    const cli = cliFor(m, { sandbox: cmdInfo.sandbox });
     L.push('');
     L.push('  # attempt ' + (idx + 1) + '/' + chain.length + ': ' + m);
     L.push('  if [ "$_g9_ran" -eq 0 ]; then');
@@ -187,8 +228,16 @@ function emitDispatchGates(L, cmdInfo) {
       L.push('      ' + shq(inlineTemplatePrompt(parsed.name, args, repoRoot))
              + (cli.stdinNull ? ' < /dev/null' : '') + tail);
     }
-    L.push('    if [ "$_g9_rc" -ne 0 ] || grep -qE ' + shq(INFRA_GREP_PATTERN)
-           + ' <(sed ' + shq('s/\\x1b\\[[0-9;]*m//g') + ' "$_g9_out"); then');
+    if (cmdInfo.sandbox) {
+      L.push('    if grep -qiE ' + shq(REFUSAL_GREP_PATTERN) + ' "$_g9_out" || [ ! -s "$_g9_out" ]; then');
+      L.push('      echo "  G1: REFUSED — sandboxed dispatch could not proceed without permission bypass on ' + m + '"');
+      L.push('      _g9_ran=3; _g9_model=' + shq(m));
+      L.push('    elif [ "$_g9_rc" -ne 0 ] || grep -qE ' + shq(INFRA_GREP_PATTERN)
+             + ' <(sed ' + shq('s/\\x1b\\[[0-9;]*m//g') + ' "$_g9_out"); then');
+    } else {
+      L.push('    if [ "$_g9_rc" -ne 0 ] || grep -qE ' + shq(INFRA_GREP_PATTERN)
+             + ' <(sed ' + shq('s/\\x1b\\[[0-9;]*m//g') + ' "$_g9_out"); then');
+    }
     L.push('      if grep -qi "timeout" "$_g9_out"; then');
     L.push('        echo "  G1: ATTEMPTED (timeout) on ' + m + '"');
     L.push('        _g9_ran=2; _g9_model=' + shq(m) + '');
@@ -202,9 +251,10 @@ function emitDispatchGates(L, cmdInfo) {
     L.push('  fi');
   });
 
-  L.push('  [ -d "bin/" ] && find bin/ -type f -exec stat -c "%n %Y" {} + | sort > "$_g9_out.mafter" 2>/dev/null || true');
-  L.push('  if ! cmp -s "$_g9_out.mbefore" "$_g9_out.mafter" >/dev/null 2>&1; then');
-  L.push('    echo "  [Tree changed: bin/ modified during run]"');
+  L.push('  _g9_snapshot_workspace "$_g9_out.wafter"');
+  L.push('  _g9_tree_changed=1');
+  L.push('  if cmp -s "$_g9_out.wbefore" "$_g9_out.wafter" >/dev/null 2>&1; then');
+  L.push('    _g9_tree_changed=0');
   L.push('  fi');
   L.push('');
   L.push('  if [ "$_g9_ran" -eq 0 ]; then');
@@ -214,6 +264,11 @@ function emitDispatchGates(L, cmdInfo) {
   L.push('  fi');
   L.push('  if [ "$_g9_ran" -eq 2 ]; then');
   L.push('    echo "  VERDICT: ATTEMPTED — agent timed out"');
+  if (!isPrelude) L.push('    echo "__EXIT__=1"');
+  L.push('    rm -f "$_g9_out"; exit 1');
+  L.push('  fi');
+  L.push('  if [ "$_g9_ran" -eq 3 ]; then');
+  L.push('    echo "  VERDICT: REFUSED — sandboxed dispatch requires operator-approved permissions"');
   if (!isPrelude) L.push('    echo "__EXIT__=1"');
   L.push('    rm -f "$_g9_out"; exit 1');
   L.push('  fi');
@@ -290,7 +345,12 @@ function emitDispatchGates(L, cmdInfo) {
     } else {
       L.push('  # G2: Artifact (' + fileType + ' exists)');
       L.push('  if ls ' + shq(globPrefix) + '*' + shq('.md') + ' >/dev/null 2>&1; then');
-      L.push('    echo "  G2 [' + id + ']: PASS"');
+      L.push('    if [ "$_g9_tree_changed" -eq 0 ]; then');
+      L.push('      echo "  G2 [' + id + ']: NO-OP — no workspace content changed (excluding task_' + id + '/ report folder)"');
+      L.push('      _g9_v=NO-OP');
+      L.push('    else');
+      L.push('      echo "  G2 [' + id + ']: PASS"');
+      L.push('    fi');
       L.push('  else');
       L.push('    echo "  G2 [' + id + ']: NO-OP — no ' + fileType + ' at ' + globText + '"');
       L.push('    _g9_v=NO-OP');
@@ -389,6 +449,7 @@ function emitDispatchGates(L, cmdInfo) {
 }
 function buildScript(ctx) {
   const { planPath, wave, cells, dispatchIndex, models, jobs, repoRoot } = ctx;
+  const sandbox = !!ctx.sandbox;
   const verifyColumn = ctx.verifyColumn || {};
   const estTime = ctx.estTime || {};
   const planDirRel = ctx.planDirRel || path.relative(repoRoot, path.dirname(planPath));
@@ -411,7 +472,7 @@ function buildScript(ctx) {
       skipped.push({ cell: cell, why: 'target not found from repo root: ' + parsed.target });
       continue;
     }
-    const r = route(cell, dispatchIndex, models, ctx.doneColumn, ctx.delegateModel, ctx.requiresColumn);
+    const r = route(cell, dispatchIndex, models, ctx.doneColumn, ctx.delegateModel, ctx.requiresColumn, ctx.delegateChain, { sandbox: sandbox });
     (r.lane === 'claude' ? inline : rawSpawned).push({ cell: cell, parsed: parsed, route: r });
   }
 
@@ -467,6 +528,7 @@ function buildScript(ctx) {
   L.push('# report. Checking Done boxes + recomputing the matrix is the orchestrator\'s');
   L.push('# job, ONCE, after this script exits.');
   L.push('#');
+  if (sandbox) L.push('# sandbox: permission and sandbox bypass flags are omitted; permission refusals score REFUSED.');
   if (inline.length) {
     L.push('# NOT run here — these stay with Claude in-session:');
     for (const it of inline) L.push('#   ' + it.cell.command + '   (' + it.route.reason + ')');
@@ -654,6 +716,7 @@ function buildScript(ctx) {
     L.push('CHAIN=' + chainStr);
     L.push('EST=' + estMins);
     L.push('DISPATCH=parallel');
+    L.push('SANDBOX=' + (sandbox ? '1' : '0'));
     L.push('PLAN=' + planPath);
     L.push('METAE');
     // …and a RUN-LEVEL `_meta`, which is the filename output_conventions actually
@@ -668,6 +731,7 @@ function buildScript(ctx) {
     L.push('KIND=' + kindLabel);
     L.push('EXECUTOR=' + (r.model || 'claude (in-session)'));
     L.push('DISPATCH=parallel');
+    L.push('SANDBOX=' + (sandbox ? '1' : '0'));
     L.push('PLAN=' + planPath);
     L.push('METAR');
 
@@ -680,6 +744,7 @@ function buildScript(ctx) {
       verifyColumn: verifyColumn,
       repoRoot: repoRoot,   // codex lane resolves the template path from this
       planPath: planPath,   // wbValid G3 needs to read the plan file
+      sandbox: sandbox,
     };
 
     for (var pi = 0; pi < (cell.prelude || []).length; pi++) {

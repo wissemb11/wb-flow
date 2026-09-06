@@ -163,7 +163,13 @@ That's a full cycle: **plan → execute → validate**, guided by your AI assist
 
 ## 🚀 What's New in v1.0.2
 
-> **You are reading v1.0.4.** The deep-dive below covers **v1.0.2**, the last feature release.
+> **You are reading v1.0.5.** The deep-dive below covers **v1.0.2**, the last release with a full
+> write-up. **1.0.5 is itself a feature release** — a self-maintaining model catalog
+> (`wb-flow model --sync-catalog` / `--add`), fallback chains on every dispatch flag, and
+> role-variable wave matrices. It also ships the [plan trust model](docs/concepts/plan-trust-model.md),
+> `wb-flow wave --sandbox` dispatches whose refusals are scored `REFUSED` rather than `PASS`, a
+> content-hash no-op gate over the whole workspace, and a `prepublishOnly` backup-artifact assert
+> that keeps files such as `bin/model.js.bak` out of the npm tarball. See [CHANGELOG](CHANGELOG.md).
 > The two releases since it are maintenance-only and are documented in
 > [CHANGELOG.md](CHANGELOG.md):
 > **1.0.3** — `--command` emission gated to `opencode` (it broke every `/wbValid` wave cell on
@@ -290,7 +296,7 @@ See the full [What's New Guide](docs/new.md) and [Detailed Technical Release Not
 The complete reference — all 33 commands, workflow concepts, daily use patterns, and session lifecycle — is available in two places:
 
 * **[→ What's New in v1.0.2](docs/new.md)** — concise summary of the last feature release
-* **[→ CHANGELOG](CHANGELOG.md)** — every release including **1.0.3** and **1.0.4** (maintenance)
+* **[→ CHANGELOG](CHANGELOG.md)** — every release, including **1.0.5** (feature) and the two maintenance releases before it
 * **[→ Detailed Technical Guide](docs/detailed_news.md)** — comprehensive code & terminal examples
 * **[→ GitHub Docs](docs/README.md)** — browse the full documentation hub
 * **[→ flow.wbc-ui.com](https://flow.wbc-ui.com)** — the dedicated documentation website
@@ -321,3 +327,15 @@ This documentation — all 250+ files, 33 command references, and concept pages 
 
 *License: MIT © 2026 Wissem Boughamoura. See [LICENSE](LICENSE).*
 *Changelog: see [CHANGELOG.md](CHANGELOG.md).*
+
+## Model catalog
+
+`wb-flow` ships a **skeleton** catalog — provider names only, no models — because a catalog copied
+from someone else's machine fails late and confusingly. Fill it from your own CLIs:
+
+```bash
+wb-flow model --sync-catalog     # everything this machine can reach
+wb-flow model --add=zen,codex    # or one provider at a time
+```
+
+`wb-flow init` does this for you on a fresh install.

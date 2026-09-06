@@ -133,6 +133,19 @@ The rest of this template documents only the long forms; the substitution above 
 
 ---
 
+
+## ━━━ Active Model Roster ━━━
+
+This command emits a `## 🌊 Next Executable Sequence`, so **`../_shared/output_conventions.md`
+§10 rules 5, 5b and 12 apply to its output in full.**
+
+**Read them there.** Nothing about them is restated, summarised or exemplified here — ten copies of
+one rule are ten things to keep in step, which is the duplication rule 5 exists to remove. Even the
+one-line gloss this block used to carry was a summary, and a summary drifts from what it summarises.
+`wb-flow lint` **step-7** gates this command's output on rules 5b and 12.
+
+---
+
 ## ━━━ DETECTION (Self-Correct Mode) ━━━
 
 Trigger self-correct when the input file's first H1 matches:

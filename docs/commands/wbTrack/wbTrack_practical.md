@@ -64,7 +64,7 @@ See [`../../concepts/self_correct_mode`](../../concepts/self_correct_mode.md) fo
 <!-- FLAGS_SHORTCUTS_START -->
 ## Flags & shortcuts
 
-Long-form and short-form are equivalent — `/wbTrack --execute` and `/wbTrack -e` produce the same behavior.
+Documented shortcuts are listed below.
 
 | Long form | Shortcut |
 |---|---|

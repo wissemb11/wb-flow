@@ -140,6 +140,7 @@ function resolveAgentList(spec, scope) {
 }
 
 async function run(argv) {
+  let detected = null;   // one enumeration, shared by the catalog fill and the roster step
   const opts = parseArgs(argv || []);
 
   if (opts.help) {
@@ -320,6 +321,73 @@ async function run(argv) {
             fs.mkdirSync(path.join(os.homedir(), '.wb'), { recursive: true });
             fs.copyFileSync(path.join(PKG_TEMPLATES, 'models.json'), userDotWb);
             console.log('📁 models.json → ' + userDotWb);
+            // The seed is a provider INDEX, not a catalog: it names which
+            // providers exist and which CLI reaches each, with empty model
+            // lists. Saying so here is the difference between "wb-flow shipped
+            // me an empty file" and "wb-flow is waiting for one command".
+            //
+            // Before this, the seed was byte-identical to a developer's own
+            // ~/.wb/models.json, so a fresh install silently inherited someone
+            // else's subscriptions and every dispatch died at Gate 1 with
+            // `Model not found` — much later, and nowhere near the cause.
+            console.log('   ↳ empty by design — it lists providers, not models.');
+          }
+
+          // ── fill the catalog from THIS machine ──────────────────────────
+          // init already calls MODEL.detect() forty lines below, at the roster
+          // step, and then throws that enumeration away for the catalog — the
+          // seed was copied verbatim above. That is defect #1 restated at the
+          // install layer: the work is already paid for.
+          //
+          // So enumerate ONCE here and reuse it for both. Non-fatal by rule —
+          // this file's own comment says "Never fail an install over the roster:
+          // the wiring is the point", and a catalog fill is no different.
+          try {
+            detected = MODEL.detect();
+            const CS = require('./catalog_sync.js');
+            const seedCat = JSON.parse(fs.readFileSync(userDotWb, 'utf8'));
+            const known = (seedCat.providers || []).map(function (p) { return p.provider; });
+            const poolOfProvider = {};
+            for (const p of seedCat.providers || []) if (p.provider && p.pool) poolOfProvider[p.provider] = p.pool;
+
+            // Which providers to fill: the persisted Step 0 selection if there
+            // is one, else every catalogued provider this machine can reach.
+            const persisted = MODEL.activeProviders();
+            const reachable = (detected.providers || []).map(function (d) {
+              return String(d).toLowerCase().replace(/\s+/g, '-');
+            });
+            const scope = (persisted && persisted.length)
+              ? persisted
+              : known.filter(function (n) {
+                  const k = String(n).toLowerCase();
+                  return reachable.some(function (c) { return c === k || c.indexOf(k) !== -1 || k.indexOf(c) !== -1; });
+                });
+
+            if (!interactive && !scope.length) {
+              console.log('   ↳ fill it from THIS machine:  wb-flow model --sync-catalog');
+              console.log('   ↳ or one provider at a time:  wb-flow model --add=<provider>');
+            } else if (scope.length) {
+              const live = CS.enumerateLive(detected, { knownProviders: known, poolOfProvider: poolOfProvider });
+              const held = CS.heldFamiliesOf(live.groups);
+              for (const g of live.groups) g.models = CS.curate(g.models, { heldFamilies: held });
+              const merged = CS.mergeCatalog(seedCat, live, { only: scope });
+              fs.writeFileSync(userDotWb, JSON.stringify(merged.catalog, null, 2) + '\n');
+              for (const g of merged.providers) {
+                if (scope.indexOf(g.provider) === -1) continue;
+                const n = (g.models || []).filter(function (m) { return !(m && m.retired); }).length;
+                console.log('   ✅ ' + g.provider.padEnd(16) + n + ' models');
+              }
+              for (const p of merged.changes.reported || []) {
+                console.log('   ℹ️  ' + p.padEnd(16) + 'credentialed but not in your catalog — wb-flow model --add=' + p);
+              }
+              for (const p of Object.keys(CS.NON_ENUMERABLE)) {
+                if (scope.indexOf(p) !== -1) console.log('   ⚠️  ' + p.padEnd(16) + CS.NON_ENUMERABLE[p]);
+              }
+            }
+          } catch (err) {
+            // Never fail an install over the catalog.
+            console.log('   ↳ catalog fill skipped: ' + (err && err.message ? err.message : err));
+            console.log('   ↳ run it yourself:  wb-flow model --sync-catalog');
           }
         } catch (_) {}
       }
@@ -362,7 +430,7 @@ async function run(argv) {
         if (fs.existsSync(rosterPath)) {
           console.log('');
           console.log('🎛️  Model roster');
-          const found = MODEL.detect();
+          const found = detected || MODEL.detect();   // reuse the enumeration paid for above
           const bits = [];
           if (found.opencode) bits.push('opencode (' + found.opencode.credentialed + ' credentialed)');
           if (found.agy) bits.push('agy (' + found.agy.models.length + ' models)');

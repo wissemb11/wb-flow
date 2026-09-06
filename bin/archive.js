@@ -79,7 +79,9 @@ const HELP = `
   category stays put.
 
   Passing a report FILE pins it as the keeper for its own category — everything
-  older than it is archived, everything newer is left alone.
+  older than it is archived, everything newer is left alone. --keep=N does not
+  combine with a file target (the two resolve DIFFERENT keeper sets) and is
+  rejected rather than silently honoured or dropped.
 
   Options:
     --type=<a,b>         Categories to sweep (default: every non-exempt one found)
@@ -91,6 +93,7 @@ const HELP = `
     --all                Sweep every category, exempt ones included
     --no-banner          Do not insert the 🗄️ ARCHIVED banner into moved files
     --no-log             Do not append to archives/archive_log.md
+    --force              Archive even if a referrer still points into a moving folder
     --restore=<path>     Move an archived folder back under reports/ and exit
     --list               Show what is already archived and exit
     --root=<dir>         Where .wb/ lives (default: nearest .wb/ walking up)
@@ -249,6 +252,68 @@ function insertBanner(file, keeperHref, keeperName, fromRel) {
   else out = banner + text;
   fs.writeFileSync(file, out);
   return true;
+}
+
+/** Markdown link targets in a body — `](target)`, skipping URLs, anchors and titled links' title text. */
+function extractLinks(text) {
+  const out = [];
+  const re = /\]\(([^)]+)\)/g;
+  let m;
+  while ((m = re.exec(text))) {
+    let href = m[1].trim();
+    const sp = href.indexOf(' ');
+    if (sp !== -1) href = href.slice(0, sp);
+    if (!href || /^(https?:|mailto:|#)/i.test(href)) continue;
+    out.push(href);
+  }
+  return out;
+}
+
+/** Every `.md` under `dir`, walking into `.wb` (where reports/archives live) but not `node_modules`/`.git`/`dist`. */
+function walkMarkdown(dir, acc) {
+  acc = acc || [];
+  let entries;
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (e) { return acc; }
+  for (const entry of entries) {
+    const n = entry.name;
+    if (n === 'node_modules' || n === '.git' || n === 'dist') continue;
+    if (n.charAt(0) === '.' && n !== '.wb') continue;
+    const full = path.join(dir, n);
+    if (entry.isDirectory()) walkMarkdown(full, acc);
+    else if (/\.md$/i.test(n)) acc.push(full);
+  }
+  return acc;
+}
+
+/**
+ * Referrers: markdown files OUTSIDE a moving folder whose relative links resolve
+ * INTO it. Archiving preserves links INSIDE a moved file (same-depth mirroring
+ * keeps them resolving); a file that stays behind in reports/ and pointed at the
+ * moved folder is exactly the case mirroring cannot fix — the link breaks silently.
+ * Measured 2026-09-06: one sweep broke 9 such hrefs in an absorbing plan.
+ */
+function findReferrers(root, moves) {
+  if (!moves.length) return [];
+  const movingDirs = moves.map(function (m) { return path.resolve(m.from); });
+  const insideAMove = function (p) {
+    return movingDirs.some(function (d) { return p === d || p.indexOf(d + path.sep) === 0; });
+  };
+  const candidates = walkMarkdown(root).filter(function (f) { return !insideAMove(path.resolve(path.dirname(f))); });
+  const referrers = [];
+  for (const file of candidates) {
+    let text;
+    try { text = fs.readFileSync(file, 'utf8'); } catch (e) { continue; }
+    for (const href of extractLinks(text)) {
+      const resolved = path.resolve(path.dirname(file), href);
+      for (const d of movingDirs) {
+        if (resolved === d || resolved.indexOf(d + path.sep) === 0) {
+          referrers.push({ file: file, href: href, movingDir: d });
+          break;
+        }
+      }
+    }
+  }
+  return referrers;
 }
 
 function appendLog(root, rows) {
@@ -411,10 +476,10 @@ function apply(plan, opts) {
 
 function parseArgs(argv) {
   const o = {
-    target: null, types: null, keep: 1, before: null, recursive: false,
+    target: null, types: null, keep: 1, keepExplicit: false, before: null, recursive: false,
     include: [], all: false, noBanner: false, noLog: false, restore: null,
     list: false, root: null, dryRun: false, json: false, help: false,
-    keepFile: null, keepFileCategory: null,
+    keepFile: null, keepFileCategory: null, force: false,
   };
   for (const a of argv) {
     if (a === '--help' || a === '-h') o.help = true;
@@ -422,13 +487,14 @@ function parseArgs(argv) {
     else if (a === '--all') o.all = true;
     else if (a === '--no-banner') o.noBanner = true;
     else if (a === '--no-log') o.noLog = true;
+    else if (a === '--force') o.force = true;
     else if (a === '--recursive' || a === '-R') o.recursive = true;
     else if (a === '--include-standups') o.include.push('standups');
     else if (a === '--include-tracks') o.include.push('tracks');
     else if (a === '--dry-run' || a === '-n') o.dryRun = true;
     else if (a === '--json') o.json = true;
     else if (a.indexOf('--type=') === 0) o.types = a.slice(7).split(',').map(function (s) { return s.trim(); }).filter(Boolean);
-    else if (a.indexOf('--keep=') === 0) o.keep = parseInt(a.slice(7), 10) || 1;
+    else if (a.indexOf('--keep=') === 0) { o.keep = parseInt(a.slice(7), 10) || 1; o.keepExplicit = true; }
     else if (a.indexOf('--before=') === 0) o.before = a.slice(9).replace(/-/g, '');
     else if (a.indexOf('--restore=') === 0) o.restore = a.slice(10);
     else if (a.indexOf('--root=') === 0) o.root = a.slice(7);
@@ -449,6 +515,18 @@ function run(argv) {
     if (!opts.types) opts.types = [opts.keepFileCategory];
   }
 
+  // A file target and an explicit --keep resolve DIFFERENT keeper sets — the
+  // file pin keeps everything from itself backward; --keep=N keeps a count.
+  // Honouring one and dropping the other silently is worse than refusing.
+  if (opts.keepFile && opts.keepExplicit) {
+    console.error('\n❌ --keep=' + opts.keep + ' cannot be combined with a file target (' +
+      path.relative(process.cwd(), opts.keepFile) + ').\n' +
+      '   A file target pins ITS OWN folder as the keeper; --keep=N resolves a different,\n' +
+      '   count-based keeper set. Pick one: pass a directory with --keep=N, or drop --keep\n' +
+      '   to use the file pin.\n');
+    return 1;
+  }
+
   const root = opts.root ? path.resolve(opts.root) : findRoot(opts.target);
 
   if (opts.restore) return doRestore(root, opts.restore, opts);
@@ -462,6 +540,26 @@ function run(argv) {
 
   const plans = scopes.map(function (s) { return planScope(s, opts); });
   const total = plans.reduce(function (n, p) { return n + p.moves.length; }, 0);
+
+  const referrers = [];
+  for (const p of plans) referrers.push.apply(referrers, findReferrers(p.root, p.moves));
+  if (referrers.length && !opts.force) {
+    if (opts.json) {
+      console.log(JSON.stringify({
+        error: 'referrers',
+        referrers: referrers.map(function (r) {
+          return { file: path.relative(process.cwd(), r.file), href: r.href, movingDir: path.relative(process.cwd(), r.movingDir) };
+        }),
+      }, null, 2));
+      return 1;
+    }
+    console.error('\n❌ Refusing to archive — ' + referrers.length + ' referrer(s) still point into a folder about to move:\n');
+    for (const r of referrers) {
+      console.error('   ' + path.relative(process.cwd(), r.file) + '  →  ' + r.href + '  (into ' + path.relative(process.cwd(), r.movingDir) + ')');
+    }
+    console.error('\n   Fix the link(s), or re-run with --force to archive anyway (the reference will break).\n');
+    return 1;
+  }
 
   if (opts.json) {
     const applied = opts.dryRun ? [] : plans.map(function (p) { return apply(p, opts); });
@@ -511,6 +609,7 @@ function run(argv) {
 module.exports = {
   run, parseArgs, planScope, findScopes, findRoot, listDateDirs,
   primaryFile, insertBanner, pruneEmpty, singular,
+  findReferrers, extractLinks, walkMarkdown,
   EXEMPT_CATEGORIES, PAYLOAD_DIRS, CATEGORY_PREFIX,
 };
 

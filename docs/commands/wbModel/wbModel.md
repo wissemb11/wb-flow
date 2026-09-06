@@ -226,3 +226,14 @@ wb-flow wave <plan.md> --wave=A --list
 ```
 
 <!-- MODEL_FILES_END -->
+
+## Filling the catalog
+
+`/wbModel` picks from what the catalog holds. To change what it holds:
+
+```bash
+wb-flow model --sync-catalog     # refresh every known provider
+wb-flow model --add=zen,codex    # add specific ones (aliases accepted)
+```
+
+`--add codex --from-picker` handles Codex, which cannot enumerate itself.

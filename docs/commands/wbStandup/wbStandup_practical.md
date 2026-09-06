@@ -51,7 +51,7 @@ Skipping the first → you work on the wrong package. Skipping the second → th
 <!-- FLAGS_SHORTCUTS_START -->
 ## Flags & shortcuts
 
-Long-form and short-form are equivalent — `/wbStandup --execute` and `/wbStandup -e` produce the same behavior.
+Documented shortcuts are listed below.
 
 | Long form | Shortcut |
 |---|---|

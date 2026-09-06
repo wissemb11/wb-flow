@@ -62,18 +62,32 @@ Skim these before executing. If the details are vague, the plan is bad; fix it b
    - If model flags (`--planner`, `--validator`, `--worker`, `--mechanical`) are passed in the command, use those models to construct the matrix.
    - If no model flags are passed, use the baseline active choices from `commands/model_recommendations.md`.
 
-2. **Plan Model Roster Header**:
-   - When generating or updating the matrix, write the model roster header directly under `## 🌊 Next Executable Sequence`:
+2. **Active Model Roster — a top-level section, ABOVE the Task Table**:
+   - Not inside `## 🌊 Next Executable Sequence`. The **task table consumes it too** — its
+     `Worker (Suggested)` / `Validator (Suggested)` columns name the same per-role chains — and a
+     definition placed ~60 lines below its first use is a definition nobody reads.
      ```markdown
-     ## 🌊 Next Executable Sequence
+     ## 🎛️ Active Model Roster
 
-     > **Active Model Roster for this Plan:**
-     > 🧠 **Planner:** `modelA || modelB`
-     > ✅ **Validator:** `modelE`
-     > 🔨 **Worker:** `modelC || modelD`
-     > 📋 **Mechanical:** `modelF`
+     > 🧠 **Planner:** `modelA || modelB || modelC`
+     > ✅ **Validator:** `modelD || modelE`
+     > 🔨 **Worker:** `modelF || modelG`
+     > 📋 **Mechanical:** `modelH || modelI`
      ```
-   - Future dispatches of `/wbWork` or `/wbValid` on this plan automatically read and honor these persisted model choices.
+   - **Cells reference a ROLE, never a model** (`_shared/output_conventions.md` §10 rules 5 and 5b):
+     `-M=$WORKER`, annotated `→ *$WORKER · ~$cost (flat head)*`. The cost is quoted at the chain's
+     **first** pick and must say so.
+   - **Why:** a cell naming one model is wrong the moment a subscription changes, and this matrix is
+     regenerated on every `--embed`, so the staleness returns as fast as it is fixed. Measured
+     2026-09-02: a plan named `opencode-go/*` for two roles for **ten days**, including a month in
+     which that subscription had lapsed. A role variable makes that one roster edit instead of every
+     cell in the file.
+   - A per-row `Suggested` cell is an **override** — *"this row deliberately departs from the role"* —
+     never a re-typed copy of the role's chain.
+   - **Self-correct (§3) MUST re-resolve this block** from the roster file `resolveRosterFile()`
+     picks. Future `/wbWork` and `/wbValid` dispatches read it, so a stale block silently mis-routes.
+   - **`wb-flow lint` step-7 enforces it** — roster drift and unmerged same-model cells (§10 rule 12)
+     both fail the gate, so neither can reach a plan file unnoticed again.
 
 - **Duration Estimation Requirement**: Each task cell entry in the `## 🌊 Next Executable Sequence` matrix table **MUST append the estimated task duration** extracted from the task table's `Est. Time (mins)` column, formatted as `*(⏱️ <min> min)*` (e.g., `→ *DeepSeek V4 Pro* *(⏱️ 15 min)*`).
   - This is a **`/wbPlan`-only extension** to `_shared/output_conventions.md` §10.2 rule 5, sanctioned there because a plan's task table owns the `Est. Time (mins)` column the value is read from. The other matrix-emitting commands (`/wbAudit`, `/wbReview`, `/wbSecure`, `/wbStandup`, `/wbNext`, `/wbIdea`, `/wbActOn`) have no such column and MUST NOT add ⏱️ — a synthesized minute-count reads as measured data.
@@ -190,6 +204,8 @@ Both forms are equivalent — pass either:
 | `--resume` | `-r` |
 | `--scope` | `-s` |
 | `--task` | `-t` |
+| `--focus="<sub-system>"` | `-f` | Scope planning to a subsystem or topic and keep generated rows inside that boundary. |
+| `--continue-tomorrow` | — | Add a handover header that summarizes current progress and pending decisions for the next session. |
 | `--id` | `-i` | Specifies task indices to target for state manipulation. |
 | `--open` | `-o` | Sets BOTH `☐ Done` and `☐ Valid` states to `⬜` (Open). |
 | `--def` | `-d` | Sets BOTH `☐ Done` and `☐ Valid` states to `⏸️ Deferred`. |
@@ -281,8 +297,10 @@ Every `/wbWork` and `/wbPlan` response **must** print, immediately below the `##
 
 #### 2. Next wave dispatches (without --wave flag — grouped by model)
 ```bash
-/wbWork <plan> --id=2,3 -M="opencode-go/deepseek-v4-pro"
-/wbValid <plan> --id=1,5 -M="opencode-go/kimi-k2.7-code"
+WORKER=modelF,modelG
+VALIDATOR=modelD,modelE
+/wbWork <plan> --id=2,3 -M=$WORKER
+/wbValid <plan> --id=1,5 -M=$VALIDATOR
 ```
 
 #### 3. All remaining waves execution (with --wave flag)
@@ -293,8 +311,10 @@ Every `/wbWork` and `/wbPlan` response **must** print, immediately below the `##
 #### 4. All remaining waves dispatches (without --wave flag)
 ```bash
 # Wave A:
-/wbWork <plan> --id=2,3 -M="opencode-go/deepseek-v4-pro"
-/wbValid <plan> --id=1,5 -M="opencode-go/kimi-k2.7-code"
+WORKER=modelF,modelG
+VALIDATOR=modelD,modelE
+/wbWork <plan> --id=2,3 -M=$WORKER
+/wbValid <plan> --id=1,5 -M=$VALIDATOR
 # Wave B:
 /wbWork <plan> --id=8 -M="opencode-go/deepseek-v4-pro"
 /wbValid <plan> --id=8 -M="Claude Opus 5"
@@ -401,6 +421,7 @@ Before processing `$ARGUMENTS`, normalize these short-form flags to their long e
 - `-r` → `--resume`
 - `-s` → `--scope`
 - `-t` → `--task`
+- `-f` → `--focus`
 - `-i` → `--id`
 - `-o` → `--open`
 - `-d` → `--def`

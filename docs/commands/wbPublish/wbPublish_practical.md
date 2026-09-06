@@ -39,7 +39,7 @@ Auth failures, rate limits, registry outages. The AI's recovery output gives spe
 <!-- FLAGS_SHORTCUTS_START -->
 ## Flags & shortcuts
 
-Long-form and short-form are equivalent — `/wbPublish --execute` and `/wbPublish -e` produce the same behavior.
+Documented shortcuts are listed below.
 
 | Long form | Shortcut |
 |---|---|

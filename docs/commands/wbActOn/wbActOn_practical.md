@@ -111,7 +111,7 @@ Built from `/wbAudit packages/wb-core/` on 2026-04-26. Every future `/wbActOn` r
 <!-- FLAGS_SHORTCUTS_START -->
 ## Flags & shortcuts
 
-Long-form and short-form are equivalent — `/wbActOn --execute` and `/wbActOn -e` produce the same behavior.
+Documented shortcuts are listed below.
 
 | Long form | Shortcut |
 |---|---|
