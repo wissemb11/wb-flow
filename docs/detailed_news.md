@@ -1,18 +1,101 @@
 ---
-title: "wb-flow (v1.0.2) — Detailed Release Innovations & Technical Guide"
-description: "This document provides a comprehensive deep-dive with code examples, terminal traces, script logic, and matrix specifications for all new capabilities introduce"
+title: "wb-flow 1.0.5 — Detailed Release Innovations & Technical Guide"
+description: "Technical guide to wb-flow 1.0.5: model catalog sync, sandboxed dispatches, plan trust, content-hash no-op scoring, and release packaging fixes."
 ---
 
-# `wb-flow` (v1.0.2) — Detailed Release Innovations & Technical Guide
+# `wb-flow` 1.0.5 — Detailed Release Innovations & Technical Guide
 
-> **Current release is v1.0.5.** This page documents **v1.0.2**, the last release with a full
-> write-up. The two releases between them were maintenance only; **1.0.5** is a feature release —
-> a self-maintaining model catalog (`wb-flow model --sync-catalog` / `--add`), model fallback chains
-> on every dispatch flag, and role-variable wave matrices. See
-> [`CHANGELOG.md`](https://github.com/wissemb11/wb-flow/blob/main/CHANGELOG.md) for the full entry.
+> Released 2026-09-04. Source of truth:
+> [`CHANGELOG.md`](https://github.com/wissemb11/wb-flow/blob/main/CHANGELOG.md),
+> **[`RELEASE_1.0.5.md`](https://github.com/wissemb11/wb-flow/blob/main/RELEASE_1.0.5.md)**, and
+> **[`release_body_v1.0.5.md`](https://github.com/wissemb11/wb-flow/blob/main/_deploy_/release_body_v1.0.5.md)**.
 
+This page now leads with the 1.0.5 technical changes. The original v1.0.2 deep dive is retained
+below as archived history.
 
-This document provides a comprehensive deep-dive with code examples, terminal traces, script logic, and matrix specifications for all new capabilities introduced in `wb-flow` (v1.0.2) compared to `v1.0.1`.
+## 1.0.5 Technical Map
+
+| Area | What changed |
+|---|---|
+| Plan trust | The accepted **[plan trust model](/concepts/plan-trust-model)** states that plan task text and `Verify` cells are untrusted executable input. |
+| Sandboxed dispatch | `wb-flow wave --sandbox` drops permission and sandbox bypass flags on all seven CLI lanes and scores refusals as `REFUSED`, never `PASS`. |
+| No-op detection | Wave scoring now uses a content-hash diff over the workspace, excluding the task's own report folder, and emits a real `NO-OP` verdict. |
+| Model catalog | `wb-flow model --sync-catalog` writes a curated, merged catalog from locally reachable CLIs instead of relying on a shipped personal snapshot. |
+| Fallback chains | `-M` and role flags accept ordered chains and advance only on Gate-1/INFRA failures. |
+| Wave matrices | Cells resolve role variables such as `$WORKER` from the active roster instead of embedding stale model names. |
+| Validation | Executor/validator independence is checked by billing pool rather than model-name inequality. |
+| Packaging | `bin/model.js.bak` was removed, and `prepublishOnly` now rejects backup/editor artifacts before a tarball can ship. |
+
+### Plan trust and `--sandbox`
+
+The release records a security boundary that had previously lived only in operational habit: a plan
+file is markdown, but wave execution sends its task text and `Verify` command to assistant lanes that
+normally run with approval and sandbox bypass flags. The ADR at
+**[the plan trust model](/concepts/plan-trust-model)** documents that those fields are untrusted,
+executable input and names the contract the runner must enforce before treating an oracle as proof.
+
+`wb-flow wave --sandbox` is the first operator-facing mitigation. It omits the permission and sandbox
+bypass flags across the seven lanes the wave runner supports: `claude`, `codex`, `grok`, `agy`,
+`opencode`, `gemini`, and `copilot`.
+
+The scorer also distinguishes secure refusal from success. If a lane refuses to run under
+`--sandbox`, the result is `REFUSED`; it is never scored as `PASS`. That matters for lanes such as
+`agy`, which can auto-deny every tool headlessly without the bypass and otherwise appear to have
+completed nothing.
+
+### Content-hash no-op gate
+
+The previous no-op check was not a scoring gate. It compared `bin/`-only mtimes and printed a message
+nothing consumed. In 1.0.5, the wave runner compares workspace content instead, excludes the current
+task's report directory so a report cannot hide a no-op, and feeds `NO-OP` into the same verdict path
+as the other wave gates.
+
+### Self-maintaining model catalog
+
+`wb-flow model --sync-catalog` fills `models.json` from what the current machine can actually reach.
+It enumerates installed CLIs, curates the raw model list, three-way-merges with the local catalog,
+writes atomically, and keeps the prior file as `.bak`.
+
+Scoped provider changes are explicit:
+
+```bash
+wb-flow model --sync-catalog --dry-run
+wb-flow model --sync-catalog
+wb-flow model --add=zen,codex,grok
+wb-flow model --remove=openrouter
+```
+
+Provider sync is transactional per provider: one failing provider does not abort the others. Providers
+that cannot enumerate themselves can be filled from picker text or a file with `--from-picker` /
+`--from-file=`.
+
+### Fallback chains and role-variable waves
+
+Every dispatch flag now accepts a comma-separated chain. The runner validates every link when parsing
+the flag, then advances only when Gate 1 says the agent never ran. Gate-2 and Gate-3 failures are task
+failures, not infrastructure failures, so they are reported rather than retried with the next model.
+
+Wave matrices now name role variables instead of concrete model slugs. A plan carries an active roster
+for Planner, Validator, Worker, and Mechanical lanes; generated cells route through those variables,
+which prevents old matrices from pinning a subscription-specific slug forever.
+
+Validation also moved from name comparison to billing-pool comparison. An `openai/*` executor and
+another ChatGPT-pool validator are treated as the same provider family; the picker chooses a different
+pool when the chain offers one, and warns when an explicit `-M=` override creates a same-provider
+validation route.
+
+### Packaging fix
+
+The release removes `bin/model.js.bak`, an 86 KB, 1,902-line backup artifact that was stale, unused,
+and being included in every published package because `files[]` allowed all of `bin/`. Instead of
+adding another negation, 1.0.5 adds a `prepublishOnly` release-file assert that rejects `*.bak`,
+`*.orig`, `*.rej`, and `*~` in the pack manifest before publication.
+
+## Archived v1.0.2 Technical Write-Up
+
+This archived section preserves the earlier comprehensive deep dive with code examples, terminal
+traces, script logic, and matrix specifications for capabilities introduced in `wb-flow` (v1.0.2)
+compared to `v1.0.1`.
 
 ---
 

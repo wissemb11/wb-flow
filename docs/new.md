@@ -1,18 +1,73 @@
 ---
-title: "What's New in wb-flow (v1.0.2)"
-description: "Compared to `v1.0.1`, `wb-flow` (v1.0.2) introduces native local error guarding, autonomous wave execution, per-role model override flags, persistent plan "
+title: "What's New in wb-flow 1.0.5"
+description: "wb-flow 1.0.5 adds a self-maintaining model catalog, sandboxed dispatches, a plan trust model, content-hash no-op scoring, and packaging safeguards."
 ---
-# What's New in `wb-flow` (v1.0.2)
+# What's New in `wb-flow` 1.0.5
 
-> **Current release is v1.0.5.** This page documents **v1.0.2**, the last release with a full
-> write-up. The two releases between them were maintenance only; **1.0.5** is a feature release —
-> a self-maintaining model catalog (`wb-flow model --sync-catalog` / `--add`), model fallback chains
-> on every dispatch flag, role-variable wave matrices, and **cross-provider validation** — the
-> executor≠validator rule now compares billing *pools* rather than model names, so one house cannot
-> grade its own work. See
-> [`CHANGELOG.md`](https://github.com/wissemb11/wb-flow/blob/main/CHANGELOG.md) for the full entry, or
-> **[`RELEASE_1.0.5.md`](https://github.com/wissemb11/wb-flow/blob/main/RELEASE_1.0.5.md)** for the narrative write-up.
+> Released 2026-09-04. See
+> [`CHANGELOG.md`](https://github.com/wissemb11/wb-flow/blob/main/CHANGELOG.md) for the full entry,
+> **[`RELEASE_1.0.5.md`](https://github.com/wissemb11/wb-flow/blob/main/RELEASE_1.0.5.md)** for the
+> narrative write-up, and
+> **[`release_body_v1.0.5.md`](https://github.com/wissemb11/wb-flow/blob/main/_deploy_/release_body_v1.0.5.md)**
+> for the GitHub release body.
 
+`wb-flow` 1.0.5 is the release that makes model routing maintain itself and makes wave dispatches
+explicit about the trust boundary around plan text and `Verify` commands. It adds a catalog writer,
+fallback chains on dispatch flags, role-variable wave matrices, cross-provider validation by billing
+pool, and the first safety contract for running plans from markdown.
+
+## 1.0.5 Highlights
+
+### A written plan trust model
+
+Plans are markdown, but a wave run treats the task text and the `Verify` cell as executable input.
+The accepted ADR, **[the plan trust model](/concepts/plan-trust-model)**, documents that both fields
+are untrusted and that task reports and oracle results must be judged against that boundary.
+
+### `wb-flow wave --sandbox`
+
+`wb-flow wave --sandbox` emits dispatches with permission and sandbox bypass flags omitted across all
+seven CLI lanes: `claude`, `codex`, `grok`, `agy`, `opencode`, `gemini`, and `copilot`.
+
+When a headless assistant refuses under `--sandbox`, the wave scorer records `REFUSED`. A refusal is
+never counted as `PASS`, so a secure no-op cannot masquerade as completed work.
+
+### Content-hash no-op scoring
+
+The old no-op check compared only `bin/` mtimes and printed a line nothing consumed. In 1.0.5, the
+gate diffs workspace content, excludes the task's own report folder, and feeds a real `NO-OP` verdict
+into wave scoring when product files did not change.
+
+### Model catalog sync and fallback dispatch
+
+`wb-flow model --sync-catalog` fills `models.json` from what the local CLIs can actually reach, then
+curates and three-way-merges the result with an atomic write and a `.bak` backup. Scoped provider
+syncs use `--add=<a,b,c>` and `--remove=<a,b,c>`, while `--from-picker` / `--from-file=` handle
+providers such as Codex that cannot enumerate models non-interactively.
+
+Dispatch flags now accept fallback chains. `-M` and the role flags try links left to right, advancing
+only on Gate-1/INFRA failures, and validate every link when the flag is parsed.
+
+### Role-variable matrices and provider-aware validation
+
+Wave matrices now route through plan roles instead of baking a model name into each cell. The active
+roster resolves `$WORKER`, `$VALIDATOR`, `$PLANNER`, and `$MECHANICAL` when the wave is generated, so
+a subscription change does not leave stale model names embedded in every derived matrix.
+
+Validation compares billing pools, not just model names. If the executor is `openai/*`, the validator
+picker treats another ChatGPT-pool route as the same provider family and prefers a different pool when
+the chain offers one.
+
+### Packaging fix: `bin/model.js.bak`
+
+The published package had been carrying `bin/model.js.bak`, an 86 KB backup artifact that was stale,
+unused, and roughly 12% of the unpacked tarball. 1.0.5 removes it and adds a `prepublishOnly` assert
+that refuses backup/editor artifacts such as `*.bak`, `*.orig`, `*.rej`, and `*~` before publication.
+
+## Archived v1.0.2 Write-Up
+
+The section below is preserved as historical documentation for v1.0.2, the last earlier release with
+a full deep dive.
 
 Compared to `v1.0.1`, `wb-flow` (v1.0.2) introduces native local error guarding, autonomous wave execution, per-role model override flags, persistent plan model rosters, matrix auto-correction, and a standardized 9-file documentation suite across all 34 agentic commands.
 

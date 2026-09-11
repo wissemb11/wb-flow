@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "test": "WB_FLOW_NO_ENUM=1 npm run test:unit",
-    "test:unit": "node bin/gen_cli_matrix.js --check && node test/model_routing.js && node test/probe_targets.js && node test/roster_freshness.js && node test/runbook_regressions.js && node test/lint_entrypoint.js && node test/probe_defaults.js && node test/catalog_sync.js && node test/model_chain.js && node test/wave_modules.js && node test/smoke.js && node test/wave_gates.js && node test/watch.js && node test/archive.js && node test/docs_repair_invariants.js && node bin/verify-wrappers.js && node bin/verify-roster.js",
+    "test:unit": "node bin/gen_cli_matrix.js --check && node test/model_routing.js && node test/probe_targets.js && node test/roster_freshness.js && node test/runbook_regressions.js && node test/lint_entrypoint.js && node test/probe_defaults.js && node test/catalog_sync.js && node test/model_chain.js && node test/wave_modules.js && node test/smoke.js && node test/wave_gates.js && node test/watch.js && node test/archive.js && node test/docs_repair_invariants.js && node test/output_conventions_scope_resolution.js && node bin/verify-wrappers.js && node bin/verify-roster.js",
     "test:integration": "node test/model_enumeration.integration.js",
     "test:coverage": "c8 --reporter=text npm test",
     "prepublishOnly": "npm test && node bin/verify-release-file.js --RELEASE"

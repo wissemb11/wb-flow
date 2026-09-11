@@ -4,338 +4,90 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org)
 
-## wb-flow turns AI coding into a planned, parallel, validated, and traceable engineering workflow.
+## The problem
 
-It is a zero-dependency CLI that bootstraps an agentic AI control plane into any repo.
-It works with Vue, React, Python, and any other codebase.
-It is compatible with Claude Code, OpenCode, Gemini CLI, Cursor, and other coding agents.
+Your coding agent redoes work it already did, loses track of why one task came before another, and when you ask it to check its own output it says "looks good" — because the check *is* the output.
+
+## What wb-flow is
+
+**A zero-dependency CLI that gives any AI coding agent a planned, parallel, validated, and traceable workflow** — task tables with dependency waves, a different model checking each piece, and a file-level evidence trail you can read after the session is over.
 
 ![wb-flow demo](assets/hero.gif)
 *wb-flow demo*
 
----
-
-## Why wb-flow
-
-Our workflow follows this core engineering ladder: Plan → Decompose → Parallelize → Execute → Validate → Trace.
-
-### The Five-Layer Stack
-- **Composable planning:** Structured definition and decomposition of tasks.
-- **`--as` cognition:** Pre-flight explanations and step-by-step blueprints.
-- **Waves:** Orchestrated, parallel execution scheduling.
-- **Artifact graph:** A concrete trail of evidence connecting requirement to validation.
-- **Model routing:** Dispatching the right model for the right job.
-
-### Verbs Over Personas
-We orchestrate *what* needs to happen (plan, execute, validate), not *who* does it. The command *is* the contract.
-For a detailed look at how this solves a different problem than tools like BMAD, GSD, or Spec Kit, see our [Agentic Coding Comparisons](https://flow.wbc-ui.com/comparisons/) page.
-
-## 🚀 Installation
-
-![npm install → wb-flow init → agent detection → wiring complete](assets/InstallationAnimation.gif)
-
-
-### Path 1 — One-shot via `npx` (Recommended)
+## 30-second demo
 
 ```bash
-cd my-project/
-npx wb-flow
+npx wb-flow                        # bootstrap into your project
 ```
-
-### Path 2 — Global install via npm
 
 ```bash
-npm install -g wb-flow
-cd my-project/
-wb-flow
+/wbPlan "add dark mode"            # → a ranked task table with dependencies
+/wbWork --wave=A -y                # → executes wave A in parallel, writes reports
+/wbValid --id=1                    # → a different model scores the work
 ```
-
-### Path 3 — Git clone (no npm needed)
-
-```bash
-git clone https://github.com/wissemb11/wb-flow.git ~/.wb-flow
-cd my-project/
-node ~/.wb-flow/bin/install.js
-```
-
-### Path 4 — Git clone + `npm link` (for contributors)
-
-```bash
-git clone https://github.com/wissemb11/wb-flow.git
-cd wb-flow && npm link
-cd ~/my-project/
-wb-flow         # uses your local clone
-```
-
-### Bootstrap flags
-
-- `--force` / `-f` — overwrite existing files (default: skip existing)
-- `--dry-run` / `-n` — preview without writing
-- `--list` / `-l` — print the bundled command roster and exit
-- `--version` / `-v` — print the installed version
-- `--help` / `-h` — show usage
-
-By default, `wb-flow` is **non-destructive** — it skips files that already exist. Pass `--force` to overwrite, or `--dry-run` first to preview.
-
----
-
-## 🔌 Registering `/wb*` in your assistant
-
-Copying the templates puts the *procedures* on disk. To type `/wbPlan src/api` instead of "read this template and run it", your assistant also needs a small command file — one per assistant, in its own format and location. `wb-flow init` writes them for you:
-
-```bash
-wb-flow init
-```
-
-```text
-🚀 wb-flow init — wiring the /wb* commands into your assistants
-
-Where should the /wb* commands be available?
-  1) Globally — every project on this machine
-  2) This project only — /home/me/my-project
-> [1]
-
-Which assistants should get the commands? (detected ones default to Yes)
-  Claude Code → ~/.claude/commands [Y/n]
-  OpenCode → ~/.config/opencode/command [Y/n]
-  Gemini CLI → ~/.gemini/commands [y/N]
-  Antigravity (agy) → ~/.gemini/config/skills (skill — agy has no slash-commands) [Y/n]
-```
-
-It does both layers in one pass: copies the templates to a stable home, then writes the wrappers.
-
-| Assistant | Location (global / project) | Format |
-|---|---|---|
-| Claude Code | `~/.claude/commands/` — `.claude/commands/` | `<cmd>.md` + `$ARGUMENTS` |
-| OpenCode | `~/.config/opencode/command/` — `.opencode/command/` | `<cmd>.md` + `$ARGUMENTS` |
-| Gemini CLI | `~/.gemini/commands/` — `.gemini/commands/` | `<cmd>.toml` + `{{args}}` |
-| Antigravity (`agy`) | `~/.gemini/config/skills/` — `.agents/skills/` | one `wb-flow/SKILL.md` dispatcher |
-| Cursor | project only — `.cursor/commands/` | `<cmd>.md` |
-| Codex | `~/.codex/commands/` — `.codex/commands/` | `<cmd>.md` + `$ARGUMENTS` |
-
-**Scope** decides where the templates live and how wrappers reference them: `global` copies to `~/.wb-flow/` and embeds absolute paths (works from any project); `project` copies to `./.wb/` and embeds relative paths (commit them, and your team gets the commands too).
-
-**Antigravity is the one exception** — it has no user-definable slash-commands (only Rules, Skills, Plugins, Hooks and MCP), so all commands collapse into a single skill activated by natural language: `run wbPlan on src/api`, not `/wbPlan`.
-
-### init flags
-
-```bash
-wb-flow init --scope=global --agents=claude,opencode -y   # unattended
-wb-flow init --scope=project --agents=all --dry-run       # preview
-wb-flow init --agents=detected                            # only installed assistants
-wb-flow init --templates=/path/to/templates               # reuse an existing root
-```
-
-`--force` overwrites existing wrappers; without it they're skipped. In a non-TTY (CI) `--yes` is required, otherwise init refuses rather than hangs.
-
-### Doing it by hand
-
-Nothing is magic — a wrapper is three lines. If you'd rather not run `init`:
-
-```bash
-mkdir -p ~/.claude/commands
-TPL="$HOME/.wb-flow/commands"          # or .wb/commands for a project install
-printf -- '---\ndescription: Creates a task plan\n---\n\nRead `%s/wbPlan/wbPlan_template.md` and execute it.\n\nArguments / target: $ARGUMENTS\n' "$TPL" \
-  > ~/.claude/commands/wbPlan.md
-```
-
-And with **no wrapper at all**, in any assistant:
-
-> read `.wb/commands/wbPlan/wbPlan_template.md` and execute it on `src/api`
-
----
-
-## ⚡ Quick Start
 
 ![Your first workflow: Developer ↔ AI assistant ↔ wb-flow core](assets/FirstWorkflowAnimation.gif)
 
+That's one cycle: **plan → execute → validate**, traced to files on disk.
 
-```bash
-/wbSetup .                   # Read the codebase — generates context.md + dev.md
-/wbPlan "add dark mode"      # Break the goal into a ranked task table
-/wbWork --id=1               # Execute the first task, fully traced
-/wbValid                     # Verify: does the work match the plan?
+> 🎬 **Visual Walkthrough & Architecture:** Want to see the full system in action? See **[docs/visual_overview.md](docs/visual_overview.md)** for animations of installation, multi-model execution, and fallback failovers.
+
+## What a plan file actually looks like
+
+This is a real task table from a real project — not a screenshot, not terminal output:
+
+```markdown
+| # | Requires | Dep | Task                              | Verify                    | P  | Est. | ☐ Done | ☐ Valid     |
+|---|----------|-----|-----------------------------------|---------------------------|----|------|--------|-------------|
+| 1 | 🔨 Worker | —   | Fix the prop types in WBCode      | /wbTest --scope=task-1    | P1 | 15m  | ✅     | ✅ 9/10     |
+| 2 | 🔨 Worker | 1   | Extract helpers into wbc-utils    | npm test                  | P1 | 30m  | ✅     | ✅ 8/10     |
+| 3 | ✅ Valid  | 2   | Audit the new exports for safety  | /wbAudit --focus=exports  | P0 | 20m  | ⬜     | ⬜          |
+| 4 | 🧠 Plan  | 2   | /wbPlan wb-latex "port renderer"  | /wbAudit wb-latex         | P2 | 45m  | ⬜     | ⬜          |
 ```
 
-That's a full cycle: **plan → execute → validate**, guided by your AI assistant.
+Every row is a contract: **what** to do, **how** to verify it, **who** checks, and **whether it happened**. The `Dep` column is a DAG — wave A runs rows 1–2 in parallel; wave B waits for them.
 
----
+## Works with
 
-## 🚀 What's New in v1.0.2
+| Agent | How |
+|---|---|
+| **Claude Code** | `/wbPlan`, `/wbWork` — native slash commands via `wb-flow init` |
+| **Codex** | same slash commands, same templates |
+| **Gemini CLI** | same templates, TOML wrappers |
+| **OpenCode** | `wb-flow wave` dispatches to `opencode run` |
+| **Antigravity (agy)** | natural language — "run wbPlan on src/api" |
+| **Cursor** | project-level command files |
+| **Any agent** | "read `.wb/commands/wbPlan/wbPlan_template.md` and execute it on `src/api`" |
 
-> **You are reading v1.0.5.** The deep-dive below covers **v1.0.2**, the last release with a full
-> write-up. **1.0.5 is itself a feature release** — a self-maintaining model catalog
-> (`wb-flow model --sync-catalog` / `--add`), fallback chains on every dispatch flag, and
-> role-variable wave matrices. It also ships the [plan trust model](docs/concepts/plan-trust-model.md),
-> `wb-flow wave --sandbox` dispatches whose refusals are scored `REFUSED` rather than `PASS`, a
-> content-hash no-op gate over the whole workspace, and a `prepublishOnly` backup-artifact assert
-> that keeps files such as `bin/model.js.bak` out of the npm tarball. See [CHANGELOG](CHANGELOG.md).
-> The two releases since it are maintenance-only and are documented in
-> [CHANGELOG.md](CHANGELOG.md):
-> **1.0.3** — `--command` emission gated to `opencode` (it broke every `/wbValid` wave cell on
-> `claude` and `grok`), the `--no-merge` wave flag, and a publish-runbook dotfile-copy fix ·
-> **1.0.4** — README hero media and a corrected comparisons link; no change to `bin/` or
-> `templates/`.
-
-![A model fallback chain failing over when a provider hits its quota](assets/FallbackFailoverAnimation.gif)
-
-*Local error guarding in action: when a provider returns an error **with exit code 0**, the chain now detects it and fails over instead of silently reporting success.*
-
-
-### New CLI subcommands
-
-`wb-flow` now ships a set of subcommands alongside the `/wb*` slash-command templates —
-`init`, `lint`, `model`, `next`, `snap`, `wave`, `watch` and `archive`. The three that changed most in this
-release, plus `watch` and `archive` which are new:
-
-- **`wb-flow init`** — one command to install everything: copies templates to a stable home, wires `/wb*` slash-commands into Claude Code, OpenCode, Gemini CLI, Antigravity, and Cursor, and seeds the model roster. Detects installed assistants, offers interactive role-ranking, and writes wrapper files in each assistant's native format. Fully flag-driven for CI (`--scope`, `--agents`, `--yes`).
-
-- **`wb-flow lint`** — check plan files against the output conventions and sync rules to catch structural errors before closing a plan.
-
-- **`wb-flow model`** — the single writer of the model roster. **Detects** credentialed models from every installed CLI (`opencode providers list`, `agy models`, `claude`), ranks them by role with pattern-based preference (newest-version-first, family-collapsed), and writes the result to `commands/model_recommendations.md`. `--pick` (`-i`) opens an interactive tree-picker annotated with **billing pool**, **Model Role Qualification Badges** (🧠, 💻, ⚡, 🔨), and probe results — making visible that three names can be one point of failure. `--probe --all` pre-verifies reachability across the catalog, now supporting multiple modes: `--all` (default) orders reachable models by Role, `--all=raw` streams all results including failures, `--all=<provider>` filters to a specific provider, and `--all=<role>` filters to a specific role — all of which work identically with or without `--pick`. `--set <role>=<slug>`, `--json`, `--dry-run`, `--file=`.
-
-- **`wb-flow next`** — regenerates the `▶️ How to run this plan` block at the bottom of the plan file. It parses the `🌊 Next Executable Sequence` matrix and derives four explicit, non-overlapping execution scenarios. Shell out to it (`wb-flow next <plan.md> --embed`) from any `/wb*` command that alters a plan's state so the run-book stays in sync with the matrix.
-
-- **`wb-flow snap`** — pins the current output into `.wb/snaps/<YYYYMMDD>_<label>/` as a symlink (or a copy with `--snap-copy`) so you can easily find it later. Universal across all `/wb*` commands via the `--snap=<label>` flag.
-
-- **`wb-flow wave`** — the wave orchestration engine. Takes a plan file's `## 🌊 Next Executable Sequence` DAG matrix and converts it into collision-free parallel background dispatches. Routes cells by role: Planner stays in-session with the orchestrator; Worker and Mechanical dispatch to `opencode run` (or `agy`, or the native CLI of whatever model you picked); Validators run in-session unless they pair a row the orchestrator executed. Spawned agents get `--no-plan-update` — they write only their task report; the orchestrator checks the boxes and recomputes the matrix once, after the wave settles.
-
-- **`wb-flow watch`** — live status of the cells a wave left running in the background. Renders per-cell progress as a share of the plan's own `Est. Time (mins)` column, and marks a cell `OVER est Nm by Mm` once it passes that budget — **that**, not raw elapsed time, is what separates *slow* from *hung*. Liveness is read from the process table (`pgrep`), never from log mtime: agents buffer while composing, so an idle log does not mean a dead cell. Three states, never two — `✅/❌` finished, `🔄` running, `⚠️ ENDED` for a cell with no verdict **and** no process (killed or crashed). `-1` for a one-shot snapshot, `--list` for past runs, `--run=` to pick one. It reports what `wave.js` recorded, so treat it as a progress view and confirm outcomes with the row's own `Verify` oracle.
-
-- **`wb-flow archive`** — retires superseded daily reports so a scope's `reports/` tree holds only the *current* file per category. Moves each `<YYYY>/<MM>/<DD>/<category>/` folder — **whole**, because a plan's `tasks/` and `waves/` are its siblings — into `.wb/workflows/archives/` at the **same depth**, so relative links inside the moved files keep resolving unchanged. The newest folder per category is never a candidate, and keepers are resolved *per category*. `standups/` and `tracks/` are exempt: they ARE the log. Every move is banner-stamped, logged, and reversible with `--restore=`. `-n` to preview, `--recursive` for a whole monorepo.
-
-
-### `.env` loading
-
-`wb-flow model` and `wb-flow init` read a `.env` file from the **current working directory** — your project's, not wb-flow's — falling back to `~/.wb-flow/.env` when the working directory has none. They load only keys matching a known provider prefix (`GROQ_`, `OPENROUTER_`, `ANTHROPIC_`, `OPENAI_`, `GEMINI_`, …) into the environment. Those values are inherited by the agent CLIs wb-flow spawns (`claude`, `agy`, `opencode`, `codex`), which is the point: wb-flow itself never reads an API key. Keys outside the prefix list are skipped and counted on stderr. Extend with `WB_FLOW_ENV_ALLOW="MYVENDOR_"`; restore the old load-everything behaviour with `WB_FLOW_ENV_ALL=1`. **wb-flow does not add `.env` to your `.gitignore` — check that yourself.**
-
-A template ships at `templates/.env.example` with every provider key name and blank values — copy it to `~/.wb-flow/.env` (global) or `./.env` (per-project, takes precedence) and fill in the providers you actually use. Leave a key blank to skip that provider.
-
-### Model configuration files
-
-`models.json` is the **catalog** (which models exist, and the `provider` that decides their CLI). Its default ships in the package and `wb-flow init` copies it to `~/.wb/models.json` — only if absent, so your edits survive upgrades. `selected.json` is your **picked roster** in priority order, written by `wb-flow model --pick`; it is generated, not shipped. Both are plain JSON and meant to be hand-edited — add a provider, reorder a chain, swap a model. `--wave` dispatches each role's chain left to right (`model1 || model2 || model3`), reading the **most recently written** `commands/model_recommendations.md`. See [docs/commands/wbModel/README.md](docs/commands/wbModel/README.md#-the-three-model-files--and-editing-them-by-hand).
-
-> ⚠️ **`wb-flow model --show` and `wb-flow wave` can report different rosters.** `--show` reads the first roster file in the current directory; `wave` reads the most recently written one across the package root, repo root and `~/.wb-flow/`. For what a wave will actually dispatch, use `wb-flow wave <plan.md> --wave=<L> --list` — it prints `📋 Roster in effect:` with the resolved file and the full chain per role. Details: [wbModel/README.md](docs/commands/wbModel/README.md#-the-three-model-files--and-editing-them-by-hand).
-
-### Consolidate, then archive
-
-Passing an existing output file with no other flags now means **"make this the one file I have to read"**:
+## Install
 
 ```bash
-/wbPlan  <plan_file.md>                  # absorb every older open task, then repair in place
-/wbPlan  <plan_file.md> --archive        # …then retire the plan folders it just emptied
-/wbStandup <monorepo-root>/ --archive    # fleet-wide: one live file per category, per scope
+npx wb-flow                  # one-shot, recommended
+# or
+npm install -g wb-flow && wb-flow
+# or
+git clone https://github.com/wissemb11/wb-flow.git ~/.wb-flow && node ~/.wb-flow/bin/install.js
 ```
 
-A month of work leaves thirty plan files, of which one is live. The rest are decoys — and a stale
-plan is more dangerous than a missing one, because it answers confidently and wrongly.
-
-> 🔴 **Consolidate always runs before archive.** Archiving first does not delete an open task, it
-> makes it *invisible*: nothing live references it, and the next `/wbStandup` no longer scans the tree
-> it sits in. Archiving is therefore opt-in and never implied by another flag.
-
-`/wbStandup` and `/wbTrack` are exempt — their value *is* the series, so keeping only the newest
-destroys the thing worth reading. `/wbStandup --archive` instead sweeps everything else.
-See [Report Lifecycle](docs/concepts/report_lifecycle.md).
-
-### Streaming & session reuse
-
-- **`--summary`** (on by default in wave mode) — streams only the decision lines (`▶` dispatch marker, `G1/G2/G3` gate results, `VERDICT`) to the terminal. Each cell's full output still goes to its log file via `tee`. Measured on a real 10-cell validation wave: **63,002 tokens** streamed without it, of which one cell alone was 16,824 — `ls -la` dumps, ANSI escapes and template reads that no Done box depends on. Pass `--no-summary` to get the full stream while debugging a single cell.
-
-- **`--sessions`** — reuses one warm opencode session per (scope, model). A cold dispatch re-reads its command template and context files every cell; with `--sessions` the session is **resumed and forked** so parallel cells each get their own branch off the same warm base. Opt-in because a resumed session replays its conversation history — measure `opencode stats --days 1 --models` both ways before making it habit.
-
-### 🛡️ `wbRun` dispatch protection
-
-Every background cell spawned by `wb-flow wave` runs through `.wb/bin/wbRun`, a local subshell guard that intercepts **stdout and stderr**, not just exit codes. A model that returns exit 0 with the text `Error: Insufficient credits` is indistinguishable from success by `||` chaining alone. `wbRun` catches fatal API-level strings, displays visual banners (`▶ Executing:` / `❌ Failed:`), and automatically fails over to the next model in the `||` fallback chain. The chain advances **on Gate 1 (Infra) only** — a Gate 2 or Gate 3 retry meets the same wall at double cost, so re-dispatch after those is a human decision.
-
-### The three-gate verdict contract
-
-Every cell dispatched by `wb-flow wave` is classified by three gates — never by its output text:
-
-| Gate | Question | Signal |
-|---|---|---|
-| **1 · Infra** | did the agent run at all? | CLI exit code, plus anchored fatal patterns (`^Error: Model not found`, rate limit, quota) |
-| **2 · Artifact** | did it write what it was required to write? | `tasks/task_<ID>/task_<ID>_report_*.md` exists |
-| **3 · Oracle** | does the task's own `Verify` command pass? | `exit 0` |
-
-| G1 | G2 | G3 | Verdict | Done box |
-|---|---|---|---|---|
-| ✗ | — | — | **INFRA** — never ran | `⬜` |
-| ✓ | ✗ | — | **NO-OP** — ran, produced nothing | `⬜` |
-| ✓ | ✓ | ✗ | **ATTEMPTED** — needs a validator | `⬜` |
-| ✓ | ✓ | ✓ | **DONE** | `✅` |
-
-Output string-matching is forbidden as a success signal. A `/wbWork` log legitimately contains `Error:` and `failed` whenever the task is about error handling — and those are the rows where a false verdict costs most.
-
-### Lighter, self-repairing plan files
-
-A plan file is one authored table plus four derived projections of it — status callout, 🌊 matrix,
-how-to-run block, What's Next — regenerated in that order, because each derives from the one before.
-
-- 📝 **Wave notes externalized** to `tasks/waves.md`; the plan keeps a one-line pointer. Notes grow every wave — inline, they push the task table below a screen of prose about waves that already ran.
-- ▶️ **How-to-run block relocated** to sit directly beneath the 🌊 matrix table it is computed from.
-- 🔗 **Multi-ID merged dispatches** — cells sharing a wave, scope, role and model merge into `--id=5,6`: one context read instead of N, with per-ID gating preserved. *Batching yields to executor≠validator, never the reverse* — two validate cells sharing a model must not merge if their ids had different executors, or the merged verdict silently self-validates.
-- 🌊 **`--wave=A` means work then validate** (`A.work` → `A.valid`), so a wave is a complete unit rather than a promise redeemed a wave later. One label per invocation — `--wave=C,D` does not exist.
-- 📋 **Four copy/paste scenarios** below every matrix, individual dispatches always carrying an explicit `-M="…"`.
-- ✅ **The sync oracle** (`sync_check.sh`) exits non-zero and names the derived block that drifted. A plan that fails it is not slightly out of date — it is actively misleading, and every downstream dispatch inherits the error.
-- 👀 **`wb-flow watch` shows the task `#id` and description**, not just the model — a glance answers "which of the four is the slow one". `/wbWork` closes with a continuation signoff so the screen shows work is live rather than looking idle.
-
-### Other additions
-
-- 🎛️ **Universal model flags** (`--planner`, `--worker`, `--validator`, `--mechanical`, `--model`) accepted by every `/wb*` command. Role flags persist (equivalent to running `/wbModel` first). `-M="<model>"` delegates a single invocation and outranks everything.
-- ⚡ **Autonomous Wave Auto-Pilot (`-y` / `--yes`)**: Zero-touch background execution and wave script spawning.
-- 📌 **Persistent Model Rosters & Matrix Auto-Correction**: Embeds model rosters in plan matrix headers and repairs missing matrices on `/wbPlan` or `/wbWork`.
-- 📚 **Uniform 9-File Docs Suite**: Complete 9-file suite across all 33 commands (306 files).
-
-See the full [What's New Guide](docs/new.md) and [Detailed Technical Release Notes](docs/detailed_news.md).
+```bash
+wb-flow init                 # wire /wb* commands into your assistant
+```
 
 ---
 
-## 📚 Full Documentation
+## 📚 Documentation
 
-The complete reference — all 33 commands, workflow concepts, daily use patterns, and session lifecycle — is available in two places:
+* **[Visual Overview & Animated Walkthrough](docs/visual_overview.md)** — all 4 architecture animations, the five-layer stack, and the three-gate contract
+* **[What's New in v1.0.5](CHANGELOG.md)** — model catalog, fallback chains, role-variable matrices
+* **[Full Docs](docs/README.md)** — all 33 commands, concepts, workflow patterns
+* **[flow.wbc-ui.com](https://flow.wbc-ui.com)** — the documentation website
 
-* **[→ What's New in v1.0.2](docs/new.md)** — concise summary of the last feature release
-* **[→ CHANGELOG](CHANGELOG.md)** — every release, including **1.0.5** (feature) and the two maintenance releases before it
-* **[→ Detailed Technical Guide](docs/detailed_news.md)** — comprehensive code & terminal examples
-* **[→ GitHub Docs](docs/README.md)** — browse the full documentation hub
-* **[→ flow.wbc-ui.com](https://flow.wbc-ui.com)** — the dedicated documentation website
+## 👨‍💻 About
 
----
+**wb-flow** is created and maintained by [Wissem Boughamoura](https://github.com/wissemb11).
 
-## 🐕 Built With wb-flow
-
-This documentation — all 250+ files, 33 command references, and concept pages — was itself planned, audited, and validated using `wb-flow`. Every task was tracked via `/wbPlan`, every page was scored via `/wbAudit`, and every commit was generated via `/wbGit`. The tool eats its own cooking.
-
----
-
-## 👨‍💻 About the Owner & Resources
-
-**wb-flow** is created and maintained by **Wissem Boughamoura**.
-
-* 🐙 **GitHub:** [@wissemb11/wb-flow](https://github.com/wissemb11/wb-flow)
-* 📦 **npm:** [wb-flow](https://www.npmjs.com/package/wb-flow)
-* 📚 **Documentation:** [flow.wbc-ui.com](https://flow.wbc-ui.com) · [GitHub Docs](https://github.com/wissemb11/wb-flow/tree/main/docs)
-* 👤 **Author:** [Wissem Boughamoura](https://github.com/wissemb11) — `wissemb11@gmail.com`
-
-### 📬 Contact & Support
-
-* Bugs / feature requests → [GitHub Issues](https://github.com/wissemb11/wb-flow/issues)
-* General questions → email `wissemb11@gmail.com`
-
----
+* 🐙 [GitHub](https://github.com/wissemb11/wb-flow) · 📦 [npm](https://www.npmjs.com/package/wb-flow) · 📬 [wissemb11@gmail.com](mailto:wissemb11@gmail.com)
+* Bugs / features → [GitHub Issues](https://github.com/wissemb11/wb-flow/issues)
 
 *License: MIT © 2026 Wissem Boughamoura. See [LICENSE](LICENSE).*
-*Changelog: see [CHANGELOG.md](CHANGELOG.md).*
-
-## Model catalog
-
-`wb-flow` ships a **skeleton** catalog — provider names only, no models — because a catalog copied
-from someone else's machine fails late and confusingly. Fill it from your own CLIs:
-
-```bash
-wb-flow model --sync-catalog     # everything this machine can reach
-wb-flow model --add=zen,codex    # or one provider at a time
-```
-
-`wb-flow init` does this for you on a fresh install.
