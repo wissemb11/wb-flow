@@ -1,6 +1,6 @@
 ---
 title: "wbTrack — Start session tracking"
-description: "## Overview"
+description: "/wbTrack initializes a session tracking file that records every /wb command invocation, creating a narrative of the work session."
 ---
 
 # /wbTrack — Start session tracking

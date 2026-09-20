@@ -1,6 +1,6 @@
 ---
 title: "wbClean — Examples"
-description: "---"
+description: "/wbClean reports; you delete."
 ---
 
 # /wbClean — Examples

@@ -1,6 +1,6 @@
 ---
 title: "wbTest — Run and verify tests"
-description: "## Overview"
+description: "/wbTest manages test execution, coverage reporting, and test result analysis."
 ---
 
 # /wbTest — Run and verify tests

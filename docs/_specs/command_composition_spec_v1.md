@@ -1,6 +1,6 @@
 ---
 title: "Command Compositionv1 — Grammar & Contracts"
-description: "---"
+description: "Every /wb command follows a strict Input → Process → Output contract."
 ---
 
 # Command Composition Specification v1 — Grammar & Contracts

@@ -1,6 +1,6 @@
 ---
 title: "Model Fallback Chains — Pools, Lanes, and the Executor≠Validator Rule"
-description: "---"
+description: "On 2026-08-02 a Worker chain of three opencode/ models died together on a single Insufficient balance."
 ---
 
 # Model Fallback Chains — Pools, Lanes, and the Executor≠Validator Rule

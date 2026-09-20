@@ -1,6 +1,6 @@
 ---
 title: "wbCheck — Quick pre-flight validation"
-description: "## Overview"
+description: "/wbCheck runs a lightweight, fast validation on a target to catch obvious issues before heavier commands like /wbAudit or /wbRelease."
 ---
 
 # /wbCheck — Quick pre-flight validation

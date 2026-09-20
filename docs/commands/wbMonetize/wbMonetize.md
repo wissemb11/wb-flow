@@ -1,6 +1,6 @@
 ---
 title: "wbMonetize — Freemium tier strategy and gating"
-description: "## Overview"
+description: "/wbMonetize analyzes a package's feature set and produces tier recommendations for free, pro, and enterprise plans with specific gating strategies."
 ---
 
 # /wbMonetize — Freemium tier strategy and gating

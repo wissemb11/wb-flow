@@ -52,6 +52,26 @@ const HELP = `
     wb-flow init --scope=project --agents=all --dry-run
 `;
 
+/**
+ * C47 — is this cwd the wb-flow package itself? Two predicates, mirroring the
+ * oracle's two spellings: the path contains `packages/wb-flow` (the predicate
+ * bin/link.js:64 already relies on) OR the local package.json is named wb-flow.
+ * Either is enough: initialising `--scope=project` here re-creates `.wb/commands/`
+ * — the exact directory whose removal closed C40 — at the path wrappers.js tells
+ * every agent to PREFER. Refusing the self-init is the durable form of that `rm`.
+ */
+function isWbFlowPackage(cwd) {
+  if (String(cwd).includes('packages/wb-flow')) return true;
+  try {
+    const pkgPath = path.join(cwd, 'package.json');
+    if (fs.existsSync(pkgPath)) {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      if (pkg && pkg.name === 'wb-flow') return true;
+    }
+  } catch (_) { /* json/read errors: fall through to path-only answer */ }
+  return false;
+}
+
 function parseArgs(argv) {
   const opts = {
     scope: null,
@@ -181,6 +201,20 @@ async function run(argv) {
       } else {
         scope = 'project';
       }
+    }
+
+    // C47 — refuse to initialise the wb-flow package into itself. Project scope
+    // only (global wiring is legitimate from anywhere). Breaking a shipped
+    // feature to close a hygiene finding is worse than the finding, so a
+    // consumer directory is never refused: the predicate keys on the package,
+    // not on the mere presence of a package.json.
+    if (scope === 'project' && isWbFlowPackage(process.cwd())) {
+      console.error('❌ Refusing --scope=project inside the wb-flow package itself.');
+      console.error('   Project scope copies templates into ./.wb, recreating .wb/commands/');
+      console.error('   — the directory whose removal closed C40 (see bin/link.js:64 precedent).');
+      console.error('   Use --scope=global to wire the /wb* commands machine-wide, or run from');
+      console.error('   a consumer project to provision its own project-local .wb/.');
+      return 1;
     }
 
     // ---- 2. Template home ---------------------------------------------------
@@ -539,7 +573,7 @@ function summarize(stats) {
   return parts.join(', ');
 }
 
-module.exports = { run: run };
+module.exports = { run: run, isWbFlowPackage: isWbFlowPackage };
 
 if (require.main === module) {
   run(process.argv.slice(2))

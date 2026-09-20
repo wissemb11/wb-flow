@@ -1,6 +1,6 @@
 ---
 title: "wbHelp — Practical: Getting Help Effectively"
-description: "---"
+description: "Returns the full command list grouped by role."
 ---
 
 # /wbHelp — Practical: Getting Help Effectively

@@ -239,7 +239,7 @@ function parseVerifyColumn(text) {
     if (!trimmed.startsWith('|')) continue;
     const cells = splitRow(line);
     if (verifyIdx === null) {
-      verifyIdx = cells.findIndex(function (c) { return /^\s*Verify\s*$/.test(c); });
+      verifyIdx = cells.findIndex(function (c) { return /^\s*Verify\s*([*(]|$)/.test(c); });
       if (verifyIdx === -1) verifyIdx = null;
       continue;
     }
@@ -273,6 +273,24 @@ function parseValidColumn(text) {
 }
 
 /**
+ * Resolve a Requires cell to exactly one role, or null.
+ *
+ * The role tag is the emoji + label word (e.g. `🔨 Worker`), and the CELL must
+ * be exactly that tag — nothing else. A bare-word match (`/worker/i` anywhere)
+ * is what let row-11's prose paragraph — which names all four roles as plain
+ * words and only ends in `🧠 Planner` — resolve to `planner` purely by ROLES
+ * declaration order (C68). The whole-cell tag test returns exactly one role
+ * for a well-formed cell, and null for prose, a missing tag, or more than one
+ * tag.
+ */
+function resolveRequiresRole(raw) {
+  const trimmed = String(raw || '').trim();
+  if (!trimmed || trimmed === '—' || trimmed === '-') return null;
+  const matches = ROLES.filter(function (r) { return r.tag.test(trimmed); });
+  return matches.length === 1 ? matches[0] : null;
+}
+
+/**
  * Parse the plan table's `Requires` column → {taskId: 'planner'|'worker'|…}.
  *
  * The role tag on the task row itself, which is what decides whether the
@@ -283,18 +301,21 @@ function parseRequiresColumn(text) {
   const requires = {};
   let reqIdx = null;
   for (const line of text.split('\n')) {
-    if (!line.trim().startsWith('|')) continue;
+    // table bound — a non-`|` line ends the task table, so the scan resets and
+    // cannot leak the 🌊 matrix header ("Wave": "planner") into the map (C68).
+    if (!line.trim().startsWith('|')) { reqIdx = null; continue; }
     const cells = splitRow(line);
+    if (cells.length < 4) { reqIdx = null; continue; }
     if (reqIdx === null) {
       reqIdx = cells.findIndex(function (c) { return /^\s*Requires\s*$/.test(c); });
       if (reqIdx === -1) reqIdx = null;
       continue;
     }
     if (cells.length <= reqIdx) continue;
+    if (/^\s*:?-{2,}:?\s*$/.test(cells[0] || '')) continue; // separator row
     const idm = (cells[0] || '').match(/^\[?([\w.-]+)\]?/);
     if (!idm) continue;
-    const raw = cells[reqIdx] || '';
-    const role = ROLES.filter(function (r) { return r.match.test(raw); })[0];
+    const role = resolveRequiresRole(cells[reqIdx]);
     if (role) requires[idm[1]] = role.key;
   }
   return requires;
@@ -438,6 +459,8 @@ function parseModelRecommendations(mdPath) {
   const text = fs.readFileSync(mdPath, 'utf8');
   const chosenMtime = fs.statSync(mdPath).mtimeMs;
   const roster = {};
+  const unreachable = [];
+  const unvalidated = [];
   const emojiEntries = Object.entries(ROLE_EMOJI_MAP);
   let inTable = false;
   let sawTable = false;
@@ -460,6 +483,23 @@ function parseModelRecommendations(mdPath) {
       const cells = line.trim().replace(/^\|/, '').split('|');
       if (cells.length < 2) continue;
       const col2 = cells[1].trim();
+      // C55 — the reachability annotation `model --probe` writes into the table
+      // (` ⚠️ unreachable: <slug>, …`) is a signal the wave path must later read.
+      // Capture it here instead of discarding it with the chain-cell strip below.
+      const unreachableMatch = col2.match(/⚠️\s*unreachable:\s*([^|]*)/i);
+      if (unreachableMatch) {
+        unreachableMatch[1].split(/[,;]/).forEach(function (s) {
+          const slug = s.trim();
+          if (slug && unreachable.indexOf(slug) === -1) unreachable.push(slug);
+        });
+      }
+      const unvalidatedMatch = col2.match(/⚠️\s*unvalidated \(--force\):\s*([^|]*)/i) || col2.match(/⚠️\s*forced:\s*([^|]*)/i) || col2.match(/⚠️\s*bypass:\s*([^|]*)/i);
+      if (unvalidatedMatch) {
+        unvalidatedMatch[1].split(/[,;]/).forEach(function (s) {
+          const slug = s.trim();
+          if (slug && unvalidated.indexOf(slug) === -1) unvalidated.push(slug);
+        });
+      }
       const chainCell = col2.replace(/⚠️.*$/, '')
         .split(/\s+\/\s+/).map(function (x) { return x.replace(/\*\*/g, '').trim(); })
         .filter(function (x) { return x && !/^_.*_$/.test(x); });
@@ -477,12 +517,20 @@ function parseModelRecommendations(mdPath) {
   // exists purely so the router can compare freshness across candidate roots.
   Object.defineProperty(roster, '__mtime', { value: chosenMtime, enumerable: false });
   Object.defineProperty(roster, '__path', { value: mdPath, enumerable: false });
+  // C55 — reachability is measured, persisted into the roster, and previously
+  // never read. Expose it non-enumerably so the wave path can warn without a
+  // live probe (rule 2: an auto-probe spends credits). `probed` is read from the
+  // roster's own stamp: "and verified by dispatch probe." vs "reachability NOT
+  // probed — run `wb-flow model --probe`".
+  Object.defineProperty(roster, '__unreachable', { value: unreachable, enumerable: false });
+  Object.defineProperty(roster, '__unvalidated', { value: unvalidated, enumerable: false });
+  Object.defineProperty(roster, '__probed', { value: /verified by dispatch probe\b/i.test(text), enumerable: false });
   return roster;
 }
 
 module.exports = {
   parseMatrix, splitRow, parseCell, cellsOf, indexDispatches, keyOf,
   parseDoneColumn, parseVerifyColumn, parseValidColumn, parseRequiresColumn,
-  parseTaskText, parseEstTime, extractVerifyCommand, splitCommand,
-  parseHeaderRoster, parseModelRecommendations
+  resolveRequiresRole, parseTaskText, parseEstTime, extractVerifyCommand,
+  splitCommand, parseHeaderRoster, parseModelRecommendations
 };

@@ -1,6 +1,6 @@
 ---
 title: "wbToWBC — Examples"
-description: "---"
+description: "A targeted migration: takes a legacy component and rewrites it to use WBDataViewer, wb-press layouts, WBCode, etc."
 ---
 
 # /wbToWBC — Examples

@@ -1,6 +1,6 @@
 ---
 title: "wbSetup — Examples"
-description: "---"
+description: "The live demo app."
 ---
 
 # /wbSetup — Examples

@@ -1,7 +1,7 @@
 'use strict';
 const os = require('os');
 const path = require('path');
-const { NAME_TO_SLUG, AGY_ONLY_SLUGS, CODEX_ONLY_RE, DEFAULT_MODELS, ROLES } = require('./wave_constants');
+const { NAME_TO_SLUG, AGY_ONLY_SLUGS, CODEX_ONLY_RE, DEFAULT_MODELS, KNOWN_SLUGS, ROLES } = require('./wave_constants');
 const { splitCommand, parseHeaderRoster, parseModelRecommendations, keyOf } = require('./wave_parser');
 
 function resolveDisplayName(name) {
@@ -15,9 +15,35 @@ function resolveDisplayName(name) {
   // untouched — otherwise every generated roster reads as "unrecognised model"
   // and silently falls back to DEFAULT_MODELS.
   const raw = String(name).trim();
-  if (raw.indexOf('/') !== -1) return raw;
+  if (raw.indexOf('/') !== -1) {
+    // C62 — the old passthrough returned ANY slash-bearing string, so a
+    // fabricated vendor/model (`bogus-vendor/x`, `opencode/not-a-real-x`) walked
+    // straight past the `--set` guard and into the roster. Resolve a namespaced
+    // slug against the catalog and the curated in-code sets instead of trusting
+    // the slash to mean "known".
+    return knownSlugs().has(raw) ? raw : undefined;
+  }
   if (/^(gemini|claude|gpt-oss)[\w.-]*-(high|medium|low|thinking)$/.test(raw)) return raw;
   return NAME_TO_SLUG.get(key) || undefined;
+}
+
+let _knownSlugs;
+function knownSlugs() {
+  if (_knownSlugs !== undefined) return _knownSlugs;
+  const s = new Set();
+  // The catalog (models.json) is authoritative for "which models exist". Seed it
+  // first, so a namespaced slug resolves only when some source actually knows it.
+  const cat = catalogRoutes();
+  if (cat) { for (const slug of cat.keys()) s.add(slug); }
+  // Curated in-code sets — always present, so a fresh install with no catalog
+  // still validates against the models the system itself ships as defaults or a
+  // display name this side recognises.
+  for (const v of NAME_TO_SLUG.values()) s.add(v);
+  for (const k of Object.keys(DEFAULT_MODELS)) s.add(DEFAULT_MODELS[k]);
+  for (const bare of AGY_ONLY_SLUGS) s.add(bare);
+  for (const k of KNOWN_SLUGS) s.add(k);
+  _knownSlugs = s;
+  return s;
 }
 function isClaudeExecutor(doneCell) {
   return /claude|opus|sonnet|haiku/i.test(String(doneCell || ''));
@@ -494,6 +520,41 @@ function resolveModelsFromRoster(text, repoRoot, explicitModels, currentModels, 
   ['worker', 'mechanical', 'selfValidator'].forEach(function (key) {
     if (!sources[key]) sources[key] = 'built-in DEFAULT_MODELS';
   });
+
+  // C55 — reachability is measured by `model --probe` and persisted into the
+  // roster file, but the wave path never read it, so a roster leading with a
+  // dead provider dispatched three NO-OP cells before any human saw a warning.
+  // Consume the annotation that is already there: warn when a SELECTED model
+  // (head or any `||` chain link) is marked unreachable, or when the roster was
+  // never probed. NON-SPENDING — this reads an annotation, it does not dispatch
+  // a probe (an auto-probe would spend credits; that is a maintainer decision).
+  //
+  // The annotation lives only in the FILE roster: a plan-header roster carries
+  // model chains but never the probe's reachability marks. So these are read
+  // from `fileRoster` even when `headerRoster` wins the chain resolution above.
+  if (fileRoster) {
+    const unreachable = fileRoster.__unreachable || [];
+    const selected = new Set();
+    ['planner', 'worker', 'mechanical', 'selfValidator'].forEach(function (k) {
+      ((resolved.chains && resolved.chains[k]) || []).forEach(function (m) {
+        if (m) selected.add(String(m).trim());
+      });
+      if (resolved[k]) selected.add(String(resolved[k]).trim());
+    });
+    const flagged = unreachable.filter(function (u) { return selected.has(u); });
+    if (flagged.length) {
+      console.error('⚠️  wb-flow wave — the roster marks selected model(s) unreachable: ' +
+        flagged.join(', ') + '. Run `wb-flow model --probe` to verify reachability.');
+    }
+    const unvalidated = fileRoster.__unvalidated || [];
+    const forced = unvalidated.filter(function (u) { return selected.has(u); });
+    if (forced.length) {
+      console.error('⚠️  wb-flow wave — the roster marks selected model(s) unvalidated (--force): ' +
+        forced.join(', ') + '. Not in the catalog; wave may fail at runtime.');
+    } else if (!fileRoster.__probed) {
+      console.error('⚠️  wb-flow wave — this roster has never been probed (or was probed before its last write), so reachability is unverified. Run `wb-flow model --probe`.');
+    }
+  }
 
   // Name the file the chains actually came from. `wb-flow model --show` and
   // `wb-flow wave --list` both use the same freshest-wins resolver, and

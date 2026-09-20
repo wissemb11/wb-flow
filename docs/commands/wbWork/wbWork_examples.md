@@ -116,3 +116,187 @@ The `Done` column for task 1 is updated (`✅`). Tasks 2 and 3 remain `⬜`. You
 **What to notice:** the failed validation history is preserved. The next `/wbValid` run sees both the old FAIL and the new attempt.
 
 ---
+
+## Example 7 — `--loop` with a plain state condition (simple command)
+
+**User:** `/wbWork $P --wave=all -y --loop="--id=10"`
+
+**Reads as:**
+
+```
+repeat { /wbWork $P --wave=all -y } until the plan has 10 tasks
+```
+
+**What it does:**
+1. Runs the body once — `--wave=all` walks every wave in order.
+2. Counts task rows in the plan. 6 → condition unmet.
+3. Runs again. Rows added by the iteration are picked up because the matrix is recomputed each pass.
+4. At 10 rows the condition holds and the loop exits, reporting **satisfied · 3 iterations · 6 → 8 → 10**.
+
+**What to notice:** the body runs **before** the first check. `--loop` is repeat-until, not while-do —
+a condition already true at the start still costs one iteration.
+
+---
+
+## Example 8 — a compound condition (clear condition, two terms)
+
+**User:** `/wbWork $P --wave=all -y --loop="--id=10 and --Valid=true"`
+
+**What it does:**
+1. After each iteration, evaluates both terms: 10 task rows **and** every row carrying a validation.
+2. Iteration 3 reaches 10 rows but two rows are still `⬜` in `☐ Valid` → condition unmet, continue.
+3. Iteration 4 validates them → both terms hold → exit.
+
+**Output (excerpt):**
+
+```
+🔁 loop 4/5 — condition: --id=10 and --Valid=true
+   --id=10      ✅ 10 rows
+   --Valid=true ✅ 10/10 validated
+   → satisfied after 4 iterations
+```
+
+**What to notice:** `and` / `or` join any two conditions. Both terms are reported separately, so a loop
+that stops on its bound tells you *which* term never held.
+
+---
+
+## Example 9 — an external condition (a command's score)
+
+**User:** `/wbWork $P --wave=all -y --loop="/wbAudit >= 9.5"`
+
+**Reads as:**
+
+```
+repeat { /wbWork $P --wave=all -y ; /wbAudit <target> } until the audit score >= 9.5
+```
+
+**What it does:**
+1. Runs the body, then dispatches `/wbAudit` **as a separate process** and parses its score.
+2. 8.0 → unmet. The audit's `--wbPlan` phase adds rows for what it found, so the next iteration has work.
+3. 9.0 → unmet. 9.5 → exit.
+
+**What to notice — two things that are easy to get wrong:**
+
+- The audit must be dispatched **independently** (`.wb/bin/wbRun claude -p … "/wbAudit …"`). Run in the
+  same session that did the work, the exit depends on a number the author assigns itself.
+- **Pin the rubric** in that invocation. Unpinned, the same unchanged tree scored **8.5** by holistic
+  judgement and **7.0** against a line-by-line rubric — a 1.5 swing with no code change. If the
+  threshold is 9.5, that gap decides whether the loop stops.
+
+---
+
+## Example 10 — multiple commands in one loop (bracketed form)
+
+**User:** `[/wbWork $P --wave=all -y  /wbAudit $C --wbPlan -y] --loop="/wbAudit >= 9.5"`
+
+**What it does:**
+1. Runs each bracketed command in order, as one iteration.
+2. Evaluates the condition once, after the whole set.
+3. Repeats until satisfied, bounded, stuck or blocked.
+
+**What to notice:** this is what someone reaching for `/wbAudit --loop` usually means. `--loop` is
+**refused** on read-only commands run alone — looping an audit until its own number moves is either a
+no-op (the code did not change, so the findings did not change) or a way to re-score until the answer
+is the desired one. Put the audit in the body *and* the condition, not in the body alone.
+
+---
+
+## Example 11 — when the loop stops without satisfying the condition
+
+**User:** `/wbWork $P --wave=all -y --loop="/wbAudit >= 9.5" --loop-max=3`
+
+**Output (excerpt):**
+
+```
+🔁 loop 2/3 — condition: /wbAudit >= 9.5
+   iteration 1: score 8.0 · 3 rows closed
+   iteration 2: score 8.0 · 0 rows closed · no measurable change
+   → STUCK after 2 iterations. Last score 8.0, threshold 9.5.
+     Remaining findings need decisions the plan does not contain.
+```
+
+**What to notice:** three of the four exits are *not* "satisfied".
+
+| Exit | Meaning |
+|---|---|
+| **satisfied** | the condition held |
+| **bound reached** | `--loop-max` hit — the condition may still be reachable |
+| **stuck** | an iteration changed nothing measurable — iterating again cannot help |
+| **blocked** | a step needed a decision the plan does not contain, or a human hand — **reported even under `-y`** |
+
+A loop that reports only "done" hides whether it converged or gave up.
+
+---
+
+## Example 12 — why `--wbPlan` is implied in a condition (recursion)
+
+**User:** `/wbWork $P --wave=all -y --loop="/wbAudit >= 9.5"`
+
+The condition command runs with `--wbPlan` **by default**, so this is identical to:
+
+`/wbWork $P --wave=all -y --loop="/wbAudit --wbPlan >= 9.5"`
+
+**Why that matters — the same loop, with and without it:**
+
+| | With `--wbPlan` (default) | With `--no-wbPlan` |
+|---|---|---|
+| Iteration 1 | body runs wave J · audit scores 9.0 · **adds 2 rows** | body runs wave J · audit scores 9.0 · findings discarded |
+| Iteration 2 | body has 2 new rows to run · audit scores 9.5 → **satisfied** | body has no open rows · nothing changes → **stuck** |
+
+Without it the loop is not a loop. The audit measures, reports, throws the findings away, and the next
+body runs against an unchanged plan — so guard 2 correctly ends it after one pass of real work.
+
+```
+body → condition command → new rows → body has work → condition command → …
+        (measures)          (feeds the next pass)
+```
+
+**What to notice:** the condition command has two jobs, not one. It decides whether to stop **and** it
+supplies what the next iteration will do. `--no-wbPlan` is available and rarely right — it turns the
+loop into a poll that converges only if the plan already holds enough open rows to reach the threshold.
+
+---
+
+## Example 13 — the wave list is a forecast, not a schedule
+
+**User:** `/wbWork $P --wave=all -y`
+
+**The CLI prints:**
+
+```
+🌊 --wave=all is an orchestrator loop, not a single script.
+   3 wave(s) in order: A → B → C
+
+   ⚠️  This list is a FORECAST of the current table, not a schedule.
+   Run the FIRST wave only, transcribe its results, then RECOMPUTE:
+       wb-flow next <plan> --embed
+   …and read the next wave fresh. Later labels may not survive the first wave.
+```
+
+**Wrong — walking the printed list:**
+
+```bash
+for W in A B C; do wb-flow wave $P --wave=$W; done   # ❌
+```
+
+**Right — recompute between waves:**
+
+```bash
+wb-flow wave $P --wave=A        # first wave only
+# transcribe ☐ Done / ☐ Valid into the task table
+wb-flow next $P --embed         # recompute matrix + run-book
+wb-flow wave $P --wave=<whatever is first now>
+```
+
+**What goes wrong with the loop:** the `for` version dispatched waves B and C from a matrix computed
+**before** A ran. Their validator cells carried task ids that A had already closed, so both reported
+`NO-OP` on rows that were no longer in the table — and four rows ended **done but unvalidated**. Nothing
+failed loudly. The next audit then scored a tree whose validation state was incomplete, for reasons
+having nothing to do with the code.
+
+**What to notice:** after a wave, the matrix can gain waves (`A1`, `B1`), lose waves whose rows closed,
+and hold rows postponed out of the wave that just ran. Only the **first** wave of a freshly-read matrix
+is ever safe to dispatch.
+
+---

@@ -1,6 +1,6 @@
 ---
 title: "wbNext — Examples"
-description: "---"
+description: "You ran /wbStandup core2/ 10 minutes ago."
 ---
 
 # /wbNext — Examples

@@ -485,7 +485,9 @@ const HELP = `
     --prune              With --sync-catalog: DELETE retired models instead of
                          marking them. Refuses any slug the live roster still
                          dispatches to unless --force is also given.
-    --force              Allow --prune to remove a roster-referenced slug.
+    --force              Allow --prune to remove a roster-referenced slug; with
+                         --set, write a slug the catalog has not learned yet,
+                         warning on stderr what validation is being bypassed.
     --reset              Alias for --detect. The shipped roster is neutral by
                          design, so there is no packaged baseline to restore to
                          — a reset re-derives from what THIS machine can reach.
@@ -781,14 +783,20 @@ function proposeRoster(found, opts) {
   // for a roster: proposing a slug the plan refuses would bake a guaranteed
   // INFRA into the chain, and the whole point of the chatgpt pool is that it
   // survives a Claude or Google limit window.
-  const slugs = ((found && found.slugs) || [])
+  let slugs = ((found && found.slugs) || [])
     .concat((found && found.agy && found.agy.models) || [])
     .concat((found && found.codex && (found.codex.verified || found.codex.models)) || []);
+  if (o.unreachable && o.unreachable.length > 0) {
+    slugs = slugs.filter(function (s) { return o.unreachable.indexOf(s) === -1; });
+  }
   const roster = {};
-  const inSession = found && found.claude ? 'Claude (auto)' : null;
+  let inSession = found && found.claude ? 'Claude (auto)' : null;
+  if (inSession && o.unreachable && o.unreachable.indexOf(inSession) !== -1) {
+    inSession = null;
+  }
 
   for (const role of ROLE_ORDER) {
-    const leadsInSession = (role === 'planner' || role === 'validator') && inSession;
+    const leadsInSession = role === 'planner' && inSession;
     // A fallback chain whose fallbacks are the SAME family as the primary is not
     // a fallback chain. When the root is Claude, the next links must be
     // reachable when Claude is not — so exclude that family from the picker
@@ -807,7 +815,8 @@ function proposeRoster(found, opts) {
       // Claude-rooted chain — but that is Opus-class reasoning on a *different*
       // subscription, i.e. exactly the fallback you want when Claude Pro
       // throttles. What must not repeat is the pool, and `seedPools` handles it.
-      exclude: null,
+      exclude: role === 'validator' && !inSession && roster['planner'] && roster['planner'][0] ?
+        new RegExp('^' + roster['planner'][0].split('/').pop().replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + '$', 'i') : null,
       limit: leadsInSession ? 2 : 3,
     });
     if (leadsInSession) {
@@ -946,7 +955,10 @@ function renderRosterTable(roster, meta) {
       ? Array.from(new Set(entries.map((e) => laneOf(e, catIdx)))).join(' → ')
       : '_run `wb-flow model --detect`_';
     const unreachable = (m.unreachable || []).filter((u) => entries.indexOf(u) !== -1);
-    const warn = unreachable.length ? ' ⚠️ unreachable: ' + unreachable.join(', ') : '';
+    const unvalidated = (m.unvalidated || []).filter((u) => entries.indexOf(u) !== -1);
+    let warn = '';
+    if (unreachable.length) warn += ' ⚠️ unreachable: ' + unreachable.join(', ');
+    if (unvalidated.length) warn += ' ⚠️ unvalidated (--force): ' + unvalidated.join(', ');
     lines.push('| ' + ROLE_META[role].label + ' | ' + names + warn + ' | ' + lane + ' |');
   }
 
@@ -1615,6 +1627,32 @@ function selectProbeTargets(allCatalog, allOpt, catIdx) {
   };
 }
 
+// A normal `--probe` deliberately spends calls only on models the roster
+// already selects. That must not make an installed dispatch lane invisible:
+// surface it as an option without silently changing the roster.
+const DISCOVERABLE_CLI_LANES = ['claude', 'codex', 'grok', 'agy', 'opencode', 'gemini', 'copilot'];
+
+/**
+ * Return installed CLIs that no current roster entry routes through.
+ *
+ * This is presence reporting, not a second probe pass. Selected models retain
+ * the only billable reachability checks; unlisted lanes are informational and
+ * are never enrolled into a role.
+ */
+function installedButUnlistedCliLanes(roster, catIdx, hasCli) {
+  const selected = new Set();
+  for (const role of ROLE_ORDER) {
+    for (const slug of (roster && roster[role]) || []) {
+      const route = resolveCli(slug, catIdx);
+      if (route && route.cli && route.cli !== 'in-session') selected.add(route.cli);
+    }
+  }
+  const present = typeof hasCli === 'function' ? hasCli : hasCLI;
+  return DISCOVERABLE_CLI_LANES.filter(function (cli) {
+    return !selected.has(cli) && present(cli);
+  });
+}
+
 /** Group probe lines under their role headings, ordered, nothing dropped. */
 function renderGrouped(buckets) {
   const out = [];
@@ -1934,6 +1972,11 @@ function getAllCatalogModels(customObj, roster) {
 
 function parseArgs(argv) {
   const o = { detect: false, pick: false, set: {}, probe: false, all: false, timeout: 45000, file: null, modelsFile: null, json: false, yes: false, dryRun: false, help: false, syncCatalog: false, prune: false, force: false, add: null, remove: null, strict: false, fromPicker: false, fromFile: null };
+  // C62 — `--force` is the escape hatch for `--set` (accept a slug the catalog
+  // has not learned), but `applySet` runs inline the moment `--set` is reached,
+  // which may precede `--force` on the argv. Resolve it up front so the flag
+  // works regardless of its position relative to `--set`.
+  if (argv.indexOf('--force') !== -1) o.force = true;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--help' || a === '-h') o.help = true;
@@ -1973,7 +2016,46 @@ function applySet(o, kv) {
     console.error('❌ Unknown role \'' + role + '\'. Use: ' + ROLE_ORDER.join(' '));
     process.exit(1);
   }
-  o.set[role] = m[2].split(',').map((s) => s.trim()).filter(Boolean);
+  // C61 — `--set` split on `,` alone, so pasting back the `|` or ` / ` the
+  // surfaces actually render collapsed a fallback chain to one link and printed
+  // ✅. Split on all three separators: comma, pipe, and the rendered ` / `.
+  // Split on " / " (spaces) — never a bare `/` — because a dispatch slug like
+  // opencode/deepseek-v4-pro carries one.
+  const requested = String(m[2])
+    .split(/\s*[,|]\s*|\s+\/\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  // C54 — `--set` was the one surface a human could act on that was silent: it
+  // accepted any string with exit 0, then `wave` silently demoted the role to a
+  // (known-dead) DEFAULT_MODELS fallback. Validate against the router's own
+  // resolveDisplayName — the single source of truth — so a slug that `--set`
+  // writes is one `wave` can route. agy names are bare by design, so the test is
+  // "does the router recognise it", never "does it carry a provider prefix".
+  // Lazy require: wave_router loads cleanly without model.js at module top, so
+  // deferring the import sidesteps any interest in a require cycle.
+  const router = require('./wave_router.js');
+  const resolvable = function (s) { return router.resolveDisplayName(s) !== undefined; };
+  const unroutable = requested.filter(function (s) { return !resolvable(s); });
+  if (unroutable.length) {
+    if (o.force) {
+      // C62 — the documented escape hatch for a slug the catalog has not learned
+      // yet. Accept it, but say what is being bypassed so the write is never
+      // silent (the silence is what made C54/C62 invisible to the operator).
+      console.error('⚠️  --force: writing unroutable model' + (unroutable.length > 1 ? 's' : '')
+        + ' ' + unroutable.map(function (s) { return '\'' + s + '\''; }).join(', ')
+        + ' — not in the catalog; wave will name this model directly and may fail at runtime.');
+      if (!o.unvalidated) o.unvalidated = [];
+      unroutable.forEach(function (s) { o.unvalidated.push(s); });
+    } else {
+      console.error('❌ unroutable model' + (unroutable.length > 1 ? 's' : '')
+        + ' ' + unroutable.map(function (s) { return '\'' + s + '\''; }).join(', ')
+        + ' — no provider can dispatch '
+        + (unroutable.length > 1 ? 'them; they are' : 'it; it is')
+        + ' not written. Refusing the whole `--set` rather than write a partial chain (C61). Pass --force to bypass.');
+      process.exit(1);
+    }
+  }
+  if (requested.length) o.set[role] = requested;
 }
 
 /**
@@ -2242,7 +2324,22 @@ async function run(argv) {
   }
 
   let roster = current || {};
-  const meta = { date: new Date().toISOString().slice(0, 10), unreachable: [] };
+  const meta = { date: new Date().toISOString().slice(0, 10), unreachable: [], unvalidated: opts.unvalidated || [] };
+  
+  // Extract unreachable models from the existing roster table so --detect can cross-check
+  if (text) {
+    const lines = text.split('\n');
+    for (const line of lines) {
+      if (line.indexOf('⚠️ unreachable:') !== -1) {
+        const match = line.match(/⚠️\s*unreachable:\s*([^|]*)/);
+        if (match) {
+          match[1].split(',').map(s => s.trim()).filter(Boolean).forEach(u => {
+            if (meta.unreachable.indexOf(u) === -1) meta.unreachable.push(u);
+          });
+        }
+      }
+    }
+  }
 
   if (opts.detect) {
     const found = detect();
@@ -2261,10 +2358,56 @@ async function run(argv) {
     else console.log('   grok     — not installed');
     console.log('   claude   — ' + (found.claude ? 'present (eligible as in-session root)' : 'not installed'));
     if (found.providers.length) console.log('   credentials: ' + found.providers.join(', '));
-    roster = proposeRoster(found);
+    roster = proposeRoster(found, { unreachable: meta.unreachable });
+
+    // Cross-check proposed roster against existing reachability annotations
+    let hasUnreachable = false;
+    for (const role of ROLE_ORDER) {
+      if (roster[role]) {
+        for (const slug of roster[role]) {
+          if (meta.unreachable.indexOf(slug) !== -1) {
+            hasUnreachable = true;
+          }
+        }
+      }
+    }
+
+    console.log('\n📋 Proposed Roster:\n');
+    console.log(renderRosterTable(roster, meta));
+
+    if (!opts.yes && !opts.dryRun && !opts.json) {
+      if (!canPrompt(opts)) {
+        console.error('\n❌ --detect requires --yes in non-interactive environments to overwrite the roster.');
+        return 1;
+      }
+      const io = prompter();
+      try {
+        const answer = await io.ask('\nWrite this roster? (y/N) ');
+        const ok = isYes(answer, false);
+        if (!ok) {
+          console.log('Aborted.');
+          return 1;
+        }
+      } finally {
+        io.close();
+      }
+    }
   }
 
-  for (const role of Object.keys(opts.set)) roster[role] = opts.set[role];
+  for (const role of Object.keys(opts.set)) {
+    // C61 — an existing chain shortened to fewer links must be visible, not
+    // silent. `--set` reads back what `--show` / `wave --list` render, so a
+    // paste that collapses a fallback chain is easy; name both lengths on
+    // stderr before the write.
+    const newChain = opts.set[role] || [];
+    const existing = (current && current[role]) || [];
+    if (existing.length > newChain.length) {
+      console.error('⚠️  shortening ' + role + ' fallback chain from '
+        + existing.length + ' link(s) to ' + newChain.length
+        + ' — dropped: ' + existing.slice(newChain.length).join(', '));
+    }
+    roster[role] = opts.set[role];
+  }
 
   if (opts.probe && !opts.pick) {
     const customObj = loadCustomModels(opts);
@@ -2294,6 +2437,11 @@ async function run(argv) {
       console.log('   ' + mark + slug.padEnd(44) + ' — ' + via + ' — ' + tag
         + (res.ok ? '' : ' — (' + (res.why || 'failed') + ')'));
       if (!res.ok) meta.unreachable.push(slug);
+    }
+    const unlistedLanes = installedButUnlistedCliLanes(roster, catIdx);
+    if (unlistedLanes.length) {
+      console.log('\nℹ️  Also available: ' + unlistedLanes.join(', ')
+        + ' — installed but not in the roster (informational only; no models were added).');
     }
     meta.probed = true;
   }
@@ -2448,7 +2596,7 @@ async function run(argv) {
     console.log('   failure wearing three hats.');
     const io = prompter();
     try {
-      const base = Object.keys(roster).length ? roster : proposeRoster(found);
+      const base = Object.keys(roster).length ? roster : proposeRoster(found, { unreachable: meta.unreachable });
       // When a probe ran, its results outrank `proposeRoster(found)`: detection
       // only proves a credential exists, the probe proves the model answered.
       // So the models the probe just listed under a role become that role's
@@ -2474,6 +2622,7 @@ async function run(argv) {
     console.log(renderRosterTable(roster, meta));
     return 0;
   }
+  fs.writeFileSync(file + '.bak', text);
   fs.writeFileSync(file, next);
   console.log('\n✅ Roster written to ' + file);
   console.log('   Change it later:  wb-flow model --pick              (interactive)');
@@ -2497,7 +2646,7 @@ module.exports = {
   resolveCli, catalogIndex, PROVIDER_CLI, dispatchFor, isSubscription, persistedCodexVerified, saveSelectedRoster, parsePickerModels, resolveProviderName, splitProviderList, poolRank, activeProviders, _setActiveProviders,
   hasCLI, tryExec, DEFAULT_ENUM_TIMEOUT_MS,
   selectProbeTargets, renderGrouped, ROLE_TAGS, qualifyModel, getAllCatalogModels,
-  collapseTiers, suggestFromProbe, TAG_ROLES,
+  collapseTiers, suggestFromProbe, TAG_ROLES, installedButUnlistedCliLanes,
 };
 
 if (require.main === module) {

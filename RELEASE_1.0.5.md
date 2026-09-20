@@ -5,11 +5,11 @@ description: "A self-maintaining model catalog, fallback chains on every dispatc
 
 # What's New in `wb-flow` 1.0.5
 
-> Released 2026-09-04 · previous: [1.0.4](_deploy_/release_body_v1.0.4.md) · full log: [CHANGELOG.md](CHANGELOG.md)
+> Released 2026-09-04 · previous: 1.0.4 · full log: [CHANGELOG.md](CHANGELOG.md)
 >
-> Built from [`plan_next_20260902.md`](.wb/workflows/reports/2026/09/02/plans/plan_next_20260902.md)
-> (26 rows), [`plan_next_20260903.md`](.wb/workflows/reports/2026/09/03/plans/plan_next_20260903.md)
-> (13 rows), and [`plan_next_20260904.md`](.wb/workflows/reports/2026/09/04/plans/plan_next_20260904.md)
+> Built from `plan_next_20260902.md`
+> (26 rows), `plan_next_20260903.md`
+> (13 rows), and `plan_next_20260904.md`
 > (2 rows). Every row was validated by a **different provider** than the one that wrote it.
 
 ---
@@ -181,7 +181,7 @@ a task description containing a shell payload produced a wave script that execut
 a bare `Verify` cell proved to be a deterministic shell-execution sink with no model in the loop at
 all — its side effect gets scored as its own proof of success.
 
-**[The plan trust model](docs/concepts/plan-trust-model.md)** writes down the contract: plan text and
+**[The plan trust model](https://flow.wbc-ui.com/concepts/plan-trust-model)** writes down the contract: plan text and
 the `Verify` column are untrusted, executable input, judged by the same file that supplies the work
 order. Two mitigations implement it:
 
@@ -240,7 +240,7 @@ models the CLIs no longer serve are **marked** `retired` rather than deleted, an
 roster dispatches to is refused removal without `--force`. The write is atomic and keeps the previous
 file as `.bak`.
 
-**New to the roster?** [`docs/start_here/tutorial_setting_the_roster.md`](docs/start_here/tutorial_setting_the_roster.md)
+**New to the roster?** [`docs/start_here/tutorial_setting_the_roster.md`](https://flow.wbc-ui.com/start_here/tutorial_setting_the_roster)
 covers building a chain by hand — what the model tiers mean, and why the best model belongs on the
 Validator rather than on the code.
 

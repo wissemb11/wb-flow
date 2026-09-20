@@ -1,6 +1,6 @@
 ---
 title: "wbToWBC — Convert code to WBC component format"
-description: "## Overview"
+description: "/wbToWBC transforms standard Vue/JS code into the WBC (Web Component) format used by the wb-core engine."
 ---
 # /wbToWBC — Convert code to WBC component format
 

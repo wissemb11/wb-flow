@@ -53,7 +53,7 @@ If any of the above match, **the label MUST be rewritten to the basename only** 
 - **Label = basename only.** Compute the basename from the *href* (not the prose around the link). For files, take everything after the last `/`. For folders ending in `/`, take the second-to-last segment + `/`.
 - **Href = full relative path** computed from the output file's directory (per §1). Never collapse the href to just the basename — that breaks the link.
 - **Exception — prose-flow links.** When the natural sentence structure already names the file (e.g. `"Read [the package.json](../../package.json) for details"`) and rewriting would force the basename, leave human-authored prose labels alone. The rule targets *file references*, not narrative phrases. A reference is "file-style" if the label is, or could be replaced by, a path/filename (the four detection cases above all qualify).
-- **Optional tooltip:** for ambiguous basenames (e.g. two `context.md` at different scopes), add a `"<short scope hint>"` tooltip — `[context.md](../../../../../../../context.md "core2 root")`.
+- **Optional tooltip:** for ambiguous basenames (e.g. two `context.md` at different scopes), add a `"<short scope hint>"` tooltip — `[context.md](../../../../../context.md "core2 root")`.
 - **Self-correct mode (§3) MUST run the four-rule detection on every link** in the file and rewrite every match. This is non-optional — it's how legacy files written before v1.9 get cleaned up.
 
 **Quick mental check before writing a link:** *"If I strip everything before the last `/` from my label, does the meaning survive?"* If yes, you should have written that shortened form to begin with.
@@ -80,12 +80,12 @@ The href from `<file>.md` to anything else is therefore **mechanically derivable
 | **Prev/next-day same category, different month** | `../../../<MM>/<DD>/<category>/<file>.md` |
 | **Prev/next-day different category, same month** | `../../<DD>/<other-category>/<file>.md` |
 | **Up to scope root** (where `package.json` / `.wb/` live) | `../../../../../../../` *(exactly **7** up: `<cat>` → `<DD>` → `<MM>` → `<YYYY>` → `reports` → `workflows` → `.wb` → scope)* |
-| **Up to scope's `context.md` / `dev.md`** | `../../../../../../../context.md` · `../../../../../../../dev.md` |
-| **Up to monorepo root `<monorepo-root>/` from a sub-package** | `../../../../../../../../../../` *(10 up — 5 to leave the sub-package + 5 to leave `<monorepo-root>/.wb/...`; alternative form: `../../../../../../../../../../<sibling-scope>/`)* |
-| **Up to monorepo root's `<monorepo-root>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/<category>/<file>.md`** | `../../../../../../../../../../.wb/workflows/reports/<YYYY>/<MM>/<DD>/<category>/<file>.md` |
+| **Up to scope's `context.md` / `dev.md`** | `../../../../../context.md` · `../../../../../dev.md` *(exactly **5** up — they live at `<7-up>/.wb/workflows/`, not at scope root)* |
+| **Up to monorepo root `<monorepo-root>/` from a sub-package** | `../` repeated **7 + depth** times *(**7 + the scope's depth below monorepo root** up; alternative form: same up + `<sibling-scope>/`)* |
+| **Up to monorepo root's `<monorepo-root>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/<category>/<file>.md`** | `../` repeated **7 + depth** times + `.wb/workflows/reports/<YYYY>/<MM>/<DD>/<category>/<file>.md` |
 | **Sibling task report** (from a `plans/<file>.md` to its `tasks/task_<N>/...`) | `tasks/task_<N>/task_<N>_report_<scope>_<date>.md` *(no `../`)* |
 | **From a task report up to its parent plan** | `../../<file>.md` *(2 up: leave `task_<N>/`, leave `tasks/`)* |
-| **Templates folder from a report file** (rare, prefer doc links) | `../../../../../../../../../../packages/wb-flow/templates/commands/<wbX>/<wbX>_template.md` |
+| **Templates folder from a report file** (rare, prefer doc links) | `../` repeated **7 + depth** times + `packages/wb-flow/templates/commands/<wbX>/<wbX>_template.md` |
 
 > ⚠️ **Scope-root depth corrected in v1.12 — it was wrong here for a year.** The row above used to read `../../../../../` ("always exactly 5 up — depth 7 minus depth 2"), which mis-read the diagram: `7` numbers the **file**, not its directory, so subtracting anything from it is meaningless. Count the arrows instead — there are seven directories between a report file and its scope root, and the correct href is `../../../../../../../`. Every file written from the old row is off by two levels; a self-correct pass (§3) on such a file MUST rewrite the href, and must not "verify" it by reproducing the old arithmetic.
 
@@ -119,6 +119,13 @@ In any backlog/task table, the `Origin` and `Verify` columns must contain an **i
 `/<command> <this-file-path>` — still invocable, still unambiguous.
 
 **Bare-command exception:** allowed *only* in the recursive-task pattern where the row's `Task` column already contains the full invocation (e.g. `Task: "/wbPlan packages/wb-core WBC.js"`). In that case `Verify` may stay short. Avoid otherwise.
+
+### 2.1 Absence-Asserting Oracles (Detector Class Set & Date)
+
+An acceptance criterion or `Verify` oracle asserting the **absence of findings** (e.g., `! (lint ... | grep -q 'vacuous Verify')`) MUST explicitly name the **class set** checked and the **date** (e.g., `"zero V1-V8 as of 2026-09-12"`).
+
+**Why:** Automated detectors and linter rules are **non-monotonic in time** — adding a new detector class (e.g. V9) after a plan is closed will cause legacy absence checks to fail retroactively, misrepresenting historical work as degraded or rotted. Explicitly scoping the assertion to the class set and date anchors the claim to the detector version active at execution time.
+
 
 ---
 
@@ -232,8 +239,8 @@ Each file's footer lists only its **siblings at the same folder scope** — not 
 
 | Type | File | Description |
 |---|---|---|
-| Foundational | [context.md](../../../../../../../context.md) | Permanent Identity and Architecture (Source of Truth) |
-| Foundational | [dev.md](../../../../../../../dev.md) | Permanent Development Commands and Status |
+| Foundational | [context.md](../../../../../context.md) | Permanent Identity and Architecture (Source of Truth) |
+| Foundational | [dev.md](../../../../../dev.md) | Permanent Development Commands and Status |
 | Active Plan | [plan_<scope>_<date>.md](../plans/plan_<scope>_<date>.md) | Current executable backlog |
 | Active Track | [track_<scope>_<date>.md](../../../../../tracks/<YYYY>/<MM>/<DD>/track_<scope>_<date>.md) | Current session narrative |
 | Last Plan | [plan_<scope>_<prev-date>.md](../../<prev-DD>/plans/plan_<scope>_<prev-date>.md) | Previous execution plan |
@@ -573,13 +580,13 @@ When a `/wb*` command runs in self-correct mode (§3) on a file written before v
 | `/wbNext` | the Suggested Tasks Table (§4) |
 | `/wbIdea` | ideas marked `🎯 Promoted` |
 
-**Threshold:** emit the matrix only when the output holds **2 or more** actionable items. For a single action, one line (`Next: /wbWork <target> --id=3 → *Sonnet 4.7*`) is clearer than a grid.
-
 **Exempt:** every command in §9.4 that emits no suggestions. A status report, conversion artifact or single-purpose output has nothing to schedule.
 
 ### 10.4 The THREE derived blocks — one sync, one order, one oracle
 
 A plan file contains exactly **three derived blocks plus a status callout**. None of them is authored content; all four are projections of the task table, and all four go stale the moment any `☐ Done` / `☐ Valid` cell changes — including when the command that changed it is not the command that emits them.
+
+> **Gate 3 Contract:** The Gate 3 Verify oracle for any task executes from the **plan file's directory (this is its cwd)** (`<scope>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/`). To reach the scope root, use `../../../../../../../` (7 levels up).
 
 | # | Block | Derived from | Regenerated by |
 |---|---|---|---|
@@ -714,7 +721,7 @@ On any self-correct pass (§3) over a file emitted by a §10.3 command:
 
 That last row is the whole point: a paired validation must resolve *which agent executed the id it pairs*, and — for 🔨 Worker and 📋 Mechanical rows — pick a different one. A 🧠 Planner pairing may keep the same model and stay in-session. `wb-flow wave --list` prints the resolved routing, and its reason line names the exemption when it fires, before anything runs.
 
-**The orchestrator owns the plan file.** Every spawned command is passed `--no-plan-update`: sub-agents write **only** their task report and must not touch the plan's table or matrix. A wave launches its cells in parallel, and *N* agents doing read-modify-write on one markdown table is how a plan gets a corrupted row or two rival matrices. So after the wave settles the orchestrator — and only the orchestrator — reads the reports, checks the boxes of the cells that **succeeded**, and recomputes the matrix **once** (§10.4).
+**The orchestrator owns the plan file.** Every spawned command is passed `--no-plan-update`: sub-agents write **only** their task report and must not touch the plan's table or matrix. For a spawned `/wbValid`, that means the validator writes **only** the `## 🔍 Validation (QA)` section into the task report, and the **orchestrator** transcribes the score into `☐ Valid` afterwards. A wave launches its cells in parallel, and *N* agents doing read-modify-write on one markdown table is how a plan gets a corrupted row or two rival matrices. So after the wave settles the orchestrator — and only the orchestrator — reads the reports, checks the boxes of the cells that **succeeded**, and recomputes the matrix **once** (§10.4).
 
 **You run the wave — the user does not.** `--wave` is not "print a script and hand it over": the assistant executes it in its own terminal. "Parallel" means *you* launch each spawned cell as a **backgrounded shell** and keep working; when a cell is slow, or the next cell depends on it, *you* wait for it. The user watches one command produce a whole wave.
 
@@ -741,6 +748,37 @@ That last row is the whole point: a paired validation must resolve *which agent 
 **If a cell hangs**, kill it, log it as failed, and leave its box unchecked. A wave that never returns is worse than one that returns partial: give every spawned cell a wall-clock bound.
 
 **Progress reporting is a stated orchestrator duty.** The wave generator (`wb-flow wave`) emits a script that embeds the plan's `Est. Time (mins)` column, starts a **background heartbeat** (every ~30 s naming still-running ids with elapsed, % of estimate, ETA, and an explicit `OVER est by Nm` state), and **streams every cell's output in real time** via `tee` rather than capturing to a temp file and dumping at the end. The orchestrator reads this stream and reacts to hung cells — the generator provides the signal; the orchestrator acts on it.
+
+### 10.7 Baked-in-gate hazard (oracle capture at generation time)
+
+`wb-flow wave` captures and embeds the Gate 3 (G3) oracle directly into the generated wave script (`wave_<label>.sh`) at dispatch time. Because the script's embedded oracle code is captured at generation time and does not change while the wave runs, a task that modifies the gate implementation itself in `bin/wave_generator.js` or `bin/wave.js` will be evaluated by the pre-fix gate during that wave.
+
+Any wave touching `bin/wave_generator.js` or `bin/wave.js` **must be re-generated** before its validate phase, and such a cell's verdict must be confirmed against a freshly generated script.
+
+### 10.8 A `Verify` oracle must pass on the plan in its terminal CLOSED state
+
+An oracle is a permanent acceptance criterion, not a scribble against a plan's open
+phase. A `Verify` that binds to the plan's **transient open state** — a specific
+open row, a matrix cell's literal `--id=…`, a wave that dispatches — dies the
+moment the loop finishes, because the terminal state it drives toward is the one it
+was written against. `o9.sh`, `o10.sh`, `o12.sh` and `o13.sh` (2026-09-14) each
+bound to the live plan and failed once it closed.
+
+The rule: **a `Verify` oracle must pass on the plan in its terminal CLOSED state,
+or it is not a `Verify`.** It must build any state it needs itself — a minimal
+open plan in `mktemp -d`, never the live plan's transient specifics — so the row
+that closes it does not un-grade it. Re-run every oracle in the plan after the last
+row changes and require all to exit 0.
+
+### 10.9 An aggregate or sweep assertion must run first
+
+**An aggregate or sweep assertion must run first, on a clean tree, before the checker perturbs anything.**
+A check that runs after its own oracle has neutered or mutated the environment will grade its own blast radius, rather than the state it claimed to verify.
+
+This rule addresses three instances in one session of a check that could not see what it claimed to check:
+1. `dirname` after `cd` (where the oracle evaluated path logic after the environment had moved).
+2. A hollow control that `cannot fail` because it invoked another oracle incorrectly.
+3. A sweep grading the tree it had disturbed.
 
 ---
 

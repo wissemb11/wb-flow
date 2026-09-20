@@ -279,6 +279,51 @@ function run(argv) {
     return 1;
   }
 
+  // Preflight: sweep leaked temp files, THEN check free disk space.
+  //
+  // Order matters. The sweep runs first so a recoverable condition self-heals and only
+  // a genuine shortage stops the wave — refusing to dispatch over 6 GB of garbage we
+  // could have removed ourselves is not a preflight, it is an obstacle. This is also
+  // the invocation point the sweep script was missing: a script nothing calls cannot
+  // stop the leak accumulating, which was the whole point of the row.
+  //
+  // TMPDIR is honoured (default /tmp) so both halves are testable against a fixture,
+  // for the same reason the threshold is overridable: a preflight nobody can exercise
+  // is one nobody should trust.
+  const tmpDir = process.env.TMPDIR || '/tmp';
+  try {
+    const cp = require('child_process');
+    try {
+      const sweepScript = path.join(__dirname, 'sweep-tmp.sh');
+      if (fs.existsSync(sweepScript)) {
+        cp.execFileSync('bash', [sweepScript], {
+          stdio: 'ignore',
+          env: Object.assign({}, process.env, { TMPDIR: tmpDir }),
+        });
+      }
+    } catch (e) {
+      // A failed sweep must never block dispatch — it is best-effort hygiene.
+    }
+    const dfOut = cp.execFileSync('df', ['-m', tmpDir], { encoding: 'utf8' }).trim().split('\n');
+    if (dfOut.length >= 2) {
+      const line = dfOut[dfOut.length - 1];
+      const parts = line.trim().split(/\s+/);
+      const availIdx = parts.length === 6 ? 3 : (parts.length === 5 ? 2 : -1);
+      if (availIdx !== -1) {
+        const freeMb = parseInt(parts[availIdx], 10);
+        const minMb = parseInt(process.env.WB_FLOW_MIN_FREE_MB || process.env.WBFLOW_MIN_FREE_MB || process.env.WB_FLOW_MIN_DISK_MB || '50', 10);
+        if (!isNaN(freeMb) && !isNaN(minMb) && freeMb < minMb) {
+          console.error('❌ PREFLIGHT FAIL: ' + tmpDir + ' free space is too low (' + freeMb + ' MB < ' + minMb + ' MB). Oracles will fail confusingly.');
+          return 1;
+        }
+      } else {
+        console.error('⚠️ PREFLIGHT WARN: Unrecognized df output format, skipping disk check. Output: ' + line);
+      }
+    }
+  } catch (e) {
+    // Ignore if df fails
+  }
+
   const text = fs.readFileSync(planPath, 'utf8');
   const matrix = parseMatrix(text);
   if (!matrix) {
@@ -290,6 +335,71 @@ function run(argv) {
     console.log('every row is closed — nothing to schedule');
     return 0;
   }
+
+  // `--wave=all` (aliases `auto`, `*`) is an ORCHESTRATOR loop, not a script.
+  //
+  // It cannot be compiled into one mega-script: the loop's first rule is that it
+  // advances only when every cell of a wave is green, and a pre-generated script
+  // has already decided what runs before the first verdict exists. On 2026-09-13 a
+  // cell reported NO-OP while having deleted the score extractor and truncated the
+  // test suite; a script that had already queued the next wave would have run it
+  // against that tree. So this prints the wave order and hands the loop back.
+  const LOOP_ALIASES = ['all', 'auto', '*'];
+  if (LOOP_ALIASES.indexOf(String(opts.wave || '').trim().toLowerCase()) !== -1) {
+    if (opts.waveRole || opts.kind) {
+      const filters = [];
+      if (opts.waveRole) filters.push('role filter :' + opts.waveRole);
+      if (opts.kind) filters.push('kind filter --' + opts.kind);
+      console.error('❌ --wave=' + opts.wave + ' is a loop alias and cannot be combined with ' +
+        filters.join(' and ') + '.');
+      console.error('   Run a concrete wave cell instead, e.g. --wave=A:W, or use plain --wave=' + opts.wave + '.');
+      return 1;
+    }
+    const seen = [];
+    for (const r of matrix.rows) if (seen.indexOf(r.label) === -1) seen.push(r.label);
+    if (!seen.length) {
+      console.log('every row is closed — nothing to schedule');
+      return 0;
+    }
+    const planArg = opts.plan;
+    console.log('🌊 --wave=' + opts.wave + ' is an orchestrator loop, not a single script.');
+    console.log('   ' + seen.length + ' wave(s) in order: ' + seen.join(' → '));
+    console.log('');
+    console.log('   ⚠️  This list is a FORECAST of the current table, not a schedule.');
+    console.log('   Run the FIRST wave only, transcribe its results, then rewrite the matrix from the task table:');
+    console.log('       the 🌊 matrix has no CLI writer');
+    console.log('   Then regenerate the run-book:');
+    console.log('       wb-flow next ' + planArg + ' --embed');
+    console.log('   …and read the next wave fresh. Later labels may not survive the first wave.');
+    console.log('');
+    console.log('   Waves as the table stands right now:');
+    for (const l of seen) console.log('     wb-flow wave ' + planArg + ' --wave=' + l);
+    console.log('');
+    console.log('   The four rules that govern the loop (wbWork_template.md → Multi-Wave Execution):');
+    console.log('     1. Advance only on all-green — any INFRA/NO-OP/ATTEMPTED stops the loop.');
+    console.log('     2. Escalate when blocked — `-y` silences ambiguity, never a blocked step.');
+    console.log('     3. Stuck is terminal — no waves left but rows still open is a state to report.');
+    console.log('     4. A wave editing bin/wave_generator.js or bin/wave.js cannot grade itself.');
+    console.log('');
+    console.log('   Snapshot the files each wave targets before dispatching it.');
+    console.log('   Never walk this list as-is: a validator built from a stale matrix carries task');
+    console.log('   ids that may already be closed, and reports NO-OP on a row that is not there.');
+    return 0;
+  }
+
+  // Resolve the roster — and emit its reachability warning — BEFORE resolving
+  // the wave's cells. The warning is roster-level state (a selected model is
+  // marked unreachable, or the roster was never probed), not wave-level, so it
+  // must surface even when the requested wave label is absent. A stale label
+  // (`--wave=A` against a matrix that now starts at D) must still warn about a
+  // dead provider rather than exit silently on "No wave".
+  const repoRoot = findRepoRoot(path.dirname(planPath));
+  const packageRoot = findPackageRoot(path.dirname(planPath));
+  const planDirRel = path.relative(repoRoot, path.dirname(planPath));
+
+  const resolved = resolveModelsFromRoster(text, repoRoot, opts._explicitModels, opts.models, packageRoot);
+  opts.models = resolved.models;
+  opts._modelSources = resolved.sources;
 
   const cells = cellsOf(matrix, opts.wave, opts.kind, opts.waveRole);
   if (!cells) {
@@ -304,13 +414,6 @@ function run(argv) {
   const verifyColumn = parseVerifyColumn(text);
   const validColumn = parseValidColumn(text);
   const estTime = parseEstTime(text);
-  const repoRoot = findRepoRoot(path.dirname(planPath));
-  const packageRoot = findPackageRoot(path.dirname(planPath));
-  const planDirRel = path.relative(repoRoot, path.dirname(planPath));
-
-  const resolved = resolveModelsFromRoster(text, repoRoot, opts._explicitModels, opts.models, packageRoot);
-  opts.models = resolved.models;
-  opts._modelSources = resolved.sources;
 
   if (opts.list) {
     console.log('\n🌊 Wave ' + opts.wave + ' — ' + cells.length + ' cell(s) in ' + path.basename(planPath) + '\n');

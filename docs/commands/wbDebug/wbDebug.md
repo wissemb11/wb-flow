@@ -1,6 +1,6 @@
 ---
 title: "wbDebug — Find root causes of bugs"
-description: "## Overview"
+description: "/wbDebug investigates a reported bug or unexpected behavior by reading code, tracing data flow, and identifying the root cause."
 ---
 
 # /wbDebug — Find root causes of bugs

@@ -34,6 +34,13 @@ function findMonorepoRoot(startDir) {
   return null;
 }
 
+function resolveClaudeCommandsDir(monorepoRoot, homeDir) {
+  const userClaudeDir = path.join(homeDir || os.homedir(), '.claude', 'commands');
+  const repoClaudeDir = path.join(monorepoRoot, '.claude', 'commands');
+  return fs.existsSync(userClaudeDir) ? userClaudeDir : repoClaudeDir;
+}
+
+function run() {
 const MONOREPO_ROOT = findMonorepoRoot(PKG_ROOT);
 
 if (!MONOREPO_ROOT) {
@@ -51,7 +58,7 @@ if (!MONOREPO_ROOT) {
 // Resolution order must match verify-wrappers.js exactly, or they disagree again.
 const USER_CLAUDE_DIR = path.join(os.homedir(), '.claude', 'commands');
 const REPO_CLAUDE_DIR = path.join(MONOREPO_ROOT, '.claude', 'commands');
-const claudeCommandsDir = fs.existsSync(USER_CLAUDE_DIR) ? USER_CLAUDE_DIR : REPO_CLAUDE_DIR;
+const claudeCommandsDir = resolveClaudeCommandsDir(MONOREPO_ROOT, os.homedir());
 const projectRoot = MONOREPO_ROOT;
 
 if (projectRoot.includes('packages/wb-flow')) {
@@ -164,3 +171,11 @@ try {
 }
 
 if (exitCode !== 0) process.exit(exitCode);
+return exitCode;
+}
+
+module.exports = { findMonorepoRoot, resolveClaudeCommandsDir, run };
+
+if (require.main === module) {
+  run();
+}

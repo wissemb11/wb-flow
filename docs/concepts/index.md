@@ -20,6 +20,7 @@ This folder is **not** about how to use commands — it's about the architectura
 ### Command maps
 
 - **[`command_classification`](command_classification.md)** — all 33 commands grouped into 6 functional families. What each command acts on, what it produces, which ones feed on their own output.
+- **[`the_rederive_loop`](the_rederive_loop.md)** — the execution model for `--wave=all` and `--loop`: read fresh, first wave only, transcribe, re-derive. Each line exists because skipping it caused a silent failure.
 - **[`command_composition`](command_composition.md)** — self-application semantics (can a command run on its own output?), chaining notation (pipe `|` and nested forms), stateless vs stateful axis, the 31-row outcome table, and ~10 useful chain recipes.
 
 ### Cross-cutting feature deep-dives
@@ -102,3 +103,4 @@ The `presentation/` files are for output, not input — open them when you need 
 ---
 
 *The concepts here change rarely. If you read this folder once, you probably won't need to re-read it for months — unless the system itself evolves (e.g., adding a 32nd command would force a rewrite of `overview_agentic_workflows.md`).*
+- [The loop log](the_loop_log.md) — the `loops/loop_<i>.md` execution trace for `--loop` runs

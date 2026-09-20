@@ -2,6 +2,14 @@
 
 > Conforms to output_conventions v1.12 · template v1.0
 
+<!-- CONSTRAINTS_START -->
+## ⚠️ Hard Constraints & Execution Environment
+
+- **Never run git commands**: Git operations (e.g. `git status`, `git diff`, `git commit`) are strictly forbidden during task execution.
+- **Output paths**: All generated artifacts and reports must go under `.wb/workflows/reports/`, never `.agents/` and never `docs/ai_reference/`.
+- **Spawned cell mode**: When `--no-plan-update` is specified, write only the task report and do not update the plan file or recompute matrices.
+<!-- CONSTRAINTS_END -->
+
 <!-- HELP_GATE_START -->
 ## Help intercept (handle FIRST — before any other action)
 
@@ -106,9 +114,9 @@ Read the target file's first H1 header to determine the operating mode:
    - Read the corresponding `tasks/task_<ID>/task_<ID>_report_*.md` report.
    - Inspect the workspace to confirm the work was done to high standards.
    - Append a `## 🔍 Validation (QA)` section to the bottom of the Worker's task report.
-   - You MUST include a **Score / 10** evaluating the Worker's quality, efficiency, and adherence to constraints.
+   - You MUST include a **Score / 10** evaluating the Worker's quality, efficiency, and adherence to constraints. The score must be labelled in one of these accepted forms: `**Score:** N/10`, `**Score**: N/10`, or `**Score: N/10**`.
    - State clearly if it is a PASS ✅ or FAIL ❌.
-4. **Update Plan:** — **SKIP steps 4 and 5 entirely if `--no-plan-update` was passed.** Append your validation to the worker's task report as usual, then print the id + verdict + score and stop; a `--wave` orchestrator owns the plan file and will transcribe your verdict itself. Writing to it would race the other agents in your wave.
+4. **Update Plan:** — **SKIP steps 4 and 5 entirely if `--no-plan-update` was passed.** Append your validation to the worker's task report as usual, then print the id + verdict + score and stop; a `--wave` orchestrator owns the plan file, and the **orchestrator** transcribes the score into the matrix. Writing to it would race the other agents in your wave.
 
    - **Cumulative Validation Rule:** The `☐ Valid` column accumulates validations (unlike the `☐ Done` column). 
    - If PASS and the column is `⬜` (empty), update it to `✅ 10/10<br><ModelName>`.
@@ -138,7 +146,7 @@ When the target file is an `idea_*.md` file (H1 = `# Idea Backlog:`):
    - Read the idea description from the `Idea` column.
    - Analyze the idea against the codebase context, existing plans, and current priorities.
    - Append a `## 🔍 Idea Validation (QA)` section to the bottom of the idea exploration report (if it exists; otherwise append to the idea file itself as a note).
-   - You MUST include a **Score / 10** and a **Verdict** from the verdict scale below.
+   - You MUST include a **Score / 10** and a **Verdict** from the verdict scale below. The score must be labelled in one of these accepted forms: `**Score:** N/10`, `**Score**: N/10`, or `**Score: N/10**`.
 
 4. **Idea Verdict Scale:**
 

@@ -1,6 +1,6 @@
 ---
 title: "wbStandup — End-of-session summary"
-description: "## Overview"
+description: "/wbStandup produces a structured standup report summarizing what was done, what is blocked, and what is next."
 ---
 # /wbStandup — End-of-session summary
 

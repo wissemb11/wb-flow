@@ -1,6 +1,6 @@
 ---
 title: "wb-flow Protocol: /wbWork Execution & Simulation"
-description: "This document defines the **exhaustive behavior matrix** for the `/wbWork` command. It serves as the definitive reference for deep task execution logic, wildcar"
+description: "Exhaustive behavior matrix and execution specification for the wbWork command."
 ---
 
 # wb-flow Protocol: /wbWork Execution & Simulation Specification

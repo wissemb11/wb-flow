@@ -1,6 +1,6 @@
 ---
 title: "wbModel — Practical Recipes & Best Practices"
-description: "## Recipe 1: Nightly Batch Execution"
+description: "Run /wbModel across all waves non-interactively using ."
 ---
 
 # `/wbModel` — Practical Recipes & Best Practices

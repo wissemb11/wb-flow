@@ -1,6 +1,6 @@
 ---
 title: "wbDebug — Examples"
-description: "---"
+description: "Hypothesis before fix."
 ---
 
 # /wbDebug — Examples

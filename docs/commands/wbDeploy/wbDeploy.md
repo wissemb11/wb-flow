@@ -1,6 +1,6 @@
 ---
 title: "wbDeploy — Deploy an app to production"
-description: "## Overview"
+description: "/wbDeploy generates deployment configuration, scripts, or procedures for taking an app from a tested state to a live production environment."
 ---
 
 # /wbDeploy — Deploy an app to production

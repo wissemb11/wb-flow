@@ -1,6 +1,6 @@
 ---
 title: "wbCheck — Examples"
-description: "---"
+description: "Generates 6 monorepo-wide questions."
 ---
 
 # /wbCheck — Examples

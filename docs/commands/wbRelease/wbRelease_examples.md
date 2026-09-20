@@ -1,6 +1,6 @@
 ---
 title: "wbRelease — 5 Examples"
-description: "---"
+description: "It operates on the entire monorepo (core2/), not on a single package."
 ---
 
 # /wbRelease — 5 Examples

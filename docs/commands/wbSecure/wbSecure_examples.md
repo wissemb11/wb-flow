@@ -1,6 +1,6 @@
 ---
 title: "wbSecure — Examples"
-description: "---"
+description: "Examples illustrating security vulnerability scanning and exploit analysis with wbSecure."
 ---
 
 # /wbSecure — Examples

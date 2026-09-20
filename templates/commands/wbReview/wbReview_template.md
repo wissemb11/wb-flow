@@ -239,7 +239,7 @@ You must be critical, meticulous, and evidence-based. If a feature works but is 
 
 7. END THE FILE WITH:
 
-   **Before "What's Next?", append the 🌊 Next Executable Sequence** — the wave × role matrix defined in `_shared/output_conventions.md` §10 (canonical: rows = parallel-safe waves, columns = the four `Requires` roles, each cell a full invocable command + `→ *Model · ~$cost*`, mandatory collision check, required Wave notes). Source rows: the findings that need a follow-up command, plus any failed-validation fix-ups. Emit it only when there are **2 or more** actionable items; for a single one, print `Next: <command> → *Model*` instead. Also print the matrix in the chat response. On a self-correct pass, insert it if absent and recompute it in place if present (§10.5).
+   **Before "What's Next?", append the 🌊 Next Executable Sequence** — the wave × role matrix defined in `_shared/output_conventions.md` §10 (canonical: rows = parallel-safe waves, columns = the four `Requires` roles, each cell a full invocable command + `→ *Model · ~$cost*`, mandatory collision check, required Wave notes). Source rows: the findings that need a follow-up command, plus any failed-validation fix-ups. Also print the matrix in the chat response. On a self-correct pass, insert it if absent and recompute it in place if present (§10.5).
 
    ## 🧭 What's Next?
 

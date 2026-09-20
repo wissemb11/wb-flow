@@ -1,6 +1,6 @@
 ---
 title: "wbVision — Strategic product vision and roadmap"
-description: "## Overview"
+description: "/wbVision produces high-level strategic analysis of a product's direction, competitive position, and roadmap recommendations."
 ---
 # /wbVision — Strategic product vision and roadmap
 

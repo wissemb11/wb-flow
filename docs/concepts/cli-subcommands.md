@@ -1,6 +1,6 @@
 ---
 title: "CLI Subcommands — wb-flow model, wb-flow snap, wb-flow wave"
-description: "---"
+description: "The single writer of templates/commands/modelrecommendations."
 ---
 # CLI Subcommands — `model`, `snap`, `wave`, `watch`, `archive`, `next`, `init`
 

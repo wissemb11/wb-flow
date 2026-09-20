@@ -19,57 +19,91 @@ function findMonorepoRoot(startDir) {
   return null;
 }
 
-const MONOREPO_ROOT = findMonorepoRoot(PKG_ROOT);
 const HOME = os.homedir();
 
-const TEMPLATES_DIR = path.join(PKG_ROOT, 'templates', 'commands');
-
-const USER_CLAUDE = path.join(HOME, '.claude', 'commands');
-const USER_OPENCODE = path.join(HOME, '.config', 'opencode', 'command');
-const REPO_CLAUDE = MONOREPO_ROOT ? path.join(MONOREPO_ROOT, '.claude', 'commands') : null;
-const REPO_OPENCODE = MONOREPO_ROOT ? path.join(MONOREPO_ROOT, '.config', 'opencode', 'command') : null;
-
-const CLAUDE_DIR = fs.existsSync(USER_CLAUDE) ? USER_CLAUDE : REPO_CLAUDE;
-const OPENCODE_DIR = fs.existsSync(USER_OPENCODE) ? USER_OPENCODE : REPO_OPENCODE;
-
-if (!fs.existsSync(TEMPLATES_DIR)) {
-  console.error('❌ Templates dir not found');
-  process.exit(1);
+function result(ok, message, extra) {
+  return Object.assign(
+    {
+      ok,
+      status: ok ? 0 : 1,
+      stdout: ok ? message : '',
+      stderr: ok ? '' : message,
+    },
+    extra || {}
+  );
 }
 
-if (!CLAUDE_DIR || !OPENCODE_DIR || !fs.existsSync(CLAUDE_DIR) || !fs.existsSync(OPENCODE_DIR)) {
-  console.log('⚠️ SKIPPED (not PASSED) — wrapper directories not found' + (MONOREPO_ROOT ? ' at ' + MONOREPO_ROOT + ' or ' + HOME : ' (no monorepo root or home dir found)') + '.');
-  process.exit(0);
-}
+function verifyWrappers(options) {
+  const opts = options || {};
+  const pkgRoot = path.resolve(opts.pkgRoot || PKG_ROOT);
+  const home = path.resolve(opts.home || HOME);
+  const monorepoRoot =
+    Object.prototype.hasOwnProperty.call(opts, 'monorepoRoot')
+      ? opts.monorepoRoot && path.resolve(opts.monorepoRoot)
+      : findMonorepoRoot(pkgRoot);
 
-const manifestPath = path.join(TEMPLATES_DIR, 'wb_commands_reference.json');
-const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-const commands = Object.keys(manifest);
+  const templatesDir = path.join(pkgRoot, 'templates', 'commands');
+  const userClaude = path.join(home, '.claude', 'commands');
+  const userOpencode = path.join(home, '.config', 'opencode', 'command');
+  const repoClaude = monorepoRoot ? path.join(monorepoRoot, '.claude', 'commands') : null;
+  const repoOpencode = monorepoRoot ? path.join(monorepoRoot, '.config', 'opencode', 'command') : null;
 
-let errors = 0;
-
-console.log('🔍 Verifying wrapper parity across clients...');
-
-for (const cmd of commands) {
-  // Check Claude
-  const claudeFile = path.join(CLAUDE_DIR, `${cmd}.md`);
-  if (!fs.existsSync(claudeFile)) {
-    console.error(`  ✗ Missing Claude wrapper: ${cmd}.md`);
-    errors++;
+  if (!fs.existsSync(templatesDir)) {
+    return result(false, '❌ Templates dir not found');
   }
-  
-  // Check OpenCode
-  const opencodeFile = path.join(OPENCODE_DIR, `${cmd}.md`);
-  if (!fs.existsSync(opencodeFile)) {
-    console.error(`  ✗ Missing OpenCode wrapper: ${cmd}.md`);
-    errors++;
+
+  const claudeDir = fs.existsSync(userClaude) ? userClaude : repoClaude;
+  const opencodeDir = fs.existsSync(userOpencode) ? userOpencode : repoOpencode;
+
+  if (!claudeDir || !opencodeDir || !fs.existsSync(claudeDir) || !fs.existsSync(opencodeDir)) {
+    return result(
+      true,
+      '⚠️ SKIPPED (not PASSED) — wrapper directories not found' +
+        (monorepoRoot ? ' at ' + monorepoRoot + ' or ' + home : ' (no monorepo root or home dir found)') +
+        '.',
+      { skipped: true }
+    );
   }
+
+  const manifestPath = path.join(templatesDir, 'wb_commands_reference.json');
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  const commands = Object.keys(manifest);
+
+  const lines = ['🔍 Verifying wrapper parity across clients...'];
+  const missing = [];
+
+  for (const cmd of commands) {
+    const claudeFile = path.join(claudeDir, `${cmd}.md`);
+    if (!fs.existsSync(claudeFile)) {
+      missing.push({ client: 'Claude', cmd });
+      lines.push(`  ✗ Missing Claude wrapper: ${cmd}.md`);
+    }
+
+    const opencodeFile = path.join(opencodeDir, `${cmd}.md`);
+    if (!fs.existsSync(opencodeFile)) {
+      missing.push({ client: 'OpenCode', cmd });
+      lines.push(`  ✗ Missing OpenCode wrapper: ${cmd}.md`);
+    }
+  }
+
+  if (missing.length > 0) {
+    lines.push('');
+    lines.push(`❌ Wrapper drift detected: ${missing.length} missing wrapper(s).`);
+    return result(false, lines.join('\n'), { missing });
+  }
+
+  lines.push('✅ Wrapper parity confirmed (100% coverage).');
+  return result(true, lines.join('\n'), { missing });
 }
 
-if (errors > 0) {
-  console.error(`\n❌ Wrapper drift detected: ${errors} missing wrapper(s).`);
-  process.exit(1);
+if (require.main === module) {
+  const outcome = verifyWrappers();
+  if (outcome.stdout) console.log(outcome.stdout);
+  if (outcome.stderr) console.error(outcome.stderr);
+  process.exit(outcome.status);
 }
 
-console.log('✅ Wrapper parity confirmed (100% coverage).');
-process.exit(0);
+module.exports = {
+  findMonorepoRoot,
+  verifyWrappers,
+};

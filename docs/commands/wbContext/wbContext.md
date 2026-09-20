@@ -1,6 +1,6 @@
 ---
 title: "wbContext — Generate or enhance context.md files"
-description: "## Overview"
+description: "/wbContext reads actual source code — package."
 ---
 
 # /wbContext — Generate or enhance context.md files

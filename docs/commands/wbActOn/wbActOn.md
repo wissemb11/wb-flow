@@ -1,6 +1,6 @@
 ---
 title: "wbActOn — Turn diagnostics into ranked actions"
-description: "## Overview"
+description: "/wbActOn is the command reference resolver that bridges diagnosis and execution."
 ---
 
 # /wbActOn — Turn diagnostics into ranked actions

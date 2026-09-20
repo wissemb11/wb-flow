@@ -1,6 +1,6 @@
 ---
 title: "wbHelp — Expert: Help Router Architecture"
-description: "---"
+description: "/wbHelp is not a content-producing command — it is a router."
 ---
 
 # /wbHelp — Expert: Help Router Architecture

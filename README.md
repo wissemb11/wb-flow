@@ -31,8 +31,6 @@ npx wb-flow                        # bootstrap into your project
 
 That's one cycle: **plan → execute → validate**, traced to files on disk.
 
-> 🎬 **Visual Walkthrough & Architecture:** Want to see the full system in action? See **[docs/visual_overview.md](docs/visual_overview.md)** for animations of installation, multi-model execution, and fallback failovers.
-
 ## What a plan file actually looks like
 
 This is a real task table from a real project — not a screenshot, not terminal output:
@@ -62,6 +60,8 @@ Every row is a contract: **what** to do, **how** to verify it, **who** checks, a
 
 ## Install
 
+wb-flow requires a POSIX shell and is supported on Linux and macOS; Windows users should run it inside WSL.
+
 ```bash
 npx wb-flow                  # one-shot, recommended
 # or
@@ -78,9 +78,9 @@ wb-flow init                 # wire /wb* commands into your assistant
 
 ## 📚 Documentation
 
-* **[Visual Overview & Animated Walkthrough](docs/visual_overview.md)** — all 4 architecture animations, the five-layer stack, and the three-gate contract
-* **[What's New in v1.0.5](CHANGELOG.md)** — model catalog, fallback chains, role-variable matrices
-* **[Full Docs](docs/README.md)** — all 33 commands, concepts, workflow patterns
+* **[What's New in v1.0.6](RELEASE_1.0.6.md)** — Closed-row audit visibility, V7/V8 vacuous oracle prevention, packaging hygiene, and security/verification hardening.
+* **[Full Docs](https://flow.wbc-ui.com/)** — all 33 commands, concepts, workflow patterns
+* **[Security Model](SECURITY.md)** — why plan files and `Verify` cells must be treated as executable code
 * **[flow.wbc-ui.com](https://flow.wbc-ui.com)** — the documentation website
 
 ## 👨‍💻 About

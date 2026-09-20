@@ -28,7 +28,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execFileSync, execSync } = require('child_process');
 
 // ── locating things ─────────────────────────────────────────────────────────
 
@@ -145,15 +145,78 @@ function readMeta(runDir) {
 
 // ── cell state ──────────────────────────────────────────────────────────────
 
-function isAlive(ids) {
+function cleanProcessEnv() {
+  const cleanEnv = Object.assign({}, process.env);
+  delete cleanEnv['BASH_FUNC_which%%'];
+  delete cleanEnv['ANTIGRAVITY_SOURCE_METADATA'];
+  return cleanEnv;
+}
+
+function matchingPids(ids) {
   try {
-    const cleanEnv = Object.assign({}, process.env);
-    delete cleanEnv['BASH_FUNC_which%%'];
-    delete cleanEnv['ANTIGRAVITY_SOURCE_METADATA'];
-    const out = execSync(`pgrep -a -f -- "--id=${ids} "`, { env: cleanEnv }).toString().trim();
-    const matches = out.split('\n').filter((l) => l.trim() && !l.includes('pgrep'));
-    return matches.length > 0;
-  } catch { return false; }
+    const out = execFileSync('pgrep', ['-a', '-f', '--', '--id=' + ids + ' '], {
+      env: cleanProcessEnv(),
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).toString().trim();
+    return out.split('\n').filter(Boolean).map(function (line) {
+      const m = line.match(/^\s*(\d+)\s+/);
+      return m ? m[1] : null;
+    }).filter(Boolean);
+  } catch { return []; }
+}
+
+function childPids(pid) {
+  try {
+    // Use pgrep -P to walk from the wrapper shell to the real working child.
+    return execFileSync('pgrep', ['-P', String(pid)], {
+      env: cleanProcessEnv(),
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).toString().trim().split('\n').filter(Boolean);
+  } catch { return []; }
+}
+
+function descendantPids(rootPids) {
+  const seen = new Set();
+  const queue = rootPids.slice();
+  while (queue.length) {
+    const pid = queue.shift();
+    for (const child of childPids(pid)) {
+      if (seen.has(child)) continue;
+      seen.add(child);
+      queue.push(child);
+    }
+  }
+  return Array.from(seen);
+}
+
+function cpuSeconds(pids) {
+  if (!pids.length) return 0;
+  try {
+    const out = execFileSync('ps', ['-o', 'times=', '-p', pids.join(',')], {
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).toString();
+    return out.split('\n').reduce(function (sum, line) {
+      const n = parseInt(line.trim(), 10);
+      return sum + (Number.isFinite(n) ? n : 0);
+    }, 0);
+  } catch { return 0; }
+}
+
+function processState(ids) {
+  const roots = matchingPids(ids);
+  if (!roots.length) return { alive: false, roots: [], workers: [], cpuSeconds: 0 };
+  const descendants = descendantPids(roots);
+  const workers = descendants.length ? descendants : roots;
+  return {
+    alive: true,
+    roots: roots,
+    workers: workers,
+    cpuSeconds: cpuSeconds(workers),
+  };
+}
+
+function isAlive(ids) {
+  return processState(ids).alive;
 }
 
 /** Newest VERDICT line wave.js printed for this cell, if it has finished. */
@@ -184,11 +247,12 @@ function readCellMeta(runDir, logBase) {
 
 function collect(runDir, est) {
   const now = Date.now();
-  const planPath = findPlan(runDir);
+  const RUN_DIR = path.resolve(runDir);
+  const planPath = findPlan(RUN_DIR);
   const planTasks = tasksFromPlan(planPath);
   const cells = [];
-  for (const f of fs.readdirSync(runDir).filter((x) => x.endsWith('.log')).sort()) {
-    const full = path.join(runDir, f);
+  for (const f of fs.readdirSync(RUN_DIR).filter((x) => x.endsWith('.log')).sort()) {
+    const full = path.join(RUN_DIR, f);
     const base = f.replace(/\.log$/, '');
     // wbWork_16-17_2.log -> ids "16,17"
     const m = base.match(/^wb\w+_(.+?)_\d+$/);
@@ -196,12 +260,13 @@ function collect(runDir, est) {
     const st = fs.statSync(full);
     const text = fs.readFileSync(full, 'utf8');
     const verdict = verdictOf(text);
-    const alive = isAlive(ids);
+    const proc = processState(ids);
+    const alive = proc.alive;
     const started = st.birthtimeMs && st.birthtimeMs > 0 ? st.birthtimeMs : st.ctimeMs;
     const elapsed = Math.max(0, Math.round((now - started) / 1000));
     const idle = Math.max(0, Math.round((now - st.mtimeMs) / 1000));
     const budget = ids.split(',').reduce((a, id) => a + (est[id] || 0), 0);
-    const cellMeta = readCellMeta(runDir, base);
+    const cellMeta = readCellMeta(RUN_DIR, base);
 
     let taskText = cellMeta.TASK || '';
     if (!taskText && ids) {
@@ -217,6 +282,7 @@ function collect(runDir, est) {
       ids, state, verdict, elapsed, idle, budget, bytes: st.size, kind: base.split('_')[0],
       executor: cellMeta.EXECUTOR || '', role: cellMeta.ROLE || cellMeta.KIND || '',
       chain: cellMeta.CHAIN || '', command: cellMeta.COMMAND || '', task: taskText,
+      cpuSeconds: proc.cpuSeconds, pids: proc.workers,
     });
   }
   return cells;
@@ -276,10 +342,10 @@ function render(runDir, est, oneshot) {
       const pct = Math.round((c.elapsed * 100) / (c.budget * 60));
       const em = Math.round(c.elapsed / 60);
       out.push(pct >= 100
-        ? `  ${id}🔄 ██████████ OVER est ${c.budget}m by ${em - c.budget}m   idle ${c.idle}s   ${(c.bytes / 1024).toFixed(0)}KB${detail}`
-        : `  ${id}🔄 ${bar(pct)} ${String(pct).padStart(3)}% of ${c.budget}m   idle ${c.idle}s   ${(c.bytes / 1024).toFixed(0)}KB${detail}`);
+        ? `  ${id}🔄 ██████████ OVER est ${c.budget}m by ${em - c.budget}m   CPU ${c.cpuSeconds}s   idle ${c.idle}s   ${(c.bytes / 1024).toFixed(0)}KB${detail}`
+        : `  ${id}🔄 ${bar(pct)} ${String(pct).padStart(3)}% of ${c.budget}m   CPU ${c.cpuSeconds}s   idle ${c.idle}s   ${(c.bytes / 1024).toFixed(0)}KB${detail}`);
     } else {
-      out.push(`  ${id}🔄 running (no estimate)   idle ${c.idle}s   ${(c.bytes / 1024).toFixed(0)}KB${detail}`);
+      out.push(`  ${id}🔄 running (no estimate)   CPU ${c.cpuSeconds}s   idle ${c.idle}s   ${(c.bytes / 1024).toFixed(0)}KB${detail}`);
     }
   }
 
@@ -365,7 +431,8 @@ function run(args) {
 module.exports = {
   run,
   findWbRoot, waveDirs, splitRow, estimatesFromPlan, tasksFromPlan,
-  findPlan, readMeta, readCellMeta, isAlive, verdictOf, bar, collect,
+  findPlan, readMeta, readCellMeta, matchingPids, childPids, descendantPids,
+  cpuSeconds, processState, isAlive, verdictOf, bar, collect,
 };
 
 if (require.main === module) process.exit(run(process.argv.slice(2)) || 0);

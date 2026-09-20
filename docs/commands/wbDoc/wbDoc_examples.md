@@ -1,6 +1,6 @@
 ---
 title: "wbDoc — Examples"
-description: "---"
+description: "The second list is why /wbDoc is better than \"AI, add comments."
 ---
 
 # /wbDoc — Examples

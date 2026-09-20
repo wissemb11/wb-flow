@@ -40,6 +40,19 @@ for id in $closed; do
   fi
 done
 
+# ── 1b. CONVERSE (C56): every OPEN row (not Done AND Valid) must appear in a ─
+# matrix dispatch. The original guard caught only closed rows still scheduled;
+# nothing caught an open row scheduled in no wave at all.
+open=$(task_rows | awk -F'|' '{
+    d=$(NF-2); v=$(NF-1); id=$2; match(id, /[0-9]+/); id=substr(id, RSTART, RLENGTH);
+    if (d ~ /🚫|⏸️/ || v ~ /🚫|⏸️/) next;
+    if (!(d ~ /✅/ && v ~ /✅/)) print id }')
+for id in $open; do
+  if ! printf '%s\n' "$matrix" | grep -qE "^\| \*\*[A-Z][^|]*\|.*--id=[0-9,]*\b${id}\b"; then
+    echo "✗ SYNC: open row $id is scheduled in no wave — every non-closed row must appear in a 🌊 matrix dispatch"; fail=1
+  fi
+done
+
 # ── 2. What's Next progress line must match the table ─────────────────────────
 if [ "$T" -gt 0 ]; then
   if grep -q "🧭 What's Next" "$P"; then
@@ -66,6 +79,10 @@ if [ "$T" -gt 0 ]; then
 fi
 
 # ── 5. every matrix cell must carry a real plan path, never a <placeholder> ───
+if printf '%s\n' "$matrix" | grep -E '^\| \*\*[A-Z]' | grep -oE '`[^`]+`' | sed -E 's/-M=\$[A-Za-z_][A-Za-z0-9_]*//g; s/--model=\$[A-Za-z_][A-Za-z0-9_]*//g' | grep -qE '\$[A-Za-z_][A-Za-z0-9_]*'; then
+  echo "✗ SYNC: matrix cell command contains an unexpanded \$VAR"
+  fail=1
+fi
 grep -qE '^\| \*\*[A-Z][^|]*<[a-z ]+>' "$P" && { echo "✗ SYNC: matrix cell contains a <placeholder> — wave.js interpolates it LITERALLY"; fail=1; }
 
 # ── 6. narrative status and dispatch bullets must agree with the table ────────

@@ -1,6 +1,6 @@
 ---
 title: "wbDoc — Generate or update documentation"
-description: "## Overview"
+description: "/wbDoc produces or refreshes documentation files — READMEs, API docs, guides — from source code and existing workflow artifacts."
 ---
 
 # /wbDoc — Generate or update documentation

@@ -1,6 +1,6 @@
 ---
 title: "Sequencing Work Items — The DAG Dependency Model"
-description: "<div style=\"max-width:650px;margin:16px auto\">"
+description: "How wb-flow determines task execution order and wave partitioning using a Directed Acyclic Graph (DAG) dependency model."
 ---
 
 # Sequencing Work Items — The DAG Dependency Model

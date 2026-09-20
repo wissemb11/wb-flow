@@ -1,6 +1,6 @@
 ---
 title: "wbNext — Suggest the next best command to run"
-description: "## Overview"
+description: "/wbNext analyzes recent workflow state — audits, plans, task reports — and recommends the most impactful next action."
 ---
 
 # /wbNext — Suggest the next best command to run

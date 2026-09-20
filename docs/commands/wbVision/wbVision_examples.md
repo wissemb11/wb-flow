@@ -1,6 +1,6 @@
 ---
 title: "wbVision — Examples"
-description: "---"
+description: "/wbVision produces 5–10 feature ideas."
 ---
 
 # /wbVision — Examples

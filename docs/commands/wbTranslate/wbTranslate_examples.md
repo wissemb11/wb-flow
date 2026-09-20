@@ -1,6 +1,6 @@
 ---
 title: "wbTranslate — Examples"
-description: "---"
+description: "Examples illustrating string extraction and i18n key replacement using wbTranslate."
 ---
 
 # /wbTranslate — Examples

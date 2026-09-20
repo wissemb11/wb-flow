@@ -1,6 +1,6 @@
 ---
 title: "wbHelp — Examples: Basic Help Output"
-description: "---"
+description: "Annotated transcript examples demonstrating common wbHelp invocations and catalog browsing."
 ---
 
 # /wbHelp — Examples: Basic Help Output

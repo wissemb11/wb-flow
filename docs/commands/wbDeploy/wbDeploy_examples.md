@@ -1,6 +1,6 @@
 ---
 title: "wbDeploy — Examples"
-description: "---"
+description: "Mixing: publishing an app to npm = dead code nobody installs."
 ---
 
 # /wbDeploy — Examples

@@ -1,6 +1,6 @@
 ---
 title: "wbTest — Examples"
-description: "---"
+description: "If you expect /wbTest to write tests, you want /wbPlan --task=\"add test coverage for X\" followed by execution."
 ---
 
 # /wbTest — Examples

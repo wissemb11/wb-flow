@@ -1,6 +1,6 @@
 ---
 title: "wbBroadcast — Examples"
-description: "---"
+description: "Examples and usage patterns for generating release announcements using wbBroadcast."
 ---
 
 # /wbBroadcast — Examples

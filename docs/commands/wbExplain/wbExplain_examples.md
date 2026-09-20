@@ -1,6 +1,6 @@
 ---
 title: "wbExplain — Examples"
-description: "---"
+description: "You opened a fresh planwb-core20260503."
 ---
 
 # /wbExplain — Examples

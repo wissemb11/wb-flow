@@ -1,6 +1,6 @@
 ---
 title: "wbPublish — Publish a package to npm"
-description: "## Overview"
+description: "/wbPublish handles the npm publish workflow including version bumping, pre-publish checks, and registry configuration."
 ---
 
 # /wbPublish — Publish a package to npm

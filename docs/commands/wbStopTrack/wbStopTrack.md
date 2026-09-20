@@ -1,6 +1,6 @@
 ---
 title: "wbStopTrack — Command Hub"
-description: "---"
+description: "Finalize active session tracking, archive session logs, and prepare the workspace for closure."
 ---
 
 # /wbStopTrack — Command Hub

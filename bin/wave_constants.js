@@ -4,17 +4,30 @@ const path = require('path');
 /** Package root — the fallback location for Layer-1 templates (codex lane). */
 const PKG_ROOT = path.resolve(__dirname, '..');
 
+// `match` is the loose word test (matched anywhere in a cell) — kept for the
+// matrix header reader, which maps columns by their emoji+label header text.
+// `tag` is the anchored role-tag test: the WHOLE Requires cell must be exactly
+// one emoji-tagged label (nothing else). A bare-word match (`/worker/i`
+// anywhere) is what let row-11's prose paragraph — which names all four roles
+// as plain words — resolve to `planner` purely by ROLES declaration order,
+// handing a non-🧠 row a 🧠 self-validation exemption. Anchoring on the emoji +
+// label at the cell edge, and requiring the whole cell to be the tag, closes it
+// (C68).
 const ROLES = [
-  { key: 'planner', label: '🧠 Planner', match: /planner/i },
-  { key: 'validator', label: '✅ Validator', match: /validator/i },
-  { key: 'worker', label: '🔨 Worker', match: /worker/i },
-  { key: 'mechanical', label: '📋 Mechanical', match: /mechanical/i },
+  { key: 'planner', label: '🧠 Planner', match: /planner/i, tag: /^🧠\s*Planner$/i },
+  { key: 'validator', label: '✅ Validator', match: /validator/i, tag: /^✅\s*Validator$/i },
+  { key: 'worker', label: '🔨 Worker', match: /worker/i, tag: /^🔨\s*Worker$/i },
+  { key: 'mechanical', label: '📋 Mechanical', match: /mechanical/i, tag: /^📋\s*Mechanical$/i },
 ];
 
+// C54 — the built-in fallback must not be a provider the plan already records
+// as credit-exhausted. Every role defaulted to `opencode-go/*`, so an unroutable
+// name demoted the role to a known-dead lane with no warning. Default to the
+// live Zen provider instead; the roster I/O is the authoritative surface.
 const DEFAULT_MODELS = {
-  worker: 'opencode-go/deepseek-v4-pro',
-  mechanical: 'opencode-go/qwen3.7-plus',
-  selfValidator: 'opencode-go/kimi-k2.7-code',
+  worker: 'opencode/deepseek-v4-pro',
+  mechanical: 'opencode/deepseek-v4-pro',
+  selfValidator: 'opencode/minimax-m3',
 };
 
 const INFRA_FATAL_MESSAGES = [
@@ -26,6 +39,11 @@ const INFRA_FATAL_MESSAGES = [
   'Error: Quota',
   'Error: Authentication',
   'Error: Payment',
+  'Error: {"type":"error"',
+  'ERROR: {"type":"error"',
+  'error: {"type":"error"',
+  'Error: Your credit balance is too low',
+  'Your credit balance is too low',
 ];
 
 // The lines a wave's decisions are made from: the dispatch marker, the gate
@@ -39,14 +57,15 @@ const GATE_LINE_PATTERN = '^▶|^  (G[0-9]|VERDICT|PER-ID|session)';
 // ran"). Those demand opposite responses: NO-OP means re-dispatch is pointless,
 // INFRA means fix the account and re-dispatch. Match the whole billing family.
 //
-// codex speaks a different dialect entirely — it prints the raw API envelope:
+// codex and some opencode-backed CLIs speak a different dialect entirely — they
+// print the raw API envelope:
 //   ERROR: {"type":"error","status":400,"error":{"type":"invalid_request_error",
 //           "message":"The 'X' model is not supported when using Codex with a
 //            ChatGPT account."}}
-// Matching the STRUCTURE (`ERROR: {"type":"error"`) rather than any message text
+// Matching the STRUCTURE (`<Error>: {"type":"error"`) rather than any message text
 // covers 400 entitlement refusals, 401 auth, 429 usage-limit and 5xx alike,
 // without guessing at wording that OpenAI can reword at any time.
-const INFRA_GREP_PATTERN = '^(Error: (Model not found|Insufficient (credits|balance|funds)|Rate limit|Quota|Authentication|Payment)|ERROR: \\{"type":"error")';
+const INFRA_GREP_PATTERN = '^([Ee][Rr][Rr][Oo][Rr]: \\{"type":"error"|Error: (Model not found|Insufficient (credits|balance|funds)|Rate limit|Quota|Authentication|Payment|Your credit balance is too low\\b)|Your credit balance is too low\\b)';
 const REFUSAL_GREP_PATTERN = '^(G[0-9]+: REFUSED\\b|VERDICT: REFUSED\\b|Error: .*\\b(approval|permission|permissions|sandbox|tool)\\b.*\\b(denied|refused|required|blocked|not allowed)\\b|Tool use blocked\\b|Permission denied\\b|Approval required\\b|Sandbox.*\\b(denied|refused|blocked|not allowed)\\b)';
 
 const NAME_TO_SLUG = new Map([
@@ -63,6 +82,45 @@ const NAME_TO_SLUG = new Map([
   // catalogued slug is namespaced and cli_registry strips the prefix.
   ['grok 4.6', 'xai/grok-4.6'],
   ['grok 4.5', 'xai/grok-4.5'],
+  // codex (OpenAI Codex) — dispatched via `codex exec -m <name>`, so these map
+  // to BARE model names, not provider-prefixed slugs, exactly like agy. codex
+  // cannot enumerate itself (see model.js CODEX_CANDIDATES), so the list is
+  // curated; being here means "routable", not "entitled" — --probe is for that.
+  // C54: without these entries resolveDisplayName() returned undefined for the
+  // one lane that answered every probe today, so `codex` could not be expressed.
+  ['gpt-5.6-terra', 'gpt-5.6-terra'],
+  ['gpt-5.6-luna', 'gpt-5.6-luna'],
+  ['gpt-5.6-pro', 'gpt-5.6-pro'],
+  ['gpt-5.6-sol', 'gpt-5.6-sol'],
+  ['gpt-5.6', 'gpt-5.6'],
+  ['gpt-5.5', 'gpt-5.5'],
+  ['gpt-5.4', 'gpt-5.4'],
+  ['gpt-5.4-mini', 'gpt-5.4-mini'],
+  ['gpt-5.4-nano', 'gpt-5.4-nano'],
+  ['gpt-5.3-codex', 'gpt-5.3-codex'],
+  ['gpt-5.2-codex', 'gpt-5.2-codex'],
+  ['gpt-5.1-codex-mini', 'gpt-5.1-codex-mini'],
+]);
+
+// C62 — namespaced slugs the project dispatches by name. The catalog
+// (models.json) is the source of truth for "which models exist", but a user's
+// snapshot can lag the roster (measured 2026-09-14: ~/.wb/models.json carried no
+// `opencode/deepseek-v4-pro` and no `openai/gpt-5.6-sol`, while both are live in
+// the shipped DEFAULT_MODELS and plan-header rosters). resolveDisplayName
+// consults this set (plus the catalog, NAME_TO_SLUG values and DEFAULT_MODELS)
+// so a real slug an out-of-date catalog does not yet list is still routable,
+// while a fabricated vendor/model — `bogus-vendor/x`, `opencode/not-a-real-x` —
+// is rejected. Being here means "a real model", not "reachable"; --probe is for
+// that. Same frozen-list caveat as NAME_TO_SLUG and CODEX_CANDIDATES.
+const KNOWN_SLUGS = new Set([
+  'opencode/deepseek-v4-pro',
+  'opencode/minimax-m3',
+  'opencode/gemini-3.1-pro',
+  'anthropic/claude-opus-5',
+  'anthropic/claude-fable-5',
+  'openai/gpt-5.6-sol',
+  'openai/gpt-5.6-terra',
+  'openai/gpt-5.6-luna',
 ]);
 
 // Slugs that only the `agy` CLI can run. buildScript emits `opencode run` for
@@ -123,6 +181,10 @@ const HELP = `
                              W = Worker    M = Mechanical
                            e.g. --wave=A    -> the whole A row
                                 --wave=A:W  -> only A's Worker cell
+    --wave=all           Run all waves sequentially (aliases: auto, *).
+                         Prints ordered loop guidance rather than emitting a
+                         script. Cannot be combined with a :<R> role suffix
+                         or --kind.
     --model=<m>, -M=<m>  Delegate THIS run to one model. Highest priority:
                            outranks role routing AND the executor!=validator
                            rule. Use when you are choosing the agent yourself.
@@ -160,5 +222,5 @@ const ROLE_EMOJI_MAP = {
 module.exports = {
   PKG_ROOT, ROLES, DEFAULT_MODELS, INFRA_FATAL_MESSAGES,
   GATE_LINE_PATTERN, INFRA_GREP_PATTERN, REFUSAL_GREP_PATTERN, NAME_TO_SLUG,
-  CODEX_ONLY_RE, AGY_ONLY_SLUGS, MATRIX_HEADING, HELP, ROLE_EMOJI_MAP
+  CODEX_ONLY_RE, AGY_ONLY_SLUGS, KNOWN_SLUGS, MATRIX_HEADING, HELP, ROLE_EMOJI_MAP
 };

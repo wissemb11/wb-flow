@@ -1,6 +1,6 @@
 ---
 title: "wbActOn — Examples"
-description: "---"
+description: "All outputs go under <target>/."
 ---
 
 # /wbActOn — Examples

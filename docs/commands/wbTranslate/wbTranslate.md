@@ -1,6 +1,6 @@
 ---
 title: "wbTranslate — Translate documentation to other languages"
-description: "## Overview"
+description: "/wbTranslate produces translations of documentation files while preserving markdown structure, code blocks, and technical terminology."
 ---
 
 # /wbTranslate — Translate documentation to other languages

@@ -151,4 +151,4 @@ wb-flow model --add=zen,codex       # fill specific providers
 
 A role can only be pointed at a model the catalog knows, so a roster edit that names something absent
 will not route. Sync first, then pick. Full flag reference:
-[`cli_reference.md`](../../../docs/commands/cli_reference.md).
+[`cli_reference`](https://flow.wbc-ui.com/commands/cli_reference).

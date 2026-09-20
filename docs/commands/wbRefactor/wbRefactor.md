@@ -1,6 +1,6 @@
 ---
 title: "wbRefactor — Restructure code without changing behavior"
-description: "## Overview"
+description: "/wbRefactor analyzes code structure and produces a refactoring plan or executes targeted structural improvements while preserving behavior."
 ---
 
 # /wbRefactor — Restructure code without changing behavior

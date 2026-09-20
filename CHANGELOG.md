@@ -2,6 +2,96 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.6] - 2026-09-18
+
+Fourteen findings (C61–C74) closed across 2026-09-14/15, every one mutation-proven in both
+directions. `test/wave_gates.js` went 187 → 270 passing.
+
+### ⚠️ BREAKING
+
+- **`model --set` now refuses an unroutable model instead of writing a partial chain.** (C61, C62)
+  Previously `--set worker=good,bogus` exited **0**, printed `✅ Roster written`, and persisted only
+  the resolvable links. It now exits **1** and writes nothing. A slash no longer bypasses the check
+  either: `bogus-vendor/not-a-real-model` was accepted before because any slash-bearing string was
+  passed through verbatim; it is now resolved against the catalog.
+  **Migration:** scripts that called `--set` and ignored the exit code will now fail loudly on a bad
+  slug. Use `--force` to write a slug the catalog has not learned — it is recorded in the roster as
+  `⚠️ unvalidated (--force)` (C74).
+
+### Changed
+
+- **`model --set` reads every separator its own surfaces render.** (C61) A pipe- or ` / `-separated
+  chain used to be parsed as ONE token, silently collapsing a 3-link fallback chain to a single link
+  with no warning and no backup. `--show`, `wave --list` and the roster file all render chains with
+  separators `--set` could not read, so pasting back what you were just shown destroyed the chain.
+- **`isPlanFile` recognises `report`, `findings` and `trace`.** (C71) A file typed `type: report`
+  was linted against the full plan schema — 19 failures across 6 steps on a minimal fixture. The
+  "unknown type → assume a plan" default is deliberate and unchanged.
+- **Report files get link-integrity checking again.** (C66) `step-1` was dropped from the report
+  profile, hiding dead hrefs in audits, reviews and loop logs. Report profile is now step-1 + step-5
+  + step-7; plan-schema steps stay off report files.
+- **`lint` step-9 checks positive greps, not only negated ones.** (C65 in part) A `grep -q <missing
+  path>` in a `Verify` cell was invisible; it is now reported as *unrunnable*.
+- **`parseRequiresColumn` anchors on the role tag.** (C68) It matched a role word anywhere in the
+  cell and resolved by declaration order, so a prose Requires cell naming several roles silently
+  became 🧠 Planner — which is exempt from the executor≠validator rule.
+- **`wave` reads the reachability and validation annotations the roster already carries.** (C74, and
+  C55 before it) A selected model marked unreachable, or written with `--force`, is now named on
+  stderr before dispatch instead of failing mid-wave.
+
+### Added
+
+- **`--no-plan-update` is enforced, not merely requested.** (C72) Spawned cells are given the flag so
+  the orchestrator owns its bookkeeping. The generated wave script compares the plan before and after
+  each cell and **fails the cell** when it changes `☐ Done`, `☐ Valid`, the Status callout, the 🌊 matrix,
+  or the generated `HOW_TO_RUN` block; Task and Verify cell edits remain allowed.
+- **`loops/loop_<i>.md`** — a new artifact folder beside `tasks/`, `waves/` and `explanations/`,
+  holding the trace of a `--loop` run. (C69 corrected its header-vs-body consistency rule.)
+- **`--halt-on-red`** — restores the pre-2026-09-14 behaviour of stopping the entire loop on the first
+  non-green cell. Correct for an attended run where a failure should be inspected by hand; wrong as
+  the `-y` default. (C67 — it was documented in two places and implemented in none.)
+
+### Internal — tooling and oracle hygiene
+
+Not consumer-visible; recorded so the ids are traceable.
+
+- **C63** — the plan-header roster wins over `model_recommendations.md`, so a check asserting on the
+  file graded a document that does not decide the dispatch.
+- **C64** — a new `lint` step-11 (Done rows must carry a task report) failed an older plan, which
+  broke two previously-closed rows' oracles.
+- **C65** — four oracles bound to the plan's transient OPEN state and died once it closed. Standing
+  rule added: an oracle must pass on the plan in its terminal CLOSED state.
+- **C67, C70** — the template rules gained gates, and four of the six gates asserted a phrase rather
+  than the rule; each is now anchored on a marker unique to its normative statement.
+- **C73** — an aggregate/sweep assertion that runs after its own checker has mutated the tree grades
+  its blast radius. Rule added as `output_conventions.md` §10.9.
+
+### Added — new lint steps (9, 10, 11)
+
+Three entirely new steps shipped in 1.0.6, expanding `wb-flow lint` from 0–8 to 0–11:
+- **step-9** (Verify-clause soundness): Rejects the V1–V9 vacuous-Verify forms, unrunnable oracles, absence assertions that mask true failures, and open-oracle checks that time out.
+- **step-10** (Plan Budget Estimate consistency): Rejects plans where the Budget Estimate section is missing or mathematically inconsistent with the task table.
+- **step-11** (Done row task reports): Rejects checked `☐ Done` rows that do not carry a link to a task report file.
+
+### Added — `--replay-closed` isolated oracle replay
+
+- `wb-flow lint --replay-closed` re-runs the `Verify` cell of **every** ✅-closed task row in a child shell, so a later change that breaks an
+  earlier row's oracle is reported instead of passing silently. Rows whose Verify is marked `# point-in-time`, and rows whose Verify invokes
+  `--replay-closed` on the same plan, are skipped. It is **not** incremental — a full replay re-executes every closed oracle and can take
+  several minutes on a large plan — so it is opt-in and listed in `lint --help`.
+
+### Added — closed-row audit visibility and V8 oracle lint
+
+- `/wbAudit` plan-file mode now explicitly runs `wb-flow lint --include-closed <plan-file>` and names `wb-flow lint --all --include-closed <scope>` as the historical fleet sweep, so closed vacuous-oracle debt is observable without changing routine prevention defaults.
+- Step 9 now reports V8: allowlisted exit-code-bearing commands such as `node test/*.js`, `npm test`, and `bin/lint.js` piped into a final `grep -q`/`grep -c`, where the grep stage masks the command status.
+
+
+### Changed — Verify authoring rule for V7
+
+- Bumped the package to `1.0.6` and the `/wbPlan` template contract to `v5.5`.
+- Added the V7 forbidden-oracle form to Column Rule 5: `cmd | grep -qv 'X'` must be written as `! ( cmd | grep -q 'X' )`, with an explicit exemption for provably single-line input.
+- Recovered the historical `flow.wbc-ui.com` deploy verdict with a sound oracle: page title, archive-specific `/v1.0.1/assets/` signature, known-bad `v9.9.9` 404 control, and a non-inverted stale-placeholder absence check.
+
 ## [1.0.5] - 2026-09-04
 
 > Narrative release notes: [RELEASE_1.0.5.md](RELEASE_1.0.5.md)
@@ -13,7 +103,7 @@ A plan file is markdown that other agents write, and every dispatch hands that f
 then judges the result with an oracle taken from the same file. This release writes down what to do
 about that and ships the first two mitigations.
 
-- **[The plan trust model](docs/concepts/plan-trust-model.md)** — an accepted decision documenting
+- **[The plan trust model](https://flow.wbc-ui.com/concepts/plan-trust-model)** — an accepted decision documenting
   that plan text and the `Verify` column are both untrusted, executable input, and the contract
   `--sandbox` and the no-op gate below implement against. Demonstrated concretely: a task description
   containing a shell payload produced a wave script that executed it, and separately a `Verify` cell

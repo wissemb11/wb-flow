@@ -1,6 +1,6 @@
 ---
 title: "wbTrack — Examples"
-description: "---"
+description: "Scenario: Day 2 session on wb-core with the AI agent."
 ---
 
 # /wbTrack — Examples

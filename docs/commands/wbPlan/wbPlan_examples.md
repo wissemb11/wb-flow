@@ -1,6 +1,6 @@
 ---
 title: "wbPlan — Examples"
-description: "---"
+description: "Every plan file contains one table."
 ---
 
 # /wbPlan — Examples

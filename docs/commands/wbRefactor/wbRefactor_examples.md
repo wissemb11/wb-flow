@@ -1,6 +1,6 @@
 ---
 title: "wbRefactor — Examples"
-description: "---"
+description: "Behavior-preserving transformations only."
 ---
 
 # /wbRefactor — Examples

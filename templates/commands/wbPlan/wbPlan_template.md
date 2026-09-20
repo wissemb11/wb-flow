@@ -1,6 +1,6 @@
-# wbPlan Template v5.4 — Unified Backlog (Cost-Aware, Wave-Scheduled)
+# wbPlan Template v5.5 — Unified Backlog (Cost-Aware, Wave-Scheduled)
 
-> Conforms to output_conventions v1.12 · template v5.4
+> Conforms to output_conventions v1.12 · template v5.5
 
 
 <!-- HELP_GATE_START -->
@@ -394,7 +394,7 @@ When the first argument is an existing plan file path (`plan_*.md` or matching `
 3. **Missing Section Insertion & Wave Externalization**: Automatically construct and insert any missing mandatory sections. Extract inline `### Wave notes` into `<plan_dir>/tasks/waves.md` and replace with `> 📝 **Wave Notes & Collision Analysis:** See [tasks/waves.md](tasks/waves.md)`.
 4. **Cell Batching & 4-Scenario Recomputation (§10.4)**: Automatically batch parallel tasks in the same wave sharing scope, role, and model into grouped `--id=X,Y` dispatches. Recompute matrix, embed the `## ▶️ How to run this plan` block directly below `## 🌊 Next Executable Sequence` via `next.js --embed` (with 4 Copy/Paste scenarios), and tick `☐ Done`/`☐ Valid` checkboxes for completed reports.
    - ⚠️ **Batching yields to executor≠validator, never the other way round.** Two `/wbValid` cells that share a model may still NOT merge if their ids have different executors: `route()` classifies a merged validate cell from **one** id and applies that verdict to the whole batch, which silently produces a self-validation. When the two rules conflict, split the cell and pin the model with an explicit `-M`.
-5. **Derived-block sync + oracle (§10.4)** — the step that makes all of the above stick. Re-sync **(0)** status callout → **(1)** matrix → **(2)** how-to-run → **(3)** What's Next, in that order, then **run the §10.4 sync oracle and act on its output**. After the three derived blocks re-sync, run `wb-flow lint <plan.md>` and **act on a non-zero exit rather than reporting success**.
+5. **Derived-block sync + oracle (§10.4)** — the step that makes all of the above stick. Re-sync **(0)** status callout → **(1)** matrix → **(2)** how-to-run → **(3)** What's Next, in that order, then **run the §10.4 sync oracle and act on its output**. After the three derived blocks re-sync, run `wb-flow lint <plan.md>` and **act on a non-zero exit rather than reporting success**. For trusted plans you authored or reviewed, also run `wb-flow lint --check-open-oracles <plan.md>`; it executes open rows' `Verify` cells to catch oracles that already pass before the work is done.
    > 🔴 **This step is why the other four are worth writing down.** For weeks this checklist existed with no executable check, and plans still shipped literal `<placeholder>` matrix cells, broken relative links, and a What's Next progress line contradicting its own task table — every one of which the oracle catches in under a second. A checklist nothing runs is decoration.
 6. **Archive sweep — ONLY when `--archive` was passed** (`_shared/output_conventions.md` §13.3–13.4). Steps 0–5 must have completed first; if any of them failed or was skipped, **do not sweep** and say so.
 
@@ -509,7 +509,7 @@ Plan-specific repair & self-correct tasks:
 ## 🚀 The Planning Prompt (copy from here ↓)
 
 ```
-━━━━━━━━━━━━━ /wbPlan v5.4 ━━━━━━━━━━━━━
+━━━━━━━━━━━━━ /wbPlan v5.5 ━━━━━━━━━━━━━
 
 📁 PROJECT: __PROJECT_NAME__
 📅 DATE: __TODAY__
@@ -590,7 +590,7 @@ Section 7: EN=130 lines, Fr=101 lines → 29 new lines
 __YOUR_MESSY_DESCRIPTION_HERE__
 """
 
-━━━ TASK LIST (v5.4 — Multi-Model, Recursive, Cost-Aware, Action-Tagged) ━━━
+━━━ TASK LIST (v5.5 — Multi-Model, Recursive, Cost-Aware, Action-Tagged) ━━━
 
 | # | Requires | Dep | 🔗 | Task | Verify | P | Est. Time (mins) | Worker (Suggested) | Validator (Suggested) | ☐ Done | ☐ Valid |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -606,13 +606,21 @@ __YOUR_MESSY_DESCRIPTION_HERE__
 
     **It must also be a machine oracle.** `/wbWork --wave` executes this cell as **Gate 3** of its success contract (see `wbWork_template.md`), so the cell MUST be a single shell command whose **exit code is the verdict** — 0 = pass, non-zero = fail. Prose is not runnable and silently degrades the gate:
 
+    **The Gate 3 oracle runs from the plan file's directory (this is its cwd)** (`<scope>/.wb/workflows/reports/<YYYY>/<MM>/<DD>/plans/`). To reach the scope root, use `../../../../../../../` (7 levels up).
+
     | ❌ Prose (unrunnable) | ✅ Oracle (exit code is the answer) |
     |---|---|
-    | `npm test` output no longer contains "Skipping wrapper verification" | `! npm test 2>&1 \| grep -q "Skipping wrapper verification"` |
-    | `ls docs/commands \| wc -l` matches the wired count | `[ "$(ls docs/commands \| wc -l)" -eq 33 ]` |
-    | install the tarball in a temp dir and check the file | `d=$(mktemp -d) && npm pack --pack-destination $d && … && test -x $d/proj/.wb/bin/wbRun` |
+    | `npm test` output no longer contains "Skipping wrapper verification" | `cd ../../../../../../../ && ! npm test 2>&1 \| grep -q "Skipping wrapper verification"` |
+    | `ls docs/commands \| wc -l` matches the wired count | `[ "$(ls ../../../../../../../docs/commands \| wc -l)" -eq 33 ]` |
+    | install the tarball in a temp dir and check the file | `cd ../../../../../../../ && d=$(mktemp -d) && npm pack --pack-destination $d && … && test -x $d/proj/.wb/bin/wbRun` |
 
     **Important — pipe characters in markdown tables:** The examples above use `\|` for each pipe inside a backtick code span. This is the correct pattern. The wave script (`bin/wave.js` `extractVerifyCommand()`) unescapes `\|` → `|` before executing the oracle, so the runtime pipeline matches the author's intent. **Do not remove the backslash** — without it the markdown table would break. The escape is not an error; it is handled. This was verified and documented after G1 (2026-08-01).
+
+    **Forbidden oracle forms (including V7):**
+
+    | ❌ Vacuous form | ✅ Sound form | Why |
+    |---|---|---|
+    | `cmd \| grep -qv 'X'` | `! ( cmd \| grep -q 'X' )` | `grep -qv` passes as soon as any input line lacks `X`; exempt only provably single-line input such as `tail -1 \| grep -qv 'X'`. |
 
     If a row genuinely cannot be machine-verified, write `human: <what to check>` explicitly. That keeps the gap **visible** — an unverifiable row is a legitimate thing to have, a row that merely *looks* verifiable is not.
 6. **Worker (Suggested)**: List of 3-4 recommended models + a generic alias `Model<N>`. Each model MUST include a per-task cost annotation: `ModelName · ~$X.XX`. See Rule #11 for how to compute the cost.
@@ -702,6 +710,8 @@ After the task table, append a budget summary block:
 > *Token estimates are approximate. Actual usage varies with context window size, code complexity, and iteration count. Validation passes add ~30% to the worker token count.*
 
 Compute `A` and `B` by summing each task's `kt` × the model-tier rate from the heuristic table in Column Rule #10.
+
+When `/wbPlan --wbPlan` appends rows to an existing plan, refresh this Budget block in the same pass. Also refresh the Executive Summary and Source line so the narrative does not keep describing the pre-append task set.
 
 ━━━ ASSIGNMENT MATRIX ━━━
 
@@ -828,7 +838,7 @@ The `## 🧭 What's Next?` section MUST be updated dynamically on EVERY plan cre
 2. **If Plan Status is 🟢 OPEN**:
    - Provide dynamic next actions based on current live Wave A dispatches.
    - Re-embed/Update the live **▶️ How to run this plan** block (`wb-flow next <plan.md> --embed`).
-   - Include a link to [`/wbNext <target_folder>`](../../wbNext/wbNext_template.md) for ranked next suggestions.
+   - Include a link to [`/wbNext <target_folder>`](../wbNext/wbNext_template.md) for ranked next suggestions.
 3. **If Plan Status is ✅ CLOSED**:
     - Report complete closure metrics using the oracle's form: `Progress: <D>/<T> tasks completed, <V>/<T> validated` (e.g., `Progress: 5/5 tasks completed, 5/5 validated`). **Never** use the incompatible `All N/N tasks completed & validated!` wording — the shared oracle requires the explicit done/validated counts.
    - Recommend the definitive closure & verification command:

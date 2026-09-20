@@ -1,6 +1,6 @@
 ---
 title: "wbPublish — Examples"
-description: "---"
+description: "It builds the package and pushes the tarball to npm."
 ---
 
 # /wbPublish — Examples

@@ -1,6 +1,6 @@
 ---
 title: "wbSecure — Security vulnerability scanning"
-description: "## Overview"
+description: "/wbSecure performs adversarial security analysis on code, dependencies, and configurations."
 ---
 
 # /wbSecure — Security vulnerability scanning

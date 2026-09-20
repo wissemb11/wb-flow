@@ -1,6 +1,6 @@
 ---
 title: "wbContext — Examples"
-description: "---"
+description: "If you find yourself re-running /wbSetup, you probably want /wbContext --refresh instead."
 ---
 
 # /wbContext — Examples

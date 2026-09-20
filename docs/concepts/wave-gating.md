@@ -1,6 +1,6 @@
 ---
 title: "Wave Gating — The Three-Gate Contract"
-description: "---"
+description: "On 2026-07-31 a wave cell fixing wbRun's unanchored grep -qi \"error:\" was marked ❌ by the identical guard still inlined in wave."
 ---
 
 # Wave Gating — The Three-Gate Contract

@@ -1,6 +1,6 @@
 ---
 title: "wbRelease — Orchestrate a versioned release"
-description: "## Overview"
+description: "/wbRelease manages the full release workflow: version bumping, changelog generation, git tagging, and pre-publish validation."
 ---
 
 # /wbRelease — Orchestrate a versioned release

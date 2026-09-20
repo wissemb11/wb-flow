@@ -1,6 +1,6 @@
 ---
 title: "wbMonetize — Examples"
-description: "---"
+description: "Examples and workflow modes for bootstrapping and maintaining tier monetization with wbMonetize."
 ---
 
 # /wbMonetize — Examples

@@ -1,6 +1,6 @@
 ---
 title: "wbAudit — Examples"
-description: "---"
+description: "If the audit report says \"everything looks good\" on the first pass, the audit is lying."
 ---
 
 # /wbAudit — Examples

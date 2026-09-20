@@ -5,6 +5,7 @@ const os = require('os');
 const { splitCommand, parseTaskText, extractVerifyCommand } = require('./wave_parser');
 const { route, cliFor } = require('./wave_router');
 const { PKG_ROOT, GATE_LINE_PATTERN, INFRA_GREP_PATTERN, REFUSAL_GREP_PATTERN, ROLES } = require('./wave_constants');
+const AWK_EXTRACT_VALIDATION = '/^## 🔍 Validation/{in_val=1; content=""; next} /^## /{if(in_val) in_val=0} in_val {content=content $0 "\\n"} END{if(content!="") printf "%s", content}';
 
 /** The `-s <id> --fork` / `--title <key>` preamble, as one shell line. */
 function sessionArgsShell(key) {
@@ -15,6 +16,12 @@ function sessionArgsShell(key) {
 }
 function shq(s) {
   return "'" + String(s).replace(/'/g, "'\\''") + "'";
+}
+function dqe(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\$/g, '\\$').replace(/`/g, '\\`');
+}
+function targetsGateSource(text) {
+  return /\bbin\/(?:wave_generator|wave)\.js\b/.test(String(text || ''));
 }
 /**
  * Absolute path to a command's Layer-1 template, or '' if it cannot be found.
@@ -104,6 +111,7 @@ function emitDispatchGates(L, cmdInfo) {
   var isWbWork = parsed.name.toLowerCase() === 'wbwork';
   var isWbExplain = parsed.name.toLowerCase() === 'wbexplain';
   var isWbValid = parsed.name.toLowerCase() === 'wbvalid';
+  var gateBootstrapIds = cmdInfo.gateBootstrapIds || {};
   // The dispatched payload MUST be rebuilt from `parsed.ids`, never taken from the
   // raw `parsed.rest`. The batching merge (see "Batch spawned cells…" below) appends
   // to `parsed.ids` and rewrites `cell.command`, but leaves `rest` at its parsed
@@ -133,7 +141,7 @@ function emitDispatchGates(L, cmdInfo) {
   const chain = (cmdInfo.chain && cmdInfo.chain.length ? cmdInfo.chain : [model])
     .filter(function (m) { return m; });
 
-  L.push('  _g9_out=$(mktemp)');
+  L.push('  _g9_out=$(mktemp -d)');
   L.push('  _g9_ran=0; _g9_model=""; _g9_rc=1');
   // Snapshot file CONTENT, rather than VCS metadata. `git diff` cannot see the
   // contents of a pre-existing untracked or ignored file, so it can report a
@@ -176,7 +184,14 @@ function emitDispatchGates(L, cmdInfo) {
   L.push('        printf "%s\\t%s\\n" "$_g9_hash" "$_g9_rel"');
   L.push('      done > "$_g9_snapshot"');
   L.push('  }');
-  L.push('  _g9_snapshot_workspace "$_g9_out.wbefore"');
+  L.push('  _g9_snapshot_workspace "$_g9_out/wbefore"');
+  if (cmdInfo.planPath) {
+    L.push('  _g9_plan_hash_before=$(sha256sum ' + shq(cmdInfo.planPath) + ' 2>/dev/null | awk \'{print $1}\')');
+    L.push('  cp ' + shq(cmdInfo.planPath) + ' "$_g9_out/wbefore_plan" 2>/dev/null || true');
+  } else {
+    L.push('  _g9_plan_hash_before=""');
+  }
+
 
   chain.forEach(function (m, idx) {
     const cli = cliFor(m, { sandbox: cmdInfo.sandbox });
@@ -195,7 +210,7 @@ function emitDispatchGates(L, cmdInfo) {
     // (auto)'` → 400 "model is not supported", and `agy --model 'Antigravity
     // (auto)'` answered a greeting and did nothing while Gate 1 scored it PASS.
     // 0 of 4 ids produced anything. cliFor is the single source of truth.
-    const tail = ' 2>&1 | tee "$_g9_out"; _g9_rc=${PIPESTATUS[0]}';
+    const tail = ' 2>&1 | tee "$_g9_out/log"; _g9_rc=${PIPESTATUS[0]}';
     const argv = cli.argv.slice();
     // A leading bare word is a subcommand (`codex exec`, `opencode run`), not a
     // flag — keep it on the bin's line so the generated shell reads naturally.
@@ -229,16 +244,16 @@ function emitDispatchGates(L, cmdInfo) {
              + (cli.stdinNull ? ' < /dev/null' : '') + tail);
     }
     if (cmdInfo.sandbox) {
-      L.push('    if grep -qiE ' + shq(REFUSAL_GREP_PATTERN) + ' "$_g9_out" || [ ! -s "$_g9_out" ]; then');
+      L.push('    if grep -qiE ' + shq(REFUSAL_GREP_PATTERN) + ' "$_g9_out/log" || [ ! -s "$_g9_out/log" ]; then');
       L.push('      echo "  G1: REFUSED — sandboxed dispatch could not proceed without permission bypass on ' + m + '"');
       L.push('      _g9_ran=3; _g9_model=' + shq(m));
       L.push('    elif [ "$_g9_rc" -ne 0 ] || grep -qE ' + shq(INFRA_GREP_PATTERN)
-             + ' <(sed ' + shq('s/\\x1b\\[[0-9;]*m//g') + ' "$_g9_out"); then');
+             + ' <(sed ' + shq('s/\\x1b\\[[0-9;]*m//g') + ' "$_g9_out/log"); then');
     } else {
       L.push('    if [ "$_g9_rc" -ne 0 ] || grep -qE ' + shq(INFRA_GREP_PATTERN)
-             + ' <(sed ' + shq('s/\\x1b\\[[0-9;]*m//g') + ' "$_g9_out"); then');
+             + ' <(sed ' + shq('s/\\x1b\\[[0-9;]*m//g') + ' "$_g9_out/log"); then');
     }
-    L.push('      if grep -qi "timeout" "$_g9_out"; then');
+    L.push('      if grep -qi "timeout" "$_g9_out/log"; then');
     L.push('        echo "  G1: ATTEMPTED (timeout) on ' + m + '"');
     L.push('        _g9_ran=2; _g9_model=' + shq(m) + '');
     L.push('      else');
@@ -251,28 +266,75 @@ function emitDispatchGates(L, cmdInfo) {
     L.push('  fi');
   });
 
-  L.push('  _g9_snapshot_workspace "$_g9_out.wafter"');
+  L.push('  _g9_snapshot_workspace "$_g9_out/wafter"');
+  // C72 — `--no-plan-update` was requested of every spawned cell and enforced
+  // nowhere: on 2026-09-14 a cell carrying the flag rewrote the plan and destroyed a
+  // row, and nothing noticed. The plan is already captured in both workspace
+  // snapshots, so the check is a hash compare. Scoped to the PLAN alone on purpose —
+  // a wider "nothing outside the write set changed" rule fails legitimate cells and
+  // regressed 17 gate tests when it was tried.
+  if (cmdInfo.planPath) {
+    L.push('  _g9_plan_hash_after=$(sha256sum ' + shq(cmdInfo.planPath) + ' 2>/dev/null | awk \'{print $1}\')');
+    L.push('  if [ -n "$_g9_plan_hash_before" ] && [ "$_g9_plan_hash_before" != "$_g9_plan_hash_after" ]; then');
+    L.push('    cat > "$_g9_out/check_plan.js" << \'EOF\'');
+    L.push('const fs = require("fs");');
+    L.push('const p = require(process.argv[4]);');
+    L.push('const b = fs.readFileSync(process.argv[2], "utf8");');
+    L.push('const a = fs.readFileSync(process.argv[3], "utf8");');
+    L.push('if (JSON.stringify(p.parseDoneColumn(b)) !== JSON.stringify(p.parseDoneColumn(a))) process.exit(1);');
+    L.push('if (JSON.stringify(p.parseValidColumn(b)) !== JSON.stringify(p.parseValidColumn(a))) process.exit(1);');
+    L.push('const getDerived = (t) => {');
+    L.push('  let out = ""; let inMat = false, inHTR = false;');
+    L.push('  for (const l of t.split("\\n")) {');
+    L.push('    if (l.startsWith("> **Status:**")) out += l + "\\n";');
+    L.push('    else if (l.startsWith("## 🌊 Next Executable Sequence")) inMat = true;');
+    L.push('    else if (l.startsWith("## 🧭 What\'s Next?")) out += l + "\\n";');
+    L.push('    if (inMat && l.startsWith("## ") && !l.startsWith("## 🌊")) inMat = false;');
+    L.push('    if (inMat) out += l + "\\n";');
+    L.push('    if (l.startsWith("<!-- HOW_TO_RUN_START -->")) inHTR = true;');
+    L.push('    if (inHTR) out += l + "\\n";');
+    L.push('    if (l.startsWith("<!-- HOW_TO_RUN_END -->")) inHTR = false;');
+    L.push('  }');
+    L.push('  return out;');
+    L.push('};');
+    L.push('if (getDerived(b) !== getDerived(a)) process.exit(1);');
+    L.push('EOF');
+    L.push('    if ! node "$_g9_out/check_plan.js" "$_g9_out/wbefore_plan" ' + shq(cmdInfo.planPath) + ' ' + shq(path.join(PKG_ROOT, 'bin', 'wave_parser.js')) + ' >/dev/null 2>&1; then');
+    L.push('      echo "  VERDICT: FAIL — cell modified the plan file (breach of --no-plan-update)"');
+    if (!isPrelude) L.push('      echo "__EXIT__=1"');
+    L.push('      rm -rf "$_g9_out/log"; exit 1');
+    L.push('    fi');
+    L.push('    rm -f "$_g9_out/check_plan.js"');
+    L.push('  fi');
+  }
   L.push('  _g9_tree_changed=1');
-  L.push('  if cmp -s "$_g9_out.wbefore" "$_g9_out.wafter" >/dev/null 2>&1; then');
+  L.push('  if cmp -s "$_g9_out/wbefore" "$_g9_out/wafter" >/dev/null 2>&1; then');
   L.push('    _g9_tree_changed=0');
   L.push('  fi');
   L.push('');
+  L.push('  _g9_force_att=0');
   L.push('  if [ "$_g9_ran" -eq 0 ]; then');
-  L.push('    echo "  VERDICT: INFRA — every model in the chain failed to run"');
-  if (!isPrelude) L.push('    echo "__EXIT__=1"');
-  L.push('    rm -f "$_g9_out"; exit 1');
+  L.push('    if [ "$_g9_tree_changed" -eq 0 ]; then');
+  L.push('      echo "  VERDICT: INFRA — every model in the chain failed to run"');
+  if (!isPrelude) L.push('      echo "__EXIT__=1"');
+  L.push('      rm -rf "$_g9_out/log"; exit 1');
+  L.push('    fi');
+  L.push('    echo "  G1: ATTEMPTED — every model was classified INFRA, but the workspace changed; showing G2/G3 evidence"');
+  L.push('    _g9_force_att=1');
   L.push('  fi');
   L.push('  if [ "$_g9_ran" -eq 2 ]; then');
   L.push('    echo "  VERDICT: ATTEMPTED — agent timed out"');
   if (!isPrelude) L.push('    echo "__EXIT__=1"');
-  L.push('    rm -f "$_g9_out"; exit 1');
+  L.push('    rm -rf "$_g9_out/log"; exit 1');
   L.push('  fi');
   L.push('  if [ "$_g9_ran" -eq 3 ]; then');
   L.push('    echo "  VERDICT: REFUSED — sandboxed dispatch requires operator-approved permissions"');
   if (!isPrelude) L.push('    echo "__EXIT__=1"');
-  L.push('    rm -f "$_g9_out"; exit 1');
+  L.push('    rm -rf "$_g9_out/log"; exit 1');
   L.push('  fi');
-  L.push('  echo "  G1: PASS  (ran on $_g9_model)"');
+  L.push('  if [ "$_g9_force_att" -eq 0 ]; then');
+  L.push('    echo "  G1: PASS  (ran on $_g9_model)"');
+  L.push('  fi');
 
   // A cold run just created the session — record its id so the next wave is
   // warm. Resolved BY TITLE, not by "most recent": under parallelism the newest
@@ -308,7 +370,7 @@ function emitDispatchGates(L, cmdInfo) {
   if (!gated) {
     L.push('  echo "  VERDICT: DONE"');
     if (!isPrelude) L.push('  echo "__EXIT__=0"');
-    L.push('  rm -f "$_g9_out"');
+    L.push('  rm -rf "$_g9_out/log"');
     return;
   }
 
@@ -329,15 +391,51 @@ function emitDispatchGates(L, cmdInfo) {
     L.push('  # ── id ' + id + ' ──');
     L.push('  _g9_v=DONE');
 
+    var verifyCell = '';
+    var verifyCmd = '';
+    if (isWbWork) {
+      verifyCell = (verifyColumn && verifyColumn[id]) || '';
+      verifyCmd = extractVerifyCommand(verifyCell);
+    }
+    var gateBootstrapNote = (isWbWork && gateBootstrapIds[id])
+      ? ' — pre-fix gate warning: cell targets the gate source, so this verdict is not authoritative'
+      : '';
+
     if (isWbValid) {
       // G2 for wbValid: task report exists AND gained a Validation section.
       // Mere file existence is not enough — a validator that no-ops must land
-      // NO-OP, never DONE (bug 3).
+      // NO-OP, never DONE (bug 3). A validator may append the section to a
+      // different deliverable artifact (for example, a sibling task report it
+      // was asked to review); in that case the canonical task report carries a
+      // `Validation written to` pointer and G2 follows it.
       var wvGlob = path.join(planDirRel, 'tasks', 'task_' + id, 'task_' + id + '_report_*.md');
       L.push('  # G2: Artifact (' + fileType + ' in task report)');
       L.push('  _g9_rpt=$(ls ' + shq(path.join(planDirRel, 'tasks', 'task_' + id, 'task_' + id)) + '_report_*.md 2>/dev/null | head -1)');
       L.push('  if [ -n "$_g9_rpt" ] && grep -q ' + shq('## 🔍 Validation') + ' "$_g9_rpt"; then');
       L.push('    echo "  G2 [' + id + ']: PASS"');
+      L.push('  elif [ -n "$_g9_rpt" ]; then');
+      L.push('    _g9_ptr_raw=$(awk ' + shq('/^> \\*\\*Validation written to:\\*\\*/ { sub(/^> \\*\\*Validation written to:\\*\\*[[:space:]]*/, ""); print; exit }') + ' "$_g9_rpt")');
+      L.push('    _g9_ptr=$(printf "%s\\n" "$_g9_ptr_raw" | sed -E ' + shq('s/^.*\\]\\(([^)]+)\\).*$/\\1/; s/^[[:space:]]*`?//; s/`?[[:space:]]*$//; s/^<([^>]+)>$/\\1/') + ')');
+      L.push('    _g9_ptr_file=""');
+      L.push('    if [ -n "$_g9_ptr" ]; then');
+      L.push('      case "$_g9_ptr" in');
+      L.push('        /*) [ -f "$_g9_ptr" ] && _g9_ptr_file="$_g9_ptr" ;;');
+      L.push('        *)');
+      L.push('          [ -f "$_g9_ptr" ] && _g9_ptr_file="$_g9_ptr"');
+      if (planDirRel) {
+        L.push('          [ -z "$_g9_ptr_file" ] && [ -f ' + shq(planDirRel) + '/"$_g9_ptr" ] && _g9_ptr_file=' + shq(planDirRel) + '/"$_g9_ptr"');
+      }
+      L.push('          [ -z "$_g9_ptr_file" ] && [ -f "$(dirname "$_g9_rpt")/$_g9_ptr" ] && _g9_ptr_file="$(dirname "$_g9_rpt")/$_g9_ptr"');
+      L.push('          ;;');
+      L.push('      esac');
+      L.push('    fi');
+      L.push('    if [ -n "$_g9_ptr_file" ] && grep -q ' + shq('## 🔍 Validation') + ' "$_g9_ptr_file"; then');
+      L.push('      _g9_rpt="$_g9_ptr_file"');
+      L.push('      echo "  G2 [' + id + ']: PASS — Validation section found via pointer"');
+      L.push('    else');
+      L.push('      echo "  G2 [' + id + ']: NO-OP — no Validation section in task report"');
+      L.push('      _g9_v=NO-OP');
+      L.push('    fi');
       L.push('  else');
       L.push('    echo "  G2 [' + id + ']: NO-OP — no Validation section in task report"');
       L.push('    _g9_v=NO-OP');
@@ -346,8 +444,21 @@ function emitDispatchGates(L, cmdInfo) {
       L.push('  # G2: Artifact (' + fileType + ' exists)');
       L.push('  if ls ' + shq(globPrefix) + '*' + shq('.md') + ' >/dev/null 2>&1; then');
       L.push('    if [ "$_g9_tree_changed" -eq 0 ]; then');
-      L.push('      echo "  G2 [' + id + ']: NO-OP — no workspace content changed (excluding task_' + id + '/ report folder)"');
-      L.push('      _g9_v=NO-OP');
+      if (isWbWork && verifyCmd) {
+        if (planDirRel) {
+          L.push('      if (cd ' + shq(planDirRel) + ' && bash -c ' + shq(verifyCmd) + ') >/dev/null 2>&1; then');
+        } else {
+          L.push('      if bash -c ' + shq(verifyCmd) + ' >/dev/null 2>&1; then');
+        }
+        L.push('        echo "  G2 [' + id + ']: PASS — tree unchanged, but oracle passes (idempotent re-run)"');
+        L.push('      else');
+        L.push('        echo "  G2 [' + id + ']: NO-OP — no workspace content changed and oracle failed"');
+        L.push('        _g9_v=NO-OP');
+        L.push('      fi');
+      } else {
+        L.push('      echo "  G2 [' + id + ']: NO-OP — no workspace content changed and no oracle to verify"');
+        L.push('      _g9_v=NO-OP');
+      }
       L.push('    else');
       L.push('      echo "  G2 [' + id + ']: PASS"');
       L.push('    fi');
@@ -361,8 +472,6 @@ function emitDispatchGates(L, cmdInfo) {
     // leftover from before G9 made gating per-dispatch: it silently gave the
     // earlier commands of a multi-command lane a DONE with no oracle at all.
     if (isWbWork) {
-      var verifyCell = (verifyColumn && verifyColumn[id]) || '';
-      var verifyCmd = extractVerifyCommand(verifyCell);
       L.push('  # G3: Oracle (this row\'s Verify cell)');
       L.push('  if [ "$_g9_v" = DONE ]; then');
       if (verifyCmd) {
@@ -375,9 +484,9 @@ function emitDispatchGates(L, cmdInfo) {
         } else {
           L.push('    if bash -c ' + shq(verifyCmd) + ' >/dev/null 2>&1; then');
         }
-        L.push('      echo "  G3 [' + id + ']: PASS"');
+        L.push('      echo "  G3 [' + id + ']: PASS' + gateBootstrapNote + '"');
         L.push('    else');
-        L.push('      echo "  G3 [' + id + ']: ATTEMPTED — oracle failed"');
+        L.push('      echo "  G3 [' + id + ']: ATTEMPTED — oracle failed' + gateBootstrapNote + '"');
         L.push('      _g9_v=ATTEMPTED');
         L.push('    fi');
       } else {
@@ -387,34 +496,50 @@ function emitDispatchGates(L, cmdInfo) {
         var why = /^\s*human:/i.test(verifyCell) ? 'human-verified row'
                 : (verifyCell.trim() ? 'Verify cell is not a runnable command'
                                      : 'no Verify cell in the plan row');
-        L.push('    echo "  G3 [' + id + ']: SKIPPED — ' + why + '"');
+        L.push('    echo "  G3 [' + id + ']: SKIPPED — ' + why + gateBootstrapNote + '"');
         L.push('    _g9_v=UNVERIFIED');
       }
       L.push('  fi');
     }
 
-    // G3 for wbValid: the plan's ☐ Valid column must be non-⬜.
-    // A validator that no-ops must land NO-OP, never DONE (bug 3).
+    // G3 for wbValid: this run must have produced a fresh scored validation.
+    // Wave-spawned validators run with --no-plan-update, so the orchestrator owns
+    // the plan's ☐ Valid column. Checking that column here made every validator
+    // cell unsatisfiable. G2 proves the section exists; G3 proves it is fresh and
+    // contains the score the orchestrator can transcribe.
     if (isWbValid) {
-      var planFile = cmdInfo.planPath || '';
-      L.push('  # G3: Valid column (plan\'s ☐ Valid is non-⬜)');
+      L.push('  # G3: Fresh scored validation (newer than dispatch snapshot)');
       L.push('  if [ "$_g9_v" = DONE ]; then');
-      L.push('    _g9_plan_row=$(grep "\\[' + id + '\\]" ' + shq(planFile) + ' 2>/dev/null | head -1)');
-      L.push('    if [ -n "$_g9_plan_row" ]; then');
-      L.push('      _g9_valid_cell=$(echo "$_g9_plan_row" | awk -F\'|\' \'{gsub(/^[ \\t]+|[ \\t]+$/, "", $(NF-1)); print $(NF-1)}\')');
-      L.push('      if [ "$_g9_valid_cell" != "⬜" ] && [ -n "$_g9_valid_cell" ]; then');
-      L.push('        echo "  G3 [' + id + ']: PASS"');
-      L.push('      else');
-      L.push('        echo "  G3 [' + id + ']: ATTEMPTED — Valid column is ⬜ (not validated)"');
+      L.push('    if [ -n "$_g9_rpt" ] && [ "$_g9_rpt" -nt "$_g9_out/wbefore" ]; then');
+      L.push('      _g9_section=$(awk ' + shq(AWK_EXTRACT_VALIDATION) + ' "$_g9_rpt")');
+      L.push('      _g9_score=$(printf "%s\\n" "$_g9_section" | awk ' + shq('{ lines[++n]=$0 } /^```/ || /^~~~/ { in_fence = !in_fence; next } !in_fence && /^\\**Score[\\*[:space:]]*:[\\*[:space:]]*/ { if (match($0, /[0-9][0-9]?[[:space:]]*\\/[[:space:]]*10/)) { s=substr($0, RSTART, RLENGTH); gsub(/[[:space:]]/, "", s); last_s=s } } END { if (in_fence) { last_s=""; for (i=1; i<=n; i++) { if (lines[i] ~ /^\\**Score[\\*[:space:]]*:[\\*[:space:]]*/ && match(lines[i], /[0-9][0-9]?[[:space:]]*\\/[[:space:]]*10/)) { s=substr(lines[i], RSTART, RLENGTH); gsub(/[[:space:]]/, "", s); last_s=s } } } if (last_s) print last_s }') + ' || true)');
+      L.push('      if [ -z "$_g9_score" ]; then');
+      L.push('        _g9_score=$(printf "%s\\n" "$_g9_section" | awk ' + shq('{ lines[++n]=$0 } /^```/ || /^~~~/ { in_fence = !in_fence; next } !in_fence && /^\\**Verdict[\\*[:space:]]*:[\\*[:space:]]*/ { if (match($0, /[0-9][0-9]?[[:space:]]*\\/[[:space:]]*10/)) { s=substr($0, RSTART, RLENGTH); gsub(/[[:space:]]/, "", s); last_s=s } } END { if (in_fence) { last_s=""; for (i=1; i<=n; i++) { if (lines[i] ~ /^\\**Verdict[\\*[:space:]]*:[\\*[:space:]]*/ && match(lines[i], /[0-9][0-9]?[[:space:]]*\\/[[:space:]]*10/)) { s=substr(lines[i], RSTART, RLENGTH); gsub(/[[:space:]]/, "", s); last_s=s } } } if (last_s) print last_s }') + ' || true)');
+      L.push('      fi');
+      L.push('      _g9_score_num=${_g9_score%%/10}');
+      L.push('      _g9_verdict=$(printf "%s\\n" "$_g9_section" | awk ' + shq('{ lines[++n]=$0 } /^```/ || /^~~~/ { in_fence = !in_fence; next } !in_fence && /^\\**Verdict[\\*[:space:]]*:[\\*[:space:]]*/ { last_v=$0 } END { if (in_fence) { last_v=""; for (i=1; i<=n; i++) { if (lines[i] ~ /^\\**Verdict[\\*[:space:]]*:[\\*[:space:]]*/) last_v=lines[i] } } if (last_v) print last_v }') + ' || true)');
+      L.push('      _g9_failed=0');
+      L.push('      if printf "%s\\n" "$_g9_verdict" | grep -qiE ' + shq('(^|[^[:alpha:]])(FAIL|FAILED|❌)([^[:alpha:]]|$)') + '; then _g9_failed=1; fi');
+      L.push('      if [ -z "$_g9_score" ]; then');
+      L.push('        echo "  G3 [' + id + ']: UNVERIFIED — Validation section has no <N>/10 score"');
+      L.push('        _g9_v=UNVERIFIED');
+      L.push('      elif [ "$_g9_score_num" -le 0 ] || [ "$_g9_score_num" -gt 10 ] || [ "$_g9_failed" -eq 1 ]; then');
+      L.push('        echo "  G3 [' + id + ']: ATTEMPTED — validation failed with score $_g9_score"');
       L.push('        _g9_v=ATTEMPTED');
+      L.push('      else');
+      L.push('        echo "  G3 [' + id + ']: PASS — validation score $_g9_score"');
       L.push('      fi');
       L.push('    else');
-      L.push('      echo "  G3 [' + id + ']: ATTEMPTED — cannot find row for ' + id + ' in plan"');
+      L.push('      echo "  G3 [' + id + ']: ATTEMPTED — validation artifact is stale or missing"');
       L.push('      _g9_v=ATTEMPTED');
       L.push('    fi');
       L.push('  fi');
     }
 
+    L.push('  if [ "$_g9_force_att" -eq 1 ] && [ "$_g9_v" = DONE ]; then');
+    L.push('    _g9_v=ATTEMPTED');
+    L.push('    echo "  G1 [' + id + ']: ATTEMPTED — classified INFRA but workspace changed"');
+    L.push('  fi');
     L.push('  echo "  VERDICT [' + id + ']: $_g9_v"');
     L.push('  case "$_g9_v" in');
     L.push('    NO-OP) _g9_noop="$_g9_noop ' + id + '" ;;');
@@ -431,21 +556,21 @@ function emitDispatchGates(L, cmdInfo) {
   L.push('  if [ -n "$_g9_noop" ]; then');
   L.push('    echo "  VERDICT: NO-OP —$_g9_noop"');
   if (!isPrelude) L.push('    echo "__EXIT__=1"');
-  L.push('    rm -f "$_g9_out"; exit 1');
+  L.push('    rm -rf "$_g9_out/log"; exit 1');
   L.push('  fi');
   L.push('  if [ -n "$_g9_att" ]; then');
   L.push('    echo "  VERDICT: ATTEMPTED —$_g9_att"');
   if (!isPrelude) L.push('    echo "__EXIT__=1"');
-  L.push('    rm -f "$_g9_out"; exit 1');
+  L.push('    rm -rf "$_g9_out/log"; exit 1');
   L.push('  fi');
   L.push('  if [ -n "$_g9_unv" ]; then');
   L.push('    echo "  VERDICT: UNVERIFIED (G1+G2 only — no oracle ran) —$_g9_unv"');
   if (!isPrelude) L.push('    echo "__EXIT__=0"');
-  L.push('    rm -f "$_g9_out"; exit 0');
+  L.push('    rm -rf "$_g9_out/log"; exit 0');
   L.push('  fi');
   L.push('  echo "  VERDICT: DONE"');
   if (!isPrelude) L.push('  echo "__EXIT__=0"');
-  L.push('  rm -f "$_g9_out"');
+  L.push('  rm -rf "$_g9_out/log"');
 }
 function buildScript(ctx) {
   const { planPath, wave, cells, dispatchIndex, models, jobs, repoRoot } = ctx;
@@ -457,6 +582,7 @@ function buildScript(ctx) {
   const rawSpawned = [];
   const inline = [];
   const skipped = [];
+  const taskTexts = parseTaskText(ctx.text || (fs.existsSync(planPath) ? fs.readFileSync(planPath, 'utf8') : ''));
 
   for (const cell of cells) {
     // A22 — checked BEFORE anything that could route it. A 👤 human row gets no
@@ -574,6 +700,19 @@ function buildScript(ctx) {
     L.push('declare -A CELL_START');
     L.push('');
     L.push('_heartbeat_start_time=$(date +%s)');
+    L.push('_wbflow_descendant_pids() {');
+    L.push('  local parent="$1" child');
+    L.push('  for child in $(pgrep -P "$parent" 2>/dev/null || true); do');
+    L.push('    printf "%s\\n" "$child"');
+    L.push('    _wbflow_descendant_pids "$child"');
+    L.push('  done');
+    L.push('}');
+    L.push('_wbflow_cpu_seconds() {');
+    L.push('  local root="$1" pids');
+    L.push('  pids=$(_wbflow_descendant_pids "$root" | paste -sd, -)');
+    L.push('  [ -n "$pids" ] || pids="$root"');
+    L.push('  ps -o times= -p "$pids" 2>/dev/null | awk \'{s+=$1} END {print s+0}\'');
+    L.push('}');
     L.push('heartbeat() {');
     L.push('  while true; do');
     L.push('    sleep 30');
@@ -590,7 +729,7 @@ function buildScript(ctx) {
     L.push('        local start=${CELL_START[$tid]:-0}');
     L.push('        local ec=0');
     L.push('        [ "$start" -gt 0 ] 2>/dev/null && ec=$(( ($(date +%s) - start) / 60 ))');
-    L.push('        local cpu_s=$(ps -o times= -p "${PIDS[$i]}" 2>/dev/null | tr -d " ")');
+    L.push('        local cpu_s=$(_wbflow_cpu_seconds "${PIDS[$i]}")');
     L.push('        if [ "$est_val" -gt 0 ] && [ "$start" -gt 0 ] 2>/dev/null; then');
     L.push('          local pct=$(( ($(date +%s) - start) * 100 / (est_val * 60) ))');
     L.push('          if [ "$pct" -ge 100 ]; then');
@@ -615,7 +754,7 @@ function buildScript(ctx) {
   L.push('declare -a PIDS=() NAMES=() TASK_IDS=()');
   L.push('');
 
-  if (!spawned.length) {
+  if (!spawned.length) { 
     L.push('echo "Nothing to spawn in this wave — every cell is Claude-in-session or held."');
     L.push('exit 0');
     L.push('');
@@ -704,8 +843,18 @@ function buildScript(ctx) {
     var metaCmd = '/' + parsed.name + ' ' + parsed.target + ' --id=' + (parsed.ids.length ? parsed.ids.join(',') : '*');
     var chainStr = (r.chain || [r.model]).filter(Boolean).join(' || ');
     var estMins = cell.est || '';
-    var taskTexts = parseTaskText(ctx.text || (fs.existsSync(planPath) ? fs.readFileSync(planPath, 'utf8') : ''));
     var taskDesc = (parsed.ids.map(function (id) { return taskTexts[id]; }).filter(Boolean).join('; ') || '').replace(/[\r\n]+/g, ' ').trim();
+    var gateBootstrapIds = {};
+    if (parsed.name.toLowerCase() === 'wbwork') {
+      for (const id of parsed.ids) {
+        const verifyText = verifyColumn && verifyColumn[id] ? verifyColumn[id] : '';
+        if (targetsGateSource(taskTexts[id]) || targetsGateSource(verifyText)) gateBootstrapIds[id] = true;
+      }
+    }
+    var gateBootstrapList = Object.keys(gateBootstrapIds);
+    if (gateBootstrapList.length) {
+      L.push('echo "⚠️  Gate bootstrap warning [' + gateBootstrapList.join(',') + ']: this cell targets bin/wave_generator.js or bin/wave.js; G3 uses the pre-fix gate and is not authoritative."');
+    }
     L.push('  cat >"$RUN_DIR/' + slug + '.meta" <<\'METAE\'');
     L.push('COMMAND=' + metaCmd);
     L.push('WAVE=' + wave);
@@ -742,6 +891,7 @@ function buildScript(ctx) {
       wbRunPath: wbRunPath,
       planDirRel: planDirRel,
       verifyColumn: verifyColumn,
+      gateBootstrapIds: gateBootstrapIds,
       repoRoot: repoRoot,   // codex lane resolves the template path from this
       planPath: planPath,   // wbValid G3 needs to read the plan file
       sandbox: sandbox,
@@ -823,7 +973,7 @@ function buildScript(ctx) {
   L.push('echo "  2. check the Done box for every cell that succeeded"');
   if (inline.length) {
     L.push('echo "  3. run the Claude-in-session cells:"');
-    for (const it of inline) L.push('echo "       ' + it.cell.command.replace(/"/g, '\\"') + '"');
+    for (const it of inline) L.push('echo "       ' + dqe(it.cell.command) + '"');
     L.push('echo "  4. recompute the 🌊 Next Executable Sequence, once"');
   } else {
     L.push('echo "  3. recompute the 🌊 Next Executable Sequence, once"');
@@ -843,5 +993,6 @@ function resolveWbRun(repoRoot) {
 
 module.exports = {
   sessionArgsShell, shq, templatePathFor, inlineTemplatePrompt, sessionKeyFor,
-  keyFileOf, emitDispatchGates, buildScript, resolveWbRun
+  keyFileOf, emitDispatchGates, buildScript, resolveWbRun, targetsGateSource,
+  AWK_EXTRACT_VALIDATION
 };

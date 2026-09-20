@@ -1,6 +1,6 @@
 ---
 title: "wbStandup — Examples"
-description: "---"
+description: "Examples and output structures for daily progress tracking with wbStandup."
 ---
 
 # /wbStandup — Examples

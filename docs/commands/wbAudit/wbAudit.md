@@ -1,6 +1,6 @@
 ---
 title: "wbAudit — Deep code-based technical audit"
-description: "## Overview"
+description: "/wbAudit inspects actual source code to produce an honest, scored assessment of a package or file."
 ---
 
 # /wbAudit — Deep code-based technical audit

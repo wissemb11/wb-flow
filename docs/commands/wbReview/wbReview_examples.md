@@ -1,6 +1,6 @@
 ---
 title: "wbReview — Examples"
-description: "---"
+description: "If you don't have a plan, you don't want /wbReview."
 ---
 
 # /wbReview — Examples

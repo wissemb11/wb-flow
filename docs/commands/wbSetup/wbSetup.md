@@ -1,6 +1,6 @@
 ---
 title: "wbSetup — Initialize a new project or package"
-description: "## Overview"
+description: "/wbSetup scaffolds the initial file structure, configuration, and workflow files for a new project or package within the monorepo."
 ---
 
 # /wbSetup — Initialize a new project or package

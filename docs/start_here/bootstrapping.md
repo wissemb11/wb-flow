@@ -1,6 +1,6 @@
 ---
 title: "Bootstrapping wb-flow — Prerequisites & Setup"
-description: "---"
+description: "wb-flow works on any folder that has a package."
 ---
 
 # Bootstrapping wb-flow — Prerequisites & Setup

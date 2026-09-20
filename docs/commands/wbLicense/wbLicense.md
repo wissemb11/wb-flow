@@ -1,6 +1,6 @@
 ---
 title: "wbLicense — Manage licensing and compliance"
-description: "## Overview"
+description: "/wbLicense scans project dependencies for license compatibility, generates license headers for source files, and produces compliance reports."
 ---
 
 # /wbLicense — Manage licensing and compliance

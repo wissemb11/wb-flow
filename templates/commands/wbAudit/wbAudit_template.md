@@ -245,6 +245,7 @@ User is the sole developer of a Vue 2 monorepo UI engine with 12 sub-packages, f
 2. DYNAMIC SCOPING:
    - **If TARGET is a FOLDER (Project Level):** Evaluate the local content and compare it against the broader tech community (e.g., Vue ecosystem, data analysis tools, competitors). Assess the real implementation status, business viability of the freemium model, security vulnerabilities, and architectural debt.
    - **If TARGET is a FILE (e.g., dev.md):** Analyze what the file is used for, identify missing points or logical flaws, and provide a fully enhanced, inspired suggestion for the file content. Ensure you include a comparison table showing the differences between the existent file and the new suggestion.
+   - **If TARGET is a PLAN FILE (`plan_*.md`):** Run `wb-flow lint --include-closed <plan-file>` and report any step-9 `vacuous Verify` findings against closed rows separately from routine open-row lint. For a scope-level historical sweep, run `wb-flow lint --all --include-closed <scope-folder>`; plain lint is prevention, this explicit flag is audit visibility.
 3. Suggest enhancements, new ideas, or structural improvements.
 4. Deliver a score out of 10 with status classification.
 5. Structure the output as a 9-section audit report with tables, concrete evidence, and actionable conclusions.
@@ -311,7 +312,7 @@ User is the sole developer of a Vue 2 monorepo UI engine with 12 sub-packages, f
 
 8. END THE AUDIT FILE WITH:
 
-   **Before "What's Next?", append the 🌊 Next Executable Sequence** — the wave × role matrix defined in `_shared/output_conventions.md` §10 (canonical: rows = parallel-safe waves, columns = the four `Requires` roles, each cell a full invocable command + `→ *Model · ~$cost*`, mandatory collision check, required Wave notes). Source rows: the 🔵 findings that need a follow-up command; a finding whose fix is gated on another finding lands in a later wave. Emit it only when there are **2 or more** actionable items; for a single one, print `Next: <command> → *Model*` instead. Also print the matrix in the chat response. On a self-correct pass, insert it if absent and recompute it in place if present (§10.5).
+   **Before "What's Next?", append the 🌊 Next Executable Sequence** — the wave × role matrix defined in `_shared/output_conventions.md` §10 (canonical: rows = parallel-safe waves, columns = the four `Requires` roles, each cell a full invocable command + `→ *Model · ~$cost*`, mandatory collision check, required Wave notes). Source rows: the 🔵 findings that need a follow-up command; a finding whose fix is gated on another finding lands in a later wave. Also print the matrix in the chat response. On a self-correct pass, insert it if absent and recompute it in place if present (§10.5).
 
    ## 🧭 What's Next?
 

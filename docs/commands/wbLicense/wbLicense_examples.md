@@ -1,6 +1,6 @@
 ---
 title: "wbLicense — Examples"
-description: "---"
+description: "Examples and scenarios for auditing and applying tier gating with wbLicense."
 ---
 
 # /wbLicense — Examples

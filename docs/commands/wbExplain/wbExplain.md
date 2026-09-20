@@ -1,6 +1,6 @@
 ---
 title: "wbExplain — Deep-dive explanation of code"
-description: "## Overview"
+description: "/wbExplain produces a detailed explanation of a specific file, function, module, or task."
 ---
 
 # /wbExplain — Deep-dive explanation of code

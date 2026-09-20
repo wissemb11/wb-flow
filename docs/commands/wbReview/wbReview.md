@@ -1,6 +1,6 @@
 ---
 title: "wbReview — Code review on specific changes"
-description: "## Overview"
+description: "/wbReview performs a targeted review of specific code changes, pull requests, or diffs."
 ---
 
 # /wbReview — Code review on specific changes

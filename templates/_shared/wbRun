@@ -22,7 +22,7 @@
 # Four wave cells were scored INFRA on 2026-08-03 after completing their work;
 # two had their authorship reassigned to a fallback model that did nothing.
 
-INFRA_PATTERN='^(Error: (Model not found|Insufficient (credits|balance|funds)|Rate limit|Quota|Authentication|Payment)|ERROR: \{"type":"error")'
+INFRA_PATTERN='^([Ee][Rr][Rr][Oo][Rr]: \{"type":"error"|Error: (Model not found|Insufficient (credits|balance|funds)|Rate limit|Quota|Authentication|Payment|Your credit balance is too low\b)|Your credit balance is too low\b)'
 
 cmd_label="$*"
 echo "--------------------------------------------------------------------------------"

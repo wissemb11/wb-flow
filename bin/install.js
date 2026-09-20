@@ -89,7 +89,9 @@ if (args.includes('--help') || args.includes('-h')) {
                     OpenCode, Gemini CLI, Antigravity, Cursor, Codex).
                     Run \`wb-flow init --help\` for its options.
     lint            Run static analysis on plan files to catch structural
-                    and data consistency errors.
+                    and data consistency errors. Add --check-open-oracles
+                    for trusted plans to execute open rows' Verify cells
+                    and fail if they already pass before the work is done.
     model           Inspect or rewrite the /wb* model roster. Detects which
                     CLIs and providers you actually have credentials for and
                     writes commands/model_recommendations.md from that.
@@ -277,4 +279,3 @@ if (stats.errors.length > 0) {
   }
   process.exit(1);
 }
-

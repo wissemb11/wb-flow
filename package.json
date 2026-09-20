@@ -1,7 +1,7 @@
 {
   "name": "wb-flow",
-  "version": "1.0.5",
-  "description": "wb-flow turns AI coding into a planned, parallel, validated, and traceable engineering workflow. Zero-dependency CLI that bootstraps an agentic AI workflow system into any repo. Universal — works with Vue, React, Python, or any codebase. Compatible with Claude Code, OpenCode, Gemini CLI, Cursor, and other AI coding assistants.",
+  "version": "1.0.6",
+  "description": "wb-flow turns AI coding into a planned, parallel, validated, and traceable engineering workflow. Zero-dependency CLI that bootstraps an agentic AI workflow system into any repo. Universal \u2014 works with Vue, React, Python, or any codebase. Compatible with Claude Code, OpenCode, Gemini CLI, Cursor, and other AI coding assistants.",
   "bin": {
     "wb-flow": "./bin/install.js"
   },
@@ -11,18 +11,21 @@
     "assets/demo.gif",
     "assets/hero.gif",
     "README.md",
+    "SECURITY.md",
     "LICENSE",
     "CHANGELOG.md",
     "RELEASE_*.md",
     "!templates/commands/model_reference_manual.md",
-    "!bin/gen_cli_matrix.js"
+    "!bin/gen_cli_matrix.js",
+    "!**/*.pristine"
   ],
   "scripts": {
     "test": "WB_FLOW_NO_ENUM=1 npm run test:unit",
-    "test:unit": "node bin/gen_cli_matrix.js --check && node test/model_routing.js && node test/probe_targets.js && node test/roster_freshness.js && node test/runbook_regressions.js && node test/lint_entrypoint.js && node test/probe_defaults.js && node test/catalog_sync.js && node test/model_chain.js && node test/wave_modules.js && node test/smoke.js && node test/wave_gates.js && node test/watch.js && node test/archive.js && node test/docs_repair_invariants.js && node test/output_conventions_scope_resolution.js && node bin/verify-wrappers.js && node bin/verify-roster.js",
+    "test:unit": "node bin/gen_cli_matrix.js --check && node test/model_routing.js && node test/probe_targets.js && node test/roster_freshness.js && node test/runbook_regressions.js && node test/lint_entrypoint.js && node test/probe_defaults.js && node test/catalog_sync.js && node test/model_chain.js && node test/wave_modules.js && node test/link.js && node test/init.js && node test/prompt.js && node test/smoke.js && node test/wave_gates.js && node test/wave_gates.g2.test.js && node test/wave_parser.verifycolumn.test.js && node test/gate_bootstrap_oracle.js && node test/watch.js && node test/archive.js && node test/docs_repair_invariants.js && node test/output_conventions_scope_resolution.js && node test/verify_release_file.js && node test/verify_wrappers.js && node bin/verify-wrappers.js && node bin/verify-roster.js",
     "test:integration": "node test/model_enumeration.integration.js",
     "test:coverage": "c8 --reporter=text npm test",
-    "prepublishOnly": "npm test && node bin/verify-release-file.js --RELEASE"
+    "prepublishOnly": "npm test && node bin/verify-release-file.js",
+    "sweep-tmp": "bash bin/sweep-tmp.sh"
   },
   "keywords": [
     "ai",
@@ -63,6 +66,10 @@
   "engines": {
     "node": ">=18.0.0"
   },
+  "os": [
+    "linux",
+    "darwin"
+  ],
   "author": {
     "name": "Wissem Boughamoura",
     "email": "wissemb11@gmail.com",
@@ -71,6 +78,7 @@
   "license": "MIT",
   "type": "commonjs",
   "devDependencies": {
-    "c8": "^10.1.2"
+    "c8": "^10.1.2",
+    "vitest": "^5.0.0"
   }
 }

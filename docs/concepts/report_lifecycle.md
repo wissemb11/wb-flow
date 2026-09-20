@@ -1,6 +1,6 @@
 ---
 title: "Report Lifecycle — Consolidate, Then Archive"
-description: "---"
+description: "Overview of the report lifecycle, consolidating scattered daily reports, and archiving historical workflow artifacts."
 ---
 
 # Report Lifecycle — Consolidate, Then Archive

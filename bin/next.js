@@ -741,9 +741,8 @@ function run(argv) {
       const before = text.slice(0, text.indexOf(BLOCK_START)).replace(/(?:\s*\n---[ \t]*)+\s*$/, '\n');
       const after = text.slice(text.indexOf(BLOCK_END) + BLOCK_END.length).replace(/^(?:\s*---[ \t]*\n)+/, '\n');
       let stripped = before + after;
-      stripped = stripped.replace(/\n### 📋 Copy\/Paste Execution Scenarios[\s\S]*?(?=\n### |\n## |\n<!--|\n*$)/g, '\n');
-      stripped = stripped.replace(/\n### 🚀 Recommended Next Execution Command\(s\)[\s\S]*?(?=\n### |\n## |\n<!--|\n*$)/g, '\n');
-      stripped = stripped.replace(/\n### 💰 Plan Budget Estimate[\s\S]*?(?=\n### |\n## |\n<!--|\n*$)/g, '\n');
+      stripped = stripped.replace(/\n#{2,3} 📋 Copy\/Paste Execution Scenarios[\s\S]*?(?=\n#{2,3} |\n<!--|\n*$)/g, '\n');
+      stripped = stripped.replace(/\n#{2,3} 🚀 Recommended Next Execution Command\(s\)[\s\S]*?(?=\n#{2,3} |\n<!--|\n*$)/g, '\n');
       const targetPos = stripped.search(/\n## (🔗 Action Types|🧭 What's Next\?|📂 Generated Files)/);
       if (targetPos !== -1) {
         next = stripped.slice(0, targetPos).trimRight() + '\n\n---\n\n' + wrapped + '\n\n---\n\n' + stripped.slice(targetPos).trimLeft();
